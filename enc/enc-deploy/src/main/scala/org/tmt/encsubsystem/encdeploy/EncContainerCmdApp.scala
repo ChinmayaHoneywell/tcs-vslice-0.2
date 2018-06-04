@@ -7,4 +7,3 @@ object EncContainerCmdApp extends App {
   ContainerCmd.start("enc-container-cmd-app", args)
 
 }
-
