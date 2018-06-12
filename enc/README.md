@@ -44,12 +44,12 @@ This template shows working examples of:
 6. Loading and using configuration with the configuration service
 
 7. Lifecycle and Operational states
-    7.1 Transition between states
-    7.2 Communicating states between actors
-    7.3 Communicating states from hcd to assembly
+	7.1 Transition between states
+	7.2 Communicating states between actors
+	7.3 Communicating states from hcd to assembly
 
 8. Client app to submit commands to assembly
-
+	8.1 Submit command by typing on console.
 
 ## Examples to be implemented
 
