@@ -1,7 +1,5 @@
 # TCS ENC Assembly POC (Java, CSW 0.4.0)
 
-
-
 This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
 ([CSW](https://github.com/tmtsoftware/csw-prod)) APIs. 
@@ -9,8 +7,6 @@ This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
 
 ## Subprojects
-
-
 * enc-assembly - a template assembly that implements several command types, monitors state, and loads configuration
 
 * enc-hcd - an HCD that the assembly communicates with
@@ -19,8 +15,6 @@ This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
 
 ## Examples in the ENC POC
-
-
 
 This template shows working examples of:
 
@@ -59,13 +53,13 @@ This template shows working examples of:
 
 ## Examples to be implemented
 
-1. Communicating states between actors
+1. Communicating states to actors
 
-2. State based command validation
+2. State based command validation for move command.
 
 3. Publish demandState from assembly to hcd
 
-4. States transition.
+4. States transition for some more commands.
 
 
 
@@ -74,42 +68,25 @@ This template shows working examples of:
 
 
 ### Creating Typed Actors
-
-
-
 The template code creates Typed Actors for the following assembly subcomponents:
-
-
-
 Lifecycle Actor, Monitor Actor, Command Handler Actor and EventPublisher Actor.  
-
 Also actors for each command:  Move, Track, FastMove, TrackOff
 
-
-
 #### Lifecycle Actor
-
-
-
 The lifecycle actor contains all lifecycle related functions: functions that are performed at startup and shutdown.  Loading configuration and connecting to HCDs and other Assemblies as needed.
 
 
 
 #### Monitor Actor
-
-
-
 Health monitoring for the assembly.  Tracks dependency location changes and monitors health and state of the assembly.
 
-
-
 #### Command Handler Actor
-
-
-
 Directs submit commands to appropriate workers.  Handles onGoOnline and onGoOffline actions (for now, going offline means ignoring incoming commands)
 
+#### Event Handler Actor
+Event Handler Actor will receive Current States changes from Monitor actor, then convert them to events to publish using CSW Event Service.
 
+####State Publisher Actor
 
 
 
@@ -231,27 +208,10 @@ Setup(Prefix(&quot;tcs.encA&quot;), CommandName(&quot;follow&quot;), None)
 
 
 
-#### Event Handler Actor
 
 
 
-TBD
 
-
-
-### Using the Configuration Service
-
-
-
-TBD
-
-
-
-### Support for State Reporting
-
-
-
-TBD
 
 
 
