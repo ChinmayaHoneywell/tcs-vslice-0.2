@@ -73,10 +73,10 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
      */
     private void handleSubmitCommand(FollowCommandMessage message) {
         try {
-            log.debug("Follow Command Message Received by FollowCmdActor in HCD " + message.controlCommand);
+            log.debug(()-> "Follow Command Message Received by FollowCmdActor in HCD " + message.controlCommand);
             Thread.sleep(500);
             //Serialize command data, submit to subsystem using ethernet ip connection
-            log.debug("Got response from enc sussystem for follow command");
+            log.debug(()-> "Got response from enc sussystem for follow command");
             message.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(message.controlCommand.runId())));
         } catch (InterruptedException e) {
             e.printStackTrace();

@@ -53,7 +53,7 @@ public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug("Starup Received");
+                            log.debug(()->"Starup Received");
                             handleSubmitCommand(command);
                             return Behaviors.same();
                         });
@@ -63,13 +63,13 @@ public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> 
     private void handleSubmitCommand(ControlCommand message) {
 
         if (hcdCommandService.isPresent()) {
-            log.debug("Submitting startup command from assembly to hcd");
+            log.debug(()->"Submitting startup command from assembly to hcd");
             hcdCommandService.get()
                     .submitAndSubscribe(
                             message,
                             Timeout.durationToTimeout(FiniteDuration.apply(5, TimeUnit.SECONDS))
                     ).thenAccept(response -> {
-                log.debug("received response from hcd");
+                log.debug(()->"received response from hcd");
                 commandResponseManager.addOrUpdateCommand(message.runId(), response);
 
             });

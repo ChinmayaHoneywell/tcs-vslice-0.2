@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 public class JEncAssemblyHandlers extends JComponentHandlers {
 
 
-    // what shouldb be the initial state when assembly is just deployed, even before the onInitialize hook get called.
+    // what should be the initial state when assembly is just deployed, even before the onInitialize hook get called.
     public enum AssemblyLifecycleState {
         Initialized, Running, Offline, Online
     }
@@ -92,7 +92,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
         // Load the configuration from the configuration service
         // Config assemblyConfig = getAssemblyConfig();
-        log.debug("Spawning Handler Actors in assembly");
+        log.debug(()->"Spawning Handler Actors in assembly");
         commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory));
 
         eventHandlerActor = ctx.spawnAnonymous(JEventHandlerActor.behavior(loggerFactory));
@@ -106,7 +106,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
     @Override
     public CompletableFuture<Void> jInitialize() {
         return CompletableFuture.runAsync(() -> {
-            log.debug("initializing enc assembly");
+            log.debug(()->"initializing enc assembly");
             lifecycleActor.tell(new JLifecycleActor.InitializeMessage());
         });
     }
@@ -114,25 +114,25 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
     @Override
     public CompletableFuture<Void> jOnShutdown() {
         return CompletableFuture.runAsync(() -> {
-            log.debug("shutdown enc assembly");
+            log.debug(()->"shutdown enc assembly");
             lifecycleActor.tell(new JLifecycleActor.ShutdownMessage());
         });
     }
 
     @Override
     public void onLocationTrackingEvent(TrackingEvent trackingEvent) {
-        log.debug("assembly getting notified - location changed ");
+        log.debug(()->"assembly getting notified - location changed ");
         if (trackingEvent instanceof LocationUpdated) {
             AkkaLocation hcdAkkaLocation = (AkkaLocation) ((LocationUpdated) trackingEvent).location();
             hcdCommandService = Optional.of(new JCommandService(hcdAkkaLocation, actorContext.getSystem()));
             // set up Hcd CurrentState subscription to be handled by the monitor actor
             subscription = Optional.of(hcdCommandService.get().subscribeCurrentState(currentState -> {
-                        log.debug("Assembly getting notified: " + currentState.prefix());
+                        log.debug(()->"Assembly getting notified: " + currentState.prefix());
                         monitorActor.tell(new JMonitorActor.CurrentStateEventMessage(currentState));
                     }
             ));
 
-            log.debug("connection to hcd from assembly received");
+            log.debug(()->"connection to hcd from assembly received");
 
         } else if (trackingEvent instanceof LocationRemoved) {
             // do something for the tracked location when it is no longer available
@@ -149,16 +149,35 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     @Override
     public CommandResponse validateCommand(ControlCommand controlCommand) {
-        log.debug("validating command enc assembly " + controlCommand.commandName().name());
+        log.debug(()->"validating command enc assembly " + controlCommand.commandName().name());
         CommandResponse.Accepted accepted = new CommandResponse.Accepted(controlCommand.runId());
+
         if (controlCommand instanceof Setup) {
             if (controlCommand.commandName().name().equals("move")) {
-                log.debug("Move command received by assembly");
+                log.debug(()->"Move command received by assembly");
                 if (!((Setup) controlCommand).get("mode", JKeyTypes.StringKey()).isEmpty()) {
-                    log.debug("move command has valid parameters");
-                    return accepted;
+                    log.debug(() -> "move command has valid parameters");
+                    log.debug(() -> "asking assembly lifecycle state and operational state from monitor actor");
+                    try {
+                        JMonitorActor.AssemblyStatesResponseMessage assemblyStates = AskPattern.ask(monitorActor, (ActorRef<JMonitorActor.AssemblyStatesResponseMessage> replyTo) ->
+                                        new JMonitorActor.AssemblyStatesAskMessage(replyTo)
+                                , new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler()).toCompletableFuture().get();
+                        log.debug(() -> "Got Assembly state from monitor actor - " + assemblyStates.assemblyOperationalState + " ,  " + assemblyStates.assemblyLifecycleState);
+                        if (assemblyStates.assemblyOperationalState == AssemblyOperationalState.Ready) {
+                            log.debug(()->"Assembly is ready to accept command");
+                            return accepted;
+                        } else {
+                            CommandResponse invalid = new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.WrongInternalStateIssue("Assembly is not ready to accept operational command"));
+                            return invalid;
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        CommandResponse invalid = new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.OtherIssue("Exception while querying assembly state"));
+                        return invalid;
+                    }
                 } else {
-                    log.debug("invalid move command parameters");
+                    log.debug(()->"invalid move command parameters");
                     CommandResponse.Invalid invalid = new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.MissingKeyIssue("move command is missing mode parameter"));
 
                     return invalid;
@@ -166,12 +185,12 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             } else if (controlCommand.commandName().name().equals("follow")) {
                 //TODO: Put validations
                 try {
-                    log.debug("Follow command submitting to command handler from assembly and waiting for response");
+                    log.debug(()->"Follow command submitting to command handler from assembly and waiting for response");
                     //submitting command to commandHandler actor and waiting for completion.
                     final CompletionStage<JCommandHandlerActor.ImmediateResponseMessage> reply = AskPattern.ask(commandHandlerActor, (ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo) ->
                             new JCommandHandlerActor.ImmediateCommandMessage(controlCommand, replyTo), new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler());
                     CommandResponse response = reply.toCompletableFuture().get().commandResponse;
-                    log.debug("follow command response received in validate hook of assembly");
+                    log.debug(()->"follow command response received in validate hook of assembly");
                     return response;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -187,7 +206,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             } else if (controlCommand.commandName().name().equals("shutdown")) {
                 return accepted;
             } else {
-                log.debug("invalid command");
+                log.debug(()->"invalid command");
                 CommandResponse.Invalid invalid = new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.UnsupportedCommandIssue("this setup command is not supported"));
                 return invalid;
             }
@@ -198,7 +217,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     @Override
     public void onSubmit(ControlCommand controlCommand) {
-        log.info("Assembly received command - " + controlCommand);
+        log.info(()-> "Assembly received command - " + controlCommand);
         switch (controlCommand.commandName().name()) {
             case "move":
                 commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
@@ -220,18 +239,18 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     @Override
     public void onOneway(ControlCommand controlCommand) {
-        log.debug("processing oneway command to enc assembly");
+        log.debug(()->"processing oneway command to enc assembly");
     }
 
     @Override
     public void onGoOffline() {
-        log.debug("in onGoOffline()");
+        log.debug(()->"in onGoOffline()");
         commandHandlerActor.tell(new JCommandHandlerActor.GoOfflineMessage());
     }
 
     @Override
     public void onGoOnline() {
-        log.debug("in onGoOnline()");
+        log.debug(()->"in onGoOnline()");
 
         commandHandlerActor.tell(new JCommandHandlerActor.GoOnlineMessage());
     }

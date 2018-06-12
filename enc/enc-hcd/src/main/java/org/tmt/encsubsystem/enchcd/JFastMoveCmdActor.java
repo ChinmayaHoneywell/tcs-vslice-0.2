@@ -40,7 +40,7 @@ public class JFastMoveCmdActor extends Behaviors.MutableBehavior<ControlCommand>
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug("FastMove Command Message Received");
+                            log.debug(()-> "FastMove Command Message Received");
                             handleSubmitCommand(command);
                             return Behaviors.same();
                         });
@@ -51,7 +51,7 @@ public class JFastMoveCmdActor extends Behaviors.MutableBehavior<ControlCommand>
 
         //  Parameter axesParam = message.paramSet().find(x -> x.keyName().equals("axes")).get();
         try {
-            log.debug("Submitting fastMove command to ENC Subsystem");
+            log.debug(()-> "Submitting fastMove command to ENC Subsystem");
             Thread.sleep(500);
             //Serialize command data, submit to subsystem using ethernet ip connection
             commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));

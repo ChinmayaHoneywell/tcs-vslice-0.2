@@ -46,7 +46,7 @@ public class SetTargetWavelengthCmdActor extends Behaviors.MutableBehavior<Contr
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug("SetTargetWavelengthCmd Received");
+                            log.debug(()->"SetTargetWavelengthCmd Received");
                             handleSubmitCommand(command);
                             return Behaviors.same();
                         });
@@ -57,7 +57,7 @@ public class SetTargetWavelengthCmdActor extends Behaviors.MutableBehavior<Contr
 
         commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
 
-        log.debug("command message handled");
+        log.debug(()->"command message handled");
     }
 
 

@@ -30,7 +30,9 @@ This template shows working examples of:
 
 	2.4 Failing validation for invalid parameter
 
-3. Follow Command with parameters, Immediate command
+	2.5 State based validation using ask pattern, Accept command only if Operational state is ready.
+
+3. Follow Command with parameters as Immediate command
 
 	3.1 follow command to assembly then hcd
 	
@@ -60,13 +62,9 @@ This template shows working examples of:
 
 ## Examples to be implemented
 
-1. Communicating states to actors
+1. Publish demandState from assembly to hcd
 
-2. State based command validation for move command.
-
-3. Publish demandState from assembly to hcd
-
-4. States transition for some more commands.
+2. States transition for follow command and move command commands.
 
 
 
@@ -104,7 +102,7 @@ Setup(Prefix(&quot;tcs.encA&quot;), CommandName(&quot;move&quot;), None).add(ope
 
 Parameter Types:
 
- operation : string
+operation : string
 
 az: double
 
@@ -198,4 +196,4 @@ cd tcs-deploy/target/universal/stage/bin
 The Client App accept user input on console. Following command can be submitted to assembly by typing their name on console.
 [startup, invalidMove, move, follow, shutdown]
 
-Or user can type 'exit' to stop client
+Or user can type 'exit' to stop client.

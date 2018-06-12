@@ -94,25 +94,25 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
         ReceiveBuilder<StatePublisherMessage> builder = receiveBuilder()
                 .onMessage(StartMessage.class,
                         command -> {
-                            log.debug("StartMessage Received");
+                            log.debug(()-> "StartMessage Received");
                             onStart(command);
                             return Behaviors.same();
                         })
                 .onMessage(StopMessage.class,
                         command -> {
-                            log.debug("StopMessage Received");
+                            log.debug(()-> "StopMessage Received");
                             onStop(command);
                             return Behaviors.same();
                         })
                 .onMessage(PublishMessage.class,
                         command -> {
-                            log.debug("PublishMessage Received");
+                            log.debug(()-> "PublishMessage Received");
                             onPublishMessage(command);
                             return Behaviors.same();
                         })
                 .onMessage(StateChangeMessage.class,
                         command -> {
-                            log.debug("LifecycleStateChangeMessage Received");
+                            log.debug(()-> "LifecycleStateChangeMessage Received");
                             handleStateChange(command);
                             return Behaviors.same();
                         });
@@ -121,18 +121,18 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
     private void onStart(StartMessage message) {
 
-        log.debug("Start Message Received ");
+        log.debug(()-> "Start Message Received ");
 
         timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.create(60, TimeUnit.SECONDS));
 
-        log.debug("start message completed");
+        log.debug(()-> "start message completed");
 
 
     }
 
     private void onStop(StopMessage message) {
 
-        log.debug("Stop Message Received ");
+        log.debug(()-> "Stop Message Received ");
     }
 
     /**
@@ -153,7 +153,7 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
     private void onPublishMessage(PublishMessage message) {
 
-        log.debug("Publish Message Received ");
+        log.debug(()-> "Publish Message Received ");
 
         // example parameters for a current state
 

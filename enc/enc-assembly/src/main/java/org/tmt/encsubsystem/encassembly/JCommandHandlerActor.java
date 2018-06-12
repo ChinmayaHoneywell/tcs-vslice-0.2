@@ -97,32 +97,32 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("move"),
                         command -> {
-                            log.debug("MoveMessage Received");
+                            log.debug(()->"MoveMessage Received");
                             handleMoveCommand(command.controlCommand);
                             return Behaviors.same();
                         })
                 .onMessage(ImmediateCommandMessage.class,
                         message -> message.controlCommand.commandName().name().equals("follow"),
                         message -> {
-                            log.debug("Follow Message Received");
+                            log.debug(()->"Follow Message Received");
                             handleFollowCommand(message);
                             return Behaviors.same();
                         })
                 .onMessage(GoOnlineMessage.class,
                         command -> {
-                            log.debug("GoOnlineMessage Received");
+                            log.debug(()->"GoOnlineMessage Received");
                             // change the behavior to online
                             return behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory);
                         })
                 .onMessage(UpdateTemplateHcdMessage.class,
                         command -> {
-                            log.debug("UpdateTemplateHcdMessage Received");
+                            log.debug(()->"UpdateTemplateHcdMessage Received");
                             // update the template hcd
                             return behavior(commandResponseManager, command.commandServiceOptional, online, loggerFactory);
                         })
                 .onMessage(GoOfflineMessage.class,
                         command -> {
-                            log.debug("GoOfflineMessage Received");
+                            log.debug(()->"GoOfflineMessage Received");
                             // change the behavior to online
                             return behavior(commandResponseManager, hcdCommandService, Boolean.FALSE, loggerFactory);
                         });
@@ -132,7 +132,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     private void handleSetTargetWavelengthCommand(ControlCommand controlCommand) {
 
-        log.debug("handleSetTargetWavelengthCommand = " + controlCommand);
+        log.debug(()->"handleSetTargetWavelengthCommand = " + controlCommand);
 
         if (online) {
 
@@ -149,7 +149,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     private void handleMoveCommand(ControlCommand controlCommand) {
 
-        log.debug("handleMoveCommand = " + controlCommand);
+        log.debug(()->"handleMoveCommand = " + controlCommand);
 
         if (online) {
 
@@ -162,7 +162,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
     }
 
     private void handleFollowCommand(ImmediateCommandMessage message) {
-        log.debug("handleFollowCommand = " + message.controlCommand);
+        log.debug(()->"handleFollowCommand = " + message.controlCommand);
         if (online) {
             ActorRef<JFollowCmdActor.FollowMessage> followCmdActor = actorContext.spawnAnonymous(JFollowCmdActor.behavior(commandResponseManager, hcdCommandService, loggerFactory));
             followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(message.controlCommand, message.replyTo));

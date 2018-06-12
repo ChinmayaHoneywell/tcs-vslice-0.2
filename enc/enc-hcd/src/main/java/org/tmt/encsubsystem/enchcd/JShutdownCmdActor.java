@@ -48,7 +48,7 @@ public class JShutdownCmdActor extends Behaviors.MutableBehavior<ControlCommand>
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug("Shutdown Received");
+                            log.debug(()-> "Shutdown Received");
                             handleShutdownCommand(command);
                             return Behaviors.same();
                         });
@@ -57,8 +57,8 @@ public class JShutdownCmdActor extends Behaviors.MutableBehavior<ControlCommand>
 
     private void handleShutdownCommand(ControlCommand controlCommand) {
 
-        log.debug("HCD handling shutdown command = " + controlCommand);
-        log.debug("TODO: should park enc and the disconnet with subsystem");
+        log.debug(()-> "HCD handling shutdown command = " + controlCommand);
+        log.debug(()-> "TODO: should park enc and the disconnet with subsystem");
 
         try {
             Thread.sleep(500);

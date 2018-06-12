@@ -56,13 +56,13 @@ public class JEventHandlerActor extends Behaviors.MutableBehavior<JEventHandlerA
         ReceiveBuilder<EventMessage> builder = receiveBuilder()
                 .onMessage(EventPublishMessage.class,
                         command -> {
-                            log.debug("EventPublishMessage Received");
+                            log.debug(()->"EventPublishMessage Received");
                             publishEvent(command);
                             return Behaviors.same();
                         })
                 .onMessage(AssemblyStateChangeMessage.class,
                         command -> {
-                            log.debug("Changed assembly states Received");
+                            log.debug(()->"Changed assembly states Received");
                             publishAssemblyStates(command);
                             return Behaviors.same();
                         });
@@ -71,14 +71,14 @@ public class JEventHandlerActor extends Behaviors.MutableBehavior<JEventHandlerA
 
     private void publishEvent(EventPublishMessage message) {
 
-        log.debug("Publish Event Received ");
+        log.debug(()->"Publish Event Received ");
     }
 
     private void publishAssemblyStates(AssemblyStateChangeMessage message) {
 
-        log.info("Event Handler Actor , Lifecycle state - " + message.assemblyLifecycleState + ", Operation state - " + message.assemblyOperationalState);
+        log.info(()-> "Event Handler Actor , Lifecycle state - " + message.assemblyLifecycleState + ", Operation state - " + message.assemblyOperationalState);
 
-        log.debug("States will be published on CSW event service from here");
+        log.debug(()->"States will be published on CSW event service from here");
     }
 
 

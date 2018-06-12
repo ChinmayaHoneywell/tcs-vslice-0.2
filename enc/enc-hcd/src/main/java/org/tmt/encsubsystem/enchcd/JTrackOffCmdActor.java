@@ -59,10 +59,10 @@ public class JTrackOffCmdActor extends Behaviors.MutableBehavior<ControlCommand>
      */
     private void handleSubmitCommand(ControlCommand message) {
         try {
-            log.debug("TrackOff Command Message Received by TrackOffCmdActor in HCD " + message);
+            log.debug(()-> "TrackOff Command Message Received by TrackOffCmdActor in HCD " + message);
             Thread.sleep(500);
             //Serialize command data, submit to subsystem using ethernet ip connection
-            log.debug("Got response from enc susbystem for trackOff command");
+            log.debug(()-> "Got response from enc susbystem for trackOff command");
             commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
         } catch (InterruptedException e) {
             e.printStackTrace();
