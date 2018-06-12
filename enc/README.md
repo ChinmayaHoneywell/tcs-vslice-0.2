@@ -158,6 +158,7 @@ export interfaceName=&lt;machine interface name&gt;   (The interface name of you
 export clusterSeeds=&lt;machine IP&gt;:7777
 
 #### Install csw-prod
+
 Clone or download tmtsoftware/csw-prod project to a directory of choice
 
 cd sw-prod
@@ -165,6 +166,7 @@ cd sw-prod
 sbt stage publishLocal
 
 #### Start the csw-prod Location Service:
+
 cd csw-prod/target/universal/stage/bin
 
 ./csw-cluster-seed --clusterPort 7777
@@ -176,11 +178,13 @@ cd csw-prod/target/universal/stage/bin
 ./csw-config-server --initRepo
 
 ### Populate the assembly configuration
+
 cd enc-deploy/src/main/resources
 
 ./initialize-config.sh <ip address>
 
 ### Start the enc Assembly
+
 cd enc-deploy/target/universal/stage/bin
 
 ./enc-container-cmd-app --local ../../../../src/main/resources/EncContainer.conf
@@ -188,6 +192,7 @@ cd enc-deploy/target/universal/stage/bin
 ### Run the Client App
 
 cd tcs-deploy/target/universal/stage/bin
+
 ./tcs-template-java-client
 
 The Client App accept user input on console. Following command can be submitted to assembly by typing their name on console.
