@@ -33,22 +33,29 @@ This template shows working examples of:
 3. Follow Command with parameters, Immediate command
 
 	3.1 follow command to assembly then hcd
+	
 	3.2 Using ask pattern to implement immediate command
 
 4. HCD to Assembly CurrentState publish/subscribe using Current State publisher
 
 5. Lifecycle Commands(StartUp/Shutdown)
-    5.1 Submit lifecycle command to assembly and hcd
-    5.2 Transition assembly and hcd state from initialized to running and vice-versa
+
+	5.1 Submit lifecycle command to assembly and hcd
+	
+	5.2 Transition assembly and hcd state from initialized to running and vice-versa
 
 6. Loading and using configuration with the configuration service
 
 7. Lifecycle and Operational states
+	
 	7.1 Transition between states
+	
 	7.2 Communicating states between actors
+	
 	7.3 Communicating states from hcd to assembly
 
 8. Client app to submit commands to assembly
+	
 	8.1 Submit command by typing on console.
 
 ## Examples to be implemented
