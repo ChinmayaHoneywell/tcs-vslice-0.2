@@ -1,10 +1,11 @@
 package org.tmt.encsubsystem.encassembly;
 
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.ReceiveBuilder;
-
+import csw.messages.params.generics.Parameter;
 import csw.messages.params.states.CurrentState;
 import csw.services.command.javadsl.JCommandService;
 import csw.services.logging.javadsl.ILogger;
@@ -13,43 +14,37 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import java.util.Optional;
 
 
-
 public class JMonitorActor extends Behaviors.MutableBehavior<JMonitorActor.MonitorMessage> {
 
 
-    public enum AssemblyState {
-        Ready, Degraded, Disconnected, Faulted
-    }
-    public enum AssemblyMotionState {
-        Idle, Slewing, Tracking, InPosition, Halted
-    }
-
     // add messages here
-    interface MonitorMessage {}
+    interface MonitorMessage {
+    }
 
-    public static final class AssemblyStateChangeMessage implements MonitorMessage {
+    public static final class AssemblyLifecycleStateChangeMessage implements MonitorMessage {
 
-        public final AssemblyState assemblyState;
+        public final JEncAssemblyHandlers.AssemblyLifecycleState assemblyLifecycleState;
 
-        public AssemblyStateChangeMessage(AssemblyState assemblyState) {
-            this.assemblyState = assemblyState;
+        public AssemblyLifecycleStateChangeMessage(JEncAssemblyHandlers.AssemblyLifecycleState assemblyLifecycleState) {
+            this.assemblyLifecycleState = assemblyLifecycleState;
         }
     }
-    public static final class AssemblyMotionStateChangeMessage implements MonitorMessage {
 
-        public final AssemblyMotionState assemblyMotionState;
+    public static final class AssemblyOperationalStateChangeMessage implements MonitorMessage {
 
-        public AssemblyMotionStateChangeMessage(AssemblyMotionState assemblyMotionState) {
-            this.assemblyMotionState = assemblyMotionState;
+        public final JEncAssemblyHandlers.AssemblyOperationalState assemblyOperationalState;
+
+        public AssemblyOperationalStateChangeMessage(JEncAssemblyHandlers.AssemblyOperationalState assemblyOperationalState) {
+            this.assemblyOperationalState = assemblyOperationalState;
         }
     }
 
     public static final class LocationEventMessage implements MonitorMessage {
 
-        public final Optional<JCommandService> templateHcd;
+        public final Optional<JCommandService> hcdCommandService;
 
-        public LocationEventMessage(Optional<JCommandService> templateHcd) {
-            this.templateHcd = templateHcd;
+        public LocationEventMessage(Optional<JCommandService> hcdCommandService) {
+            this.hcdCommandService = hcdCommandService;
         }
     }
 
@@ -66,20 +61,27 @@ public class JMonitorActor extends Behaviors.MutableBehavior<JMonitorActor.Monit
     private ActorContext<MonitorMessage> actorContext;
     private JLoggerFactory loggerFactory;
     private ILogger log;
-    private AssemblyState assemblyState;
-    private AssemblyMotionState assemblyMotionState;
 
-    private JMonitorActor(ActorContext<MonitorMessage> actorContext, AssemblyState assemblyState, AssemblyMotionState assemblyMotionState, JLoggerFactory loggerFactory) {
+    ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor;
+    ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor;
+
+    private JEncAssemblyHandlers.AssemblyLifecycleState assemblyLifecycleState;
+    private JEncAssemblyHandlers.AssemblyOperationalState assemblyOperationalState;
+
+    private JMonitorActor(ActorContext<MonitorMessage> actorContext, JEncAssemblyHandlers.AssemblyLifecycleState assemblyLifecycleState, JEncAssemblyHandlers.AssemblyOperationalState assemblyOperationalState, JLoggerFactory loggerFactory, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.assemblyState = assemblyState;
-        this.assemblyMotionState = assemblyMotionState;
+        this.assemblyLifecycleState = assemblyLifecycleState;
+        this.assemblyOperationalState = assemblyOperationalState;
+
+        this.eventHandlerActor = eventHandlerActor;
+        this.commandHandlerActor = commandHandlerActor;
     }
 
-    public static <MonitorMessage> Behavior<MonitorMessage> behavior(AssemblyState assemblyState, AssemblyMotionState assemblyMotionState, JLoggerFactory loggerFactory) {
+    public static <MonitorMessage> Behavior<MonitorMessage> behavior(JEncAssemblyHandlers.AssemblyLifecycleState assemblyLifecycleState, JEncAssemblyHandlers.AssemblyOperationalState assemblyOperationalState, JLoggerFactory loggerFactory, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<MonitorMessage>) new JMonitorActor((ActorContext<JMonitorActor.MonitorMessage>) ctx, assemblyState, assemblyMotionState, loggerFactory);
+            return (Behaviors.MutableBehavior<MonitorMessage>) new JMonitorActor((ActorContext<JMonitorActor.MonitorMessage>) ctx, assemblyLifecycleState, assemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
         });
     }
 
@@ -88,59 +90,97 @@ public class JMonitorActor extends Behaviors.MutableBehavior<JMonitorActor.Monit
     public Behaviors.Receive<MonitorMessage> createReceive() {
 
         ReceiveBuilder<MonitorMessage> builder = receiveBuilder()
-                .onMessage(AssemblyStateChangeMessage.class,
+                .onMessage(AssemblyLifecycleStateChangeMessage.class,
                         message -> {
-                            log.info("AssemblyStateChangeMessage Received");
+                            log.debug("AssemblyStateChangeMessage Received");
                             // change the behavior state
-                            return behavior(message.assemblyState, assemblyMotionState, loggerFactory);
+                            return behavior(message.assemblyLifecycleState, assemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
 
                         })
-                .onMessage(AssemblyMotionStateChangeMessage.class,
+                .onMessage(AssemblyOperationalStateChangeMessage.class,
                         message -> {
-                            log.info("AssemblyMotionStateChangeMessage Received");
+                            log.debug("AssemblyMotionStateChangeMessage Received");
                             // change the behavior state
-                            return behavior(assemblyState, message.assemblyMotionState, loggerFactory);
+                            return behavior(assemblyLifecycleState, message.assemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
                         })
                 .onMessage(LocationEventMessage.class,
                         message -> {
-                            log.info("LocationEventMessage Received");
+                            log.debug("LocationEventMessage Received");
                             return onLocationEventMessage(message);
                         })
                 .onMessage(CurrentStateEventMessage.class,
-                message -> {
-                    log.info("CurrentStateEventMessage Received");
-                    return onCurrentStateEventMessage(message);
-                });
+                        message -> {
+                            log.debug("CurrentStateEventMessage Received");
+                            return onCurrentStateEventMessage(message);
+                        });
         return builder.build();
     }
 
     private Behavior<MonitorMessage> onLocationEventMessage(LocationEventMessage message) {
+        JEncAssemblyHandlers.AssemblyLifecycleState derivedAssemblyLifecycleState;
+        JEncAssemblyHandlers.AssemblyOperationalState derivedAssemblyOperationalState;
 
-        if (message.templateHcd.isPresent() ) {
+        if (message.hcdCommandService.isPresent()) {
 
-            if (assemblyState != AssemblyState.Disconnected) {
-                // TODO: this logic is oversimplified: just because the state is no longer disconnected, does not mean it is Ready
-                return JMonitorActor.behavior(AssemblyState.Ready, assemblyMotionState, loggerFactory);
-            } else {
-                return this;
-            }
+            //TODO: Derive Assembly Lifecycle state and Operation state here based on current incoming states
+            // if HCD is just came alive than states of assembly will be initialized and idle.
+            derivedAssemblyLifecycleState = JEncAssemblyHandlers.AssemblyLifecycleState.Initialized;
+            derivedAssemblyOperationalState = JEncAssemblyHandlers.AssemblyOperationalState.Idle;
         } else {
-            // if templateHcd is null, then change state to disconnected
-            return JMonitorActor.behavior(AssemblyState.Disconnected, assemblyMotionState, loggerFactory);
+            // if hcdCommandService is empty, then change state to disconnected
+            // as assembly is disconnected to hcd, monitor actor will not be receiving current states from hcd.
+            derivedAssemblyLifecycleState = JEncAssemblyHandlers.AssemblyLifecycleState.Running;
+            derivedAssemblyOperationalState = JEncAssemblyHandlers.AssemblyOperationalState.Faulted;
         }
+        publishStateChangeToActors(derivedAssemblyLifecycleState, derivedAssemblyOperationalState);
+        return JMonitorActor.behavior(derivedAssemblyLifecycleState, derivedAssemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
+
     }
 
     private Behavior<MonitorMessage> onCurrentStateEventMessage(CurrentStateEventMessage message) {
-
-        log.info("current state handler");
+        JEncAssemblyHandlers.AssemblyLifecycleState derivedAssemblyLifecycleState = assemblyLifecycleState;
+        ;
+        JEncAssemblyHandlers.AssemblyOperationalState derivedAssemblyOperationalState = assemblyOperationalState;
+        log.debug("current state handler");
 
         CurrentState currentState = message.currentState;
 
-        log.info("current state = " + currentState);
+        log.debug("current state = " + currentState);
 
-        // here the Monitor Actor can change its state depending on the current state of the HCD
-        return JMonitorActor.behavior(assemblyState, assemblyMotionState, loggerFactory);
+        //TODO: Derive Assembly Lifecycle state and Operation state based on current states received from hcd
+        // Monitor Actor can change its state depending on the current state of the HCD
+        if ("tmt.tcs.ecs.currentPosition".equals(currentState.prefixStr())) {
+            log.debug("Current position received - " + currentState);
 
+            // by comparing demandPosition and current position here we can derive assembly state as slewing . tracking or in-position
+            // As of now keeping state as is.
+            derivedAssemblyLifecycleState = assemblyLifecycleState;
+            derivedAssemblyOperationalState = assemblyOperationalState;
+        } else if ("tmt.tcs.ecs.currentLifecycleState".equals(currentState.prefixStr())) {
+            log.debug("Current states received - " + currentState);
+
+            Parameter lifecycleStateParam = currentState.paramSet().find(x -> x.keyName().equals("LifecycleState")).get();
+            String lifecycleStateString = (String) lifecycleStateParam.get(0).get();
+            derivedAssemblyLifecycleState = JEncAssemblyHandlers.AssemblyLifecycleState.valueOf(lifecycleStateString);
+            Parameter operationalStateParam = currentState.paramSet().find(x -> x.keyName().equals("OperationalState")).get();
+            String operationalStateString = (String) operationalStateParam.get(0).get();
+            derivedAssemblyOperationalState = JEncAssemblyHandlers.AssemblyOperationalState.valueOf(operationalStateString);
+            log.debug("Assembly states derived from HCD states - " + derivedAssemblyLifecycleState + " and " + derivedAssemblyOperationalState);
+        }
+
+        publishStateChangeToActors(derivedAssemblyLifecycleState, derivedAssemblyOperationalState);
+        return JMonitorActor.behavior(derivedAssemblyLifecycleState, derivedAssemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
+    }
+
+    /**
+     * This method publish state changes to event handler actor.
+     *
+     * @param assemblyLifecycleState
+     * @param assemblyOperationalState
+     */
+    private void publishStateChangeToActors(JEncAssemblyHandlers.AssemblyLifecycleState assemblyLifecycleState, JEncAssemblyHandlers.AssemblyOperationalState assemblyOperationalState) {
+        log.debug("Assembly Monitor actor publishing states to actors - ");
+        eventHandlerActor.tell(new JEventHandlerActor.AssemblyStateChangeMessage(assemblyLifecycleState, assemblyOperationalState));
     }
 
 

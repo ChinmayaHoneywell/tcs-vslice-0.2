@@ -20,7 +20,7 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
-import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -36,21 +36,21 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
     private JLoggerFactory loggerFactory;
     private ILogger log;
     private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> templateHcd;
+    private Optional<JCommandService> hcdCommandService;
 
 
-    private MoveCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> templateHcd, JLoggerFactory loggerFactory) {
+    private MoveCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
         this.commandResponseManager = commandResponseManager;
-        this.templateHcd = templateHcd;
+        this.hcdCommandService = hcdCommandService;
 
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> templateHcd, JLoggerFactory loggerFactory) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new MoveCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, templateHcd,
+            return (Behaviors.MutableBehavior<ControlCommand>) new MoveCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
                     loggerFactory);
         });
     }
@@ -62,7 +62,7 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.info("Move Received");
+                            log.debug("Move Received");
                             handleSubmitCommand(command);
                             return Behaviors.same();
                         });
@@ -76,8 +76,8 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
         Parameter operation = message.paramSet().find(x -> x.keyName().equals("operation")).get();
         Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
         Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
-        Parameter mode = message.paramSet().find(x-> x.keyName().equals("mode")).get();
-        Parameter timeDuration = message.paramSet().find(x-> x.keyName().equals("timeDuration")).get();
+        Parameter mode = message.paramSet().find(x -> x.keyName().equals("mode")).get();
+        Parameter timeDuration = message.paramSet().find(x -> x.keyName().equals("timeDuration")).get();
 
         // create Point and PointDemand messages and send to HCD
 
@@ -92,7 +92,7 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
 
             commandResponseManager.updateSubCommand(response.runId(), response);
 
-            log.info("move command message handled");
+            log.debug("move command message handled");
 
 
         });
@@ -109,7 +109,7 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
                                             Parameter mode,
                                             Parameter timeDuration) {
         String modeValue = (String) mode.get(0).get();
-        if (templateHcd.isPresent()) {
+        if (hcdCommandService.isPresent()) {
             log.debug("Mode - " + modeValue);
             if ("fast".equals(modeValue)) {
                 log.debug("Submitting fastMove command to HCD");
@@ -120,7 +120,7 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
                         .add(operation);
 
 
-                CompletableFuture<CommandResponse> commandResponse = templateHcd.get()
+                CompletableFuture<CommandResponse> commandResponse = hcdCommandService.get()
                         .submitAndSubscribe(
                                 fastMoveSetupCmd,
                                 Timeout.durationToTimeout(FiniteDuration.apply(5, TimeUnit.SECONDS))

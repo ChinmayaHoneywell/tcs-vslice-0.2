@@ -2,14 +2,13 @@
 
 
 
-This project implements a TCS-ENC Assembly using TMT Common Software 
+This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
 ([CSW](https://github.com/tmtsoftware/csw-prod)) APIs. 
 
 
 
 ## Subprojects
-
 
 
 * enc-assembly - a template assembly that implements several command types, monitors state, and loads configuration
@@ -19,20 +18,15 @@ This project implements a TCS-ENC Assembly using TMT Common Software
 * enc-deploy - for starting/deploying the Assembly and HCD, Client to submit commands to enc-assembly.
 
 
-
-
-
-
-
 ## Examples in the ENC POC
 
 
 
 This template shows working examples of:
 
-1. Create typed actors for each of the internal components in the TCS architecture doc: Lifecycle Actor, MonitorActor, Command Handler Actor, Event Handler Actor
+1. Create typed actors for each of the internal components in the TCS architecture doc: Lifecycle Actor, Monitor Actor, Command Handler Actor, Event Handler Actor, State Publisher Actor
 
-2. Move Command with parameters, Long running command.
+2. Move Command with parameters
 
 	2.1 Parameter based validation inside 'onValidate'
 
@@ -42,31 +36,36 @@ This template shows working examples of:
 
 	2.4 Failing validation for invalid parameter
 
-3. Follow Command with parameters, Long running command.
+3. Follow Command with parameters, Immediate command
 
-	3.1  TrackOff command as child command to HCD
+	3.1 follow command to assembly then hcd
+	3.2 Using ask pattern to implement immediate command
 
-4. HCD to Assembly CurrentState publish/subscribe
+4. HCD to Assembly CurrentState publish/subscribe using Current State publisher
 
-5. Client app to exercise the assembly commands
+5. Lifecycle Commands(StartUp/Shutdown)
+    5.1 Submit lifecycle command to assembly and hcd
+    5.2 Transition assembly and hcd state from initialized to running and vice-versa
 
+6. Loading and using configuration with the configuration service
+
+7. Lifecycle and Operational states
+    7.1 Transition between states
+    7.2 Communicating states between actors
+    7.3 Communicating states from hcd to assembly
+
+8. Client app to submit commands to assembly
 
 
 ## Examples to be implemented
 
-1. Immediate command
+1. Communicating states between actors
 
-2. Loading and using configuration with the configuration service
+2. State based command validation
 
-3. Lifecycle Commands(StartUp/Shutdown)
+3. Publish demandState from assembly to hcd
 
-4. Communicating states between actors
-
-5. State based command validation
-
-6. Publish demandState from assembly to hcd
-
-7. States transition.
+4. States transition.
 
 
 
@@ -378,11 +377,10 @@ cd enc-deploy/target/universal/stage/bin
 
 ### Run the Client App
 
-
-
 cd tcs-deploy/target/universal/stage/bin
-
-
-
 ./tcs-template-java-client
 
+The Client App accept user input on console. Following command can be submitted to assembly by typing their name on console.
+[startup, invalidMove, move, follow, shutdown]
+
+Or user can type 'exit' to stop client

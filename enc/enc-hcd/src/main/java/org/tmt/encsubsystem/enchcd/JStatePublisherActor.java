@@ -23,44 +23,67 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
 
     // add messages here
-    interface StatePublisherMessage {}
+    interface StatePublisherMessage {
+    }
 
-    public static final class StartMessage implements StatePublisherMessage { }
-    public static final class StopMessage implements StatePublisherMessage { }
-    public static final class PublishMessage implements StatePublisherMessage { }
+    public static final class StartMessage implements StatePublisherMessage {
+    }
 
+    public static final class StopMessage implements StatePublisherMessage {
+    }
+
+    public static final class PublishMessage implements StatePublisherMessage {
+    }
+
+
+    public static final class StateChangeMessage implements StatePublisherMessage {
+
+        public final JEncHcdHandlers.LifecycleState lifecycleState;
+        public final JEncHcdHandlers.OperationalState operationalState;
+
+        public StateChangeMessage(JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
+            this.lifecycleState = lifecycleState;
+            this.operationalState = operationalState;
+        }
+    }
 
     private JLoggerFactory loggerFactory;
     private CurrentStatePublisher currentStatePublisher;
     private ILogger log;
     private TimerScheduler<StatePublisherMessage> timer;
 
+    JEncHcdHandlers.LifecycleState lifecycleState;
+    JEncHcdHandlers.OperationalState operationalState;
+
 
     //prefix
-    String prefix = "tcs.test";
+    String prefixCurrentPosition = "tmt.tcs.ecs.currentPosition";
+    String prefixCurrentLifecycleState = "tmt.tcs.ecs.currentLifecycleState";
 
     //keys
-    Key timestampKey    = JKeyTypes.TimestampKey().make("timestampKey");
+    Key timestampKey = JKeyTypes.TimestampKey().make("timestampKey");
 
-    Key azPosKey        = JKeyTypes.DoubleKey().make("azPosKey");
-    Key azPosErrorKey   = JKeyTypes.DoubleKey().make("azPosErrorKey");
-    Key elPosKey        = JKeyTypes.DoubleKey().make("elPosKey");
-    Key elPosErrorKey   = JKeyTypes.DoubleKey().make("elPosErrorKey");
+    Key azPosKey = JKeyTypes.DoubleKey().make("azPosKey");
+    Key azPosErrorKey = JKeyTypes.DoubleKey().make("azPosErrorKey");
+    Key elPosKey = JKeyTypes.DoubleKey().make("elPosKey");
+    Key elPosErrorKey = JKeyTypes.DoubleKey().make("elPosErrorKey");
     Key azInPositionKey = JKeyTypes.BooleanKey().make("azInPositionKey");
     Key elInPositionKey = JKeyTypes.BooleanKey().make("elInPositionKey");
 
     private static final Object TIMER_KEY = new Object();
 
-    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory) {
+    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
         this.timer = timer;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(this.getClass());
         this.currentStatePublisher = currentStatePublisher;
+        this.lifecycleState = lifecycleState;
+        this.operationalState = operationalState;
     }
 
-    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory) {
+    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
         return Behaviors.withTimers(timers -> {
-            return (Behaviors.MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>)timers, currentStatePublisher, loggerFactory);
+            return (Behaviors.MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, currentStatePublisher, loggerFactory, lifecycleState, operationalState);
         });
     }
 
@@ -71,20 +94,26 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
         ReceiveBuilder<StatePublisherMessage> builder = receiveBuilder()
                 .onMessage(StartMessage.class,
                         command -> {
-                            log.info("StartMessage Received");
+                            log.debug("StartMessage Received");
                             onStart(command);
                             return Behaviors.same();
                         })
                 .onMessage(StopMessage.class,
                         command -> {
-                            log.info("StopMessage Received");
+                            log.debug("StopMessage Received");
                             onStop(command);
                             return Behaviors.same();
                         })
                 .onMessage(PublishMessage.class,
                         command -> {
-                            log.info("PublishMessage Received");
+                            log.debug("PublishMessage Received");
                             onPublishMessage(command);
+                            return Behaviors.same();
+                        })
+                .onMessage(StateChangeMessage.class,
+                        command -> {
+                            log.debug("LifecycleStateChangeMessage Received");
+                            handleStateChange(command);
                             return Behaviors.same();
                         });
         return builder.build();
@@ -92,37 +121,53 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
     private void onStart(StartMessage message) {
 
-        log.info("Start Message Received ");
+        log.debug("Start Message Received ");
 
-        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.create(600, TimeUnit.SECONDS));
+        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.create(60, TimeUnit.SECONDS));
 
-        log.info("start message completed");
+        log.debug("start message completed");
 
 
     }
 
     private void onStop(StopMessage message) {
 
-        log.info("Stop Message Received ");
+        log.debug("Stop Message Received ");
+    }
+
+    /**
+     * This method update state of hcd. this changed state will be published to assembly as per timer frequency.
+     *
+     * @param message
+     */
+    private void handleStateChange(StateChangeMessage message) {
+        this.lifecycleState = message.lifecycleState;
+        this.operationalState = message.operationalState;
+        CurrentState currentLifecycleState = new CurrentState(prefixCurrentLifecycleState)
+                .add(JKeyTypes.StringKey().make("LifecycleState").set(lifecycleState.name()))
+                .add(JKeyTypes.StringKey().make("OperationalState").set(operationalState.name()));
+
+
+        currentStatePublisher.publish(currentLifecycleState);
     }
 
     private void onPublishMessage(PublishMessage message) {
 
-        log.info("Publish Message Received ");
+        log.debug("Publish Message Received ");
 
         // example parameters for a current state
 
-        Parameter azPosParam        = azPosKey.set(35.34).withUnits(degree);
-        Parameter azPosErrorParam   = azPosErrorKey.set(0.34).withUnits(degree);
-        Parameter elPosParam        = elPosKey.set(46.7).withUnits(degree);
-        Parameter elPosErrorParam   = elPosErrorKey.set(0.03).withUnits(degree);
+        Parameter azPosParam = azPosKey.set(35.34).withUnits(degree);
+        Parameter azPosErrorParam = azPosErrorKey.set(0.34).withUnits(degree);
+        Parameter elPosParam = elPosKey.set(46.7).withUnits(degree);
+        Parameter elPosErrorParam = elPosErrorKey.set(0.03).withUnits(degree);
         Parameter azInPositionParam = azInPositionKey.set(false);
         Parameter elInPositionParam = elInPositionKey.set(true);
 
         Parameter timestamp = timestampKey.set(Instant.now());
 
         //create CurrentState and use sequential add
-        CurrentState currentState = new CurrentState(prefix)
+        CurrentState currentPosition = new CurrentState(prefixCurrentPosition)
                 .add(azPosParam)
                 .add(elPosParam)
                 .add(azPosErrorParam)
@@ -131,7 +176,7 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
                 .add(elInPositionParam)
                 .add(timestamp);
 
-        currentStatePublisher.publish(currentState);
+        currentStatePublisher.publish(currentPosition);
 
 
     }

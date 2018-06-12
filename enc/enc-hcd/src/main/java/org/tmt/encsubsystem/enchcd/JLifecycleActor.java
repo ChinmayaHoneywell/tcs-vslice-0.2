@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.encassembly;
+package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.ActorRefFactory;
 import akka.actor.typed.ActorRef;
@@ -11,7 +11,6 @@ import akka.stream.Materializer;
 import com.typesafe.config.Config;
 import csw.framework.exceptions.FailureStop;
 import csw.messages.commands.ControlCommand;
-import csw.services.command.javadsl.JCommandService;
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.api.models.ConfigData;
@@ -21,7 +20,6 @@ import csw.services.logging.javadsl.JLoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
@@ -48,15 +46,6 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
         }
     }
 
-    public static final class UpdateHcdCommandServiceMessage implements LifecycleMessage {
-
-        public final Optional<JCommandService> commandServiceOptional;
-
-        public UpdateHcdCommandServiceMessage(Optional<JCommandService> commandServiceOptional) {
-            this.commandServiceOptional = commandServiceOptional;
-        }
-    }
-
 
     private ActorContext<LifecycleMessage> actorContext;
     private JLoggerFactory loggerFactory;
@@ -64,22 +53,23 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
     private ILogger log;
     private IConfigClientService configClientApi;
     private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> hcdCommandService;
+    ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
 
 
-    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
+    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
         this.configClientApi = configClientApi;
         this.commandResponseManager = commandResponseManager;
-        this.hcdCommandService = hcdCommandService;
+        this.statePublisherActor = statePublisherActor;
+
 
     }
 
-    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
+    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, loggerFactory);
+            return (Behaviors.MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, statePublisherActor, configClientApi, loggerFactory);
         });
     }
 
@@ -110,16 +100,11 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("shutdown"),
                         command -> {
-                            log.debug("shutdown Received");
+                            log.debug("Shutdown Received");
                             handleShutdownCommand(command.controlCommand);
                             return Behaviors.same();
-                        })
-                .onMessage(UpdateHcdCommandServiceMessage.class,
-                        command -> {
-                            log.debug("UpdateTemplateHcdMessage Received");
-                            // update the template hcd
-                            return behavior(commandResponseManager, command.commandServiceOptional, configClientApi, loggerFactory);
                         });
+
         return builder.build();
     }
 
@@ -127,7 +112,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
         log.debug("Initialize Message Received ");
 
-        Config assemblyConfig = getAssemblyConfig();
+        Config assemblyConfig = getHCDConfig();
 
         // example of working with Config
         Integer bazValue = assemblyConfig.getInt("foo.bar.baz");
@@ -145,7 +130,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
         log.debug("handle Startup Command = " + controlCommand);
         ActorRef<ControlCommand> startupCmdActor =
-                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, hcdCommandService, loggerFactory));
+                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
 
         startupCmdActor.tell(controlCommand);
     }
@@ -154,7 +139,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
         log.debug("handle shutdown Command = " + controlCommand);
         ActorRef<ControlCommand> shutdownCmdActor =
-                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, hcdCommandService, loggerFactory));
+                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
 
         shutdownCmdActor.tell(controlCommand);
     }
@@ -165,7 +150,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
      *
      * @return
      */
-    private Config getAssemblyConfig() {
+    private Config getHCDConfig() {
 
         try {
             ActorRefFactory actorRefFactory = Adapter.toUntyped(actorContext.getSystem());
@@ -174,7 +159,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
             Materializer mat = actorRuntime.mat();
 
-            ConfigData configData = getAssemblyConfigData();
+            ConfigData configData = getHCDConfigData();
 
             return configData.toJConfigObject(mat).get();
 
@@ -184,9 +169,9 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
     }
 
-    private ConfigData getAssemblyConfigData() throws ExecutionException, InterruptedException {
+    private ConfigData getHCDConfigData() throws ExecutionException, InterruptedException {
 
-        log.debug("loading assembly configuration");
+        log.debug("loading hcd configuration");
 
         // construct the path
         Path filePath = Paths.get("/org/tmt/tcs/tcs_test.conf");

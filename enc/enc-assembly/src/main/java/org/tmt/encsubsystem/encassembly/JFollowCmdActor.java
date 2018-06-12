@@ -1,17 +1,13 @@
 package org.tmt.encsubsystem.encassembly;
 
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.util.Timeout;
-import csw.messages.commands.CommandName;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.javadsl.JUnits;
-import csw.messages.params.generics.Parameter;
-import csw.messages.params.models.Id;
 import csw.messages.params.models.Prefix;
 import csw.services.command.javadsl.JCommandService;
 import csw.services.command.scaladsl.CommandResponseManager;
@@ -20,96 +16,89 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Assembly's Follow Command Actor.
  * This Actor submit follow command from assembly to hcd.
  */
-public class JFollowCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.FollowMessage> {
 
 
-        // Add messages here
-        // No sealed trait/interface or messages for this actor.  Always accepts the Submit command message.
+    // Add messages here
+    // No sealed trait/interface or messages for this actor.  Always accepts the Submit command message.
+    interface FollowMessage {
+    }
 
-        private ActorContext<ControlCommand> actorContext;
-        private JLoggerFactory loggerFactory;
-        private ILogger log;
-        private CommandResponseManager commandResponseManager;
-        private Optional<JCommandService> templateHcd;
+    public static final class FollowCommandMessage implements FollowMessage {
+
+        public final ControlCommand controlCommand;
+        public final ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo;
+
+
+        public FollowCommandMessage(ControlCommand controlCommand, ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo) {
+            this.controlCommand = controlCommand;
+            this.replyTo = replyTo;
+        }
+    }
+
+    private ActorContext<FollowMessage> actorContext;
+    private JLoggerFactory loggerFactory;
+    private ILogger log;
+    private CommandResponseManager commandResponseManager;
+    private Optional<JCommandService> hcdCommandService;
 
     private Prefix encAssemblyPrefix = new Prefix("tcs.encA");
 
 
-        private JFollowCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> templateHcd, JLoggerFactory loggerFactory) {
-            this.actorContext = actorContext;
-            this.loggerFactory = loggerFactory;
-            this.log = loggerFactory.getLogger(actorContext, getClass());
-            this.commandResponseManager = commandResponseManager;
-            this.templateHcd = templateHcd;
+    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
+        this.actorContext = actorContext;
+        this.loggerFactory = loggerFactory;
+        this.log = loggerFactory.getLogger(actorContext, getClass());
+        this.commandResponseManager = commandResponseManager;
+        this.hcdCommandService = hcdCommandService;
 
 
-        }
+    }
 
-        public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager,Optional<JCommandService> templateHcd, JLoggerFactory loggerFactory) {
-            return Behaviors.setup(ctx -> {
-                return (Behaviors.MutableBehavior<ControlCommand>) new JFollowCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager,templateHcd, loggerFactory);
-            });
-        }
+    public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
+        return Behaviors.setup(ctx -> {
+            return (Behaviors.MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, hcdCommandService, loggerFactory);
+        });
+    }
 
 
-        @Override
-        public Behaviors.Receive<ControlCommand> createReceive() {
+    @Override
+    public Behaviors.Receive<FollowMessage> createReceive() {
 
-            ReceiveBuilder<ControlCommand> builder = receiveBuilder()
-                    .onMessage(ControlCommand.class,
-                            command -> {
-                                log.info("Follow Command Message Received by FollowCmdActor in Assembly");
-                                handleSubmitCommand(command);
-                                return Behaviors.same();
-                            });
-            return builder.build();
-        }
+        ReceiveBuilder<FollowMessage> builder = receiveBuilder()
+                .onMessage(FollowCommandMessage.class,
+                        followCommandMessage -> {
+                            log.debug("Follow Command Message Received by FollowCmdActor in Assembly");
+                            handleSubmitCommand(followCommandMessage);
+                            return Behaviors.same();
+                        });
+        return builder.build();
+    }
 
     /**
-     * This method handle follow/Track command.
-     * Based on parameter received it submit any of the below three command to hcd.
-     * 1. TrackOff
-     * 2. FastMoveToTrack <-TODO
-     * 3. SmoothMoveToTrack <-TODO
-     * @param message
+     * This method handle follow command.
+     *
+     * @param followCommandMessage
      */
-        private void handleSubmitCommand(ControlCommand message) {
-            // NOTE: we use get instead of getOrElse because we assume the command has been validated
-            Parameter operation = message.paramSet().find(x -> x.keyName().equals("operation")).get();
-            String operationValue = (String) operation.get(0).get();
-            Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
-            Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
-            Parameter mode = message.paramSet().find(x-> x.keyName().equals("mode")).get();
-            Parameter timeDuration = message.paramSet().find(x-> x.keyName().equals("timeDuration")).get();
+    private void handleSubmitCommand(FollowCommandMessage followCommandMessage) {
+        // NOTE: we use get instead of getOrElse because we assume the command has been validated
+        ControlCommand command = followCommandMessage.controlCommand;
 
-            if(templateHcd.isPresent()){
-                log.debug("Operation - " + operationValue);
-                if("Off".equals(operationValue)){
-
-                    Setup setup = new Setup(encAssemblyPrefix, new CommandName("trackOff"), Optional.empty());
-                    templateHcd.get()
-                            .submitAndSubscribe(setup,  Timeout.durationToTimeout(FiniteDuration.apply(10, TimeUnit.SECONDS)))
-                            .thenAccept(response->{
-                                commandResponseManager.addSubCommand(message.runId(), response.runId());
-                                commandResponseManager.updateSubCommand(response.runId(), response);
-                            });
-                }else{
-                    commandResponseManager.addOrUpdateCommand(message.runId(),new CommandResponse.Error(message.runId(), "Invalid Operation for follow command"));
-                }
-            } else {
-                 commandResponseManager.addOrUpdateCommand(message.runId(),new CommandResponse.Error(message.runId(), "Can't locate TcsEncHcd"));
-            }
+        if (hcdCommandService.isPresent()) {
+            hcdCommandService.get()
+                    .submitAndSubscribe(command, Timeout.durationToTimeout(FiniteDuration.apply(10, TimeUnit.SECONDS))).thenAccept(response -> {
+                followCommandMessage.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(response));
+            });
+        } else {
+            followCommandMessage.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Error(command.runId(), "Can't locate TcsEncHcd")));
         }
-
-
-
+    }
 
 
 }

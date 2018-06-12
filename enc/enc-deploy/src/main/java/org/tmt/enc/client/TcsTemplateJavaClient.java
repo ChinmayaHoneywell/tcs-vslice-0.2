@@ -1,6 +1,7 @@
 package org.tmt.enc.client;
 
 
+import akka.Done;
 import akka.actor.ActorSystem;
 import akka.actor.typed.javadsl.Adapter;
 import akka.util.Timeout;
@@ -20,11 +21,15 @@ import csw.services.command.javadsl.JCommandService;
 import csw.services.location.commons.ClusterAwareSettings;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.location.javadsl.JLocationServiceFactory;
+import csw.services.logging.internal.LoggingSystem;
+import csw.services.logging.javadsl.ILogger;
+import csw.services.logging.javadsl.JLoggerFactory;
 import csw.services.logging.javadsl.JLoggingSystemFactory;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.net.InetAddress;
 import java.util.Optional;
+import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +40,7 @@ public class TcsTemplateJavaClient {
     Prefix source;
     ActorSystem system;
     ILocationService locationService;
+    public static ILogger log;
     Optional<JCommandService> commandServiceOptional;
 
     public TcsTemplateJavaClient(Prefix source, ActorSystem system, ILocationService locationService) throws Exception {
@@ -45,7 +51,6 @@ public class TcsTemplateJavaClient {
 
         commandServiceOptional = getAssemblyBlocking();
     }
-
 
 
     private Connection.AkkaConnection assemblyConnection = new Connection.AkkaConnection(new ComponentId("EncAssembly", Assembly));
@@ -59,8 +64,8 @@ public class TcsTemplateJavaClient {
     private Key<Double> elKey = JKeyTypes.DoubleKey().make("el");
     private Key<String> mode = JKeyTypes.StringKey().make("mode");
     //private Key<Long>  time = JKeyTypes.LongKey().make("time");
-    private  Key<String> operation = JKeyTypes.StringKey().make("operation");
-    private Key<Long>  timeDuration = JKeyTypes.LongKey().make("timeDuration");
+    private Key<String> operation = JKeyTypes.StringKey().make("operation");
+    private Key<Long> timeDuration = JKeyTypes.LongKey().make("timeDuration");
 
 
     /**
@@ -87,7 +92,7 @@ public class TcsTemplateJavaClient {
     /**
      * Sends a datum message to the Assembly and returns the response
      */
-    public CompletableFuture<CommandResponse> datum(Optional<ObsId> obsId)  {
+    public CompletableFuture<CommandResponse> datum(Optional<ObsId> obsId) {
 
         //Optional<JCommandService> commandServiceOptional = getAssemblyBlocking();
 
@@ -107,6 +112,7 @@ public class TcsTemplateJavaClient {
 
 
     }
+
     /**
      * Sends a move message to the Assembly and returns the response
      */
@@ -124,7 +130,7 @@ public class TcsTemplateJavaClient {
                     .add(elKey.set(el))
                     .add(mode.set(modeValue))
                     .add(timeDuration.set(timeDurationValue, JUnits.second));
-            System.out.println("Submitting move command to assembly...");
+            log.debug("Submitting move command to assembly...");
             return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
 
         } else {
@@ -134,6 +140,7 @@ public class TcsTemplateJavaClient {
 
 
     }
+
     /**
      * Sends a invalid move message to the Assembly and returns the response
      * this move command does not have "mode" parameter.
@@ -151,7 +158,7 @@ public class TcsTemplateJavaClient {
                     .add(azKey.set(az))
                     .add(elKey.set(el))
                     .add(timeDuration.set(timeValue, JUnits.second));
-            System.out.println("Submitting invalid move command to assembly...");
+            log.debug("Submitting invalid move command to assembly...");
             return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
 
         } else {
@@ -163,9 +170,10 @@ public class TcsTemplateJavaClient {
     }
 
     /**
-     * Sends a move message to the Assembly and returns the response
+     * Sends a follow message to the Assembly and returns the response.
+     * This command execute as immediate command.
      */
-    public CompletableFuture<CommandResponse> follow(Optional<ObsId> obsId, Double az, Double el, String operationValue, String modeValue) {
+    public CompletableFuture<CommandResponse> follow(Optional<ObsId> obsId) {
 
         if (commandServiceOptional.isPresent()) {
 
@@ -173,13 +181,8 @@ public class TcsTemplateJavaClient {
             Long[] timeDurationValue = new Long[1];
             timeDurationValue[0] = 10L;
 
-            Setup setup = new Setup(source, new CommandName("follow"), obsId)
-                    .add(operation.set(operationValue))
-                    .add(azKey.set(az))
-                    .add(elKey.set(el))
-                    .add(mode.set(modeValue))
-                    .add(timeDuration.set(timeDurationValue, JUnits.second));
-            System.out.println("Submitting follow(trackOff) command to assembly...");
+            Setup setup = new Setup(source, new CommandName("follow"), obsId);
+            log.debug("Submitting follow command to assembly...");
             return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
 
         } else {
@@ -189,37 +192,114 @@ public class TcsTemplateJavaClient {
 
 
     }
-	
-	 public static void main(String[] args) throws Exception {
-         System.out.println("TCS Client Starting..");
+
+    /**
+     * Sends StartUp command to assembly to transit from initialization state to running state.
+     */
+    public CompletableFuture<CommandResponse> startup(Optional<ObsId> obsId) {
+
+        if (commandServiceOptional.isPresent()) {
+
+            JCommandService commandService = commandServiceOptional.get();
+            Long[] timeDurationValue = new Long[1];
+            timeDurationValue[0] = 10L;
+
+            Setup setup = new Setup(source, new CommandName("startup"), obsId);
+            log.debug("Submitting startup command to assembly...");
+            return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
+
+        } else {
+
+            return CompletableFuture.completedFuture(new CommandResponse.Error(new Id(""), "Can't locate Assembly"));
+        }
+
+
+    }
+
+    /**
+     * Sends StartUp command to assembly to transit from initialization state to running state.
+     */
+    public CompletableFuture<CommandResponse> shutdown(Optional<ObsId> obsId) {
+
+        if (commandServiceOptional.isPresent()) {
+
+            JCommandService commandService = commandServiceOptional.get();
+            Long[] timeDurationValue = new Long[1];
+            timeDurationValue[0] = 10L;
+
+            Setup setup = new Setup(source, new CommandName("shutdown"), obsId);
+            log.debug("Submitting shutdown command to assembly...");
+            return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
+
+        } else {
+
+            return CompletableFuture.completedFuture(new CommandResponse.Error(new Id(""), "Can't locate Assembly"));
+        }
+
+
+    }
+
+    private static Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws Exception {
         ActorSystem system = ClusterAwareSettings.system();
         ILocationService locationService = JLocationServiceFactory.make();
 
-        TcsTemplateJavaClient tcsTemplateJavaClient   = new TcsTemplateJavaClient(new Prefix("enc.enc-client"), system, locationService);
-        Optional<ObsId> maybeObsId          = Optional.empty();
-        String hostName                = InetAddress.getLocalHost().getHostName();
-        JLoggingSystemFactory.start("TcsTemplateClientApp", "0.1", hostName, system);
+        TcsTemplateJavaClient tcsTemplateJavaClient = new TcsTemplateJavaClient(new Prefix("enc.enc-client"), system, locationService);
+        Optional<ObsId> maybeObsId = Optional.empty();
+        String hostName = InetAddress.getLocalHost().getHostName();
+        LoggingSystem loggingSystem = JLoggingSystemFactory.start("TcsTemplateClientApp", "0.1", hostName, system);
+        log = new JLoggerFactory("client-app").getLogger(tcsTemplateJavaClient.getClass());
 
+        log.info("TCS Client Starting..");
 
-         System.out.println("Commanding enclosure to move with invalid param: ");
-         CompletableFuture<CommandResponse> invalidMoveCmdResponse = tcsTemplateJavaClient.moveInvalid(maybeObsId,  2.34, 5.67, "On", "fast");
-         System.out.println("Response on invalid move command: " + invalidMoveCmdResponse.get());
+        boolean keepRunning = true;
+        while (keepRunning) {
+            log.info("Type command name [startup, invalidMove, move, follow, shutdown] or type 'exit' to stop client");
 
+            String commandName = scanner.nextLine();
+            switch (commandName) {
+                case "startup":
+                    log.info("Sending startup command to enclosure assembly.. ");
+                    CompletableFuture<CommandResponse> startUpCmdResponse = tcsTemplateJavaClient.startup(maybeObsId);
+                    log.info("Response on  startup command: " + startUpCmdResponse.get());
+                    break;
+                case "shutdown":
+                    log.info("Sending shutdown command to enclosure assembly.. ");
+                    CompletableFuture<CommandResponse> shutdownCmdResponse = tcsTemplateJavaClient.shutdown(maybeObsId);
+                    log.info("Response on  shutdown command: " + shutdownCmdResponse.get());
+                    break;
+                case "move":
+                    log.info("Commanding enclosure to move  fast: ");
+                    CompletableFuture<CommandResponse> moveCmdResponse = tcsTemplateJavaClient.move(maybeObsId, 2.34, 5.67, "On", "fast");
+                    CommandResponse respMoveCmd = moveCmdResponse.get();
+                    log.info("Enclosure moved: " + respMoveCmd);
+                    break;
+                case "follow":
 
-         System.out.println("Commanding enclosure to move  fast: ");
-         CompletableFuture<CommandResponse> moveCmdResponse = tcsTemplateJavaClient.move(maybeObsId, 2.34, 5.67,"On", "fast");
-         CommandResponse respMoveCmd = moveCmdResponse.get();
-         System.out.println("Enclosure moved: " + respMoveCmd);
+                    log.info("Commanding enclosure with Follow Command: ");
+                    CompletableFuture<CommandResponse> followCmdResponse = tcsTemplateJavaClient.follow(maybeObsId);
+                    CommandResponse respFollowCmd = followCmdResponse.get();
+                    log.info("Enclosure Follow: " + respFollowCmd);
+                    break;
+                case "invalidMove":
+                    log.info("Commanding enclosure to move with invalid param: ");
+                    CompletableFuture<CommandResponse> invalidMoveCmdResponse = tcsTemplateJavaClient.moveInvalid(maybeObsId, 2.34, 5.67, "On", "fast");
+                    log.info("Response on invalid move command: " + invalidMoveCmdResponse.get());
+                    break;
+                case "exit":
+                    keepRunning = false;
+                    break;
+                default:
+                    log.info(commandName + "   - Is not a valid choice");
+            }
+        }
 
-         System.out.println("Commanding enclosure to TrackOff using Follow Command: ");
-         CompletableFuture<CommandResponse> followCmdResponse = tcsTemplateJavaClient.follow(maybeObsId, 2.34, 5.67, "Off", "smooth");
-         CommandResponse respFollowCmd = followCmdResponse.get();
-         System.out.println("Enclosure Follow(trackOff): " + respFollowCmd);
+        Done done = loggingSystem.javaStop().get();
+        system.terminate();
 
+    }
 
-     }
-	
-	
 
 }
 
