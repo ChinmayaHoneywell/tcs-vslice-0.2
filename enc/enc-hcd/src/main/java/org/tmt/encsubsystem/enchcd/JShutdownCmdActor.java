@@ -12,6 +12,8 @@ import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
+import java.util.Optional;
+
 
 public class JShutdownCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
 
@@ -65,7 +67,7 @@ public class JShutdownCmdActor extends Behaviors.MutableBehavior<ControlCommand>
             //Serialize command data, submit to subsystem using ethernet ip connection
             commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));
             // get subsystem state from command response and tell state publisher about changed state.
-            statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(JEncHcdHandlers.LifecycleState.Initialized, JEncHcdHandlers.OperationalState.Idle));
+            statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Initialized), Optional.of(JEncHcdHandlers.OperationalState.Idle)));
 
         } catch (InterruptedException e) {
             e.printStackTrace();

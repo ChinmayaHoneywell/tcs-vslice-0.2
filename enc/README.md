@@ -18,7 +18,8 @@ This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
 This template shows working examples of:
 
-1. Create typed actors for each of the internal components in the TCS architecture doc: Lifecycle Actor, Monitor Actor, Command Handler Actor, Event Handler Actor, State Publisher Actor
+1. Create typed actors for each of the internal components in the TCS architecture doc:
+	Lifecycle Actor, Monitor Actor, Command Handler Actor, Event Handler Actor, State Publisher Actor
 
 2. Move Command with parameters
 
@@ -32,45 +33,48 @@ This template shows working examples of:
 
 	2.5 State based validation using ask pattern, Accept command only if Operational state is ready.
 
+	2.6 State transition to InPosition
+
 3. Follow Command with parameters as Immediate command
 
 	3.1 follow command to assembly then hcd
-	
+
 	3.2 Using ask pattern to implement immediate command
+
+	3.3 State transition to Slewing
 
 4. HCD to Assembly CurrentState publish/subscribe using Current State publisher
 
 5. Lifecycle Commands(StartUp/Shutdown)
 
 	5.1 Submit lifecycle command to assembly and hcd
-	
+
 	5.2 Transition assembly and hcd state from initialized to running and vice-versa
 
 6. Loading and using configuration with the configuration service
 
 7. Lifecycle and Operational states
-	
+
 	7.1 Transition between states
-	
+
 	7.2 Communicating states between actors
-	
+
 	7.3 Communicating states from hcd to assembly
 
 8. Client app to submit commands to assembly
-	
+
 	8.1 Submit command by typing on console.
 
 ## Examples to be implemented
 
 1. Publish demandState from assembly to hcd
 
-2. States transition for follow command and move command commands.
+2. Killing Worker actor after message processing
 
+3. Junit test cases.
 
 
 ##  Documentation
-
-
 
 ### Creating Typed Actors
 The template code creates Typed Actors for the following assembly subcomponents:

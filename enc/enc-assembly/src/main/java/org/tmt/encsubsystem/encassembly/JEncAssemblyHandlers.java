@@ -163,7 +163,10 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
                                         new JMonitorActor.AssemblyStatesAskMessage(replyTo)
                                 , new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler()).toCompletableFuture().get();
                         log.debug(() -> "Got Assembly state from monitor actor - " + assemblyStates.assemblyOperationalState + " ,  " + assemblyStates.assemblyLifecycleState);
-                        if (assemblyStates.assemblyOperationalState == AssemblyOperationalState.Ready) {
+                        if ( assemblyStates.assemblyOperationalState == AssemblyOperationalState.Ready ||
+                                assemblyStates.assemblyOperationalState == AssemblyOperationalState.Slewing ||
+                                assemblyStates.assemblyOperationalState == AssemblyOperationalState.Tracking ||
+                                assemblyStates.assemblyOperationalState == AssemblyOperationalState.InPosition) {
                             log.debug(()->"Assembly is ready to accept command");
                             return accepted;
                         } else {

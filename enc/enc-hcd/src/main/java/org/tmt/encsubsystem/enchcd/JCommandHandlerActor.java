@@ -114,7 +114,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
         log.debug(()-> "HCD handling fastMove command = " + controlCommand);
 
         ActorRef<ControlCommand> fastMoveCmdActor =
-                actorContext.spawnAnonymous(JFastMoveCmdActor.behavior(commandResponseManager, loggerFactory));
+                actorContext.spawnAnonymous(JFastMoveCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
 
         fastMoveCmdActor.tell(controlCommand);
 
@@ -143,7 +143,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
 
         ActorRef<JFollowCmdActor.FollowMessage> followCmdActor =
-                actorContext.spawnAnonymous(JFollowCmdActor.behavior(commandResponseManager, loggerFactory));
+                actorContext.spawnAnonymous(JFollowCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
 
         followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(message.controlCommand, message.replyTo));
 

@@ -80,11 +80,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     public CompletableFuture<Void> jInitialize() {
         return CompletableFuture.runAsync(() -> {
             log.debug(()-> "initializing enc hcd");
-
-            JStatePublisherActor.StartMessage message = new JStatePublisherActor.StartMessage();
-
-            statePublisherActor.tell(message);
-
+            lifecycleActor.tell(new JLifecycleActor.InitializeMessage());
         });
 
     }
@@ -93,6 +89,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     public CompletableFuture<Void> jOnShutdown() {
         return CompletableFuture.runAsync(() -> {
             log.debug(()-> "shutdown enc hcd");
+            lifecycleActor.tell(new JLifecycleActor.ShutdownMessage());
         });
     }
 
@@ -156,16 +153,16 @@ public class JEncHcdHandlers extends JComponentHandlers {
 
     @Override
     public void onOneway(ControlCommand controlCommand) {
-        log.debug(()-> "processing oneway command to enc hcd");
+        log.debug(()-> "processing one way command to enc hcd");
     }
 
     @Override
     public void onGoOffline() {
-
+        log.info(()->"HCD Go Offline hook");
     }
 
     @Override
     public void onGoOnline() {
-
+        log.info(()->"HCD Go Online hook");
     }
 }

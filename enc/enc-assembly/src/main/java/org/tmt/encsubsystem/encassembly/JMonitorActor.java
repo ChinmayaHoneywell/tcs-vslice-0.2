@@ -175,7 +175,7 @@ public class JMonitorActor extends Behaviors.MutableBehavior<JMonitorActor.Monit
         log.debug(()->"current state = " + currentState);
 
         //TODO: Derive Assembly Lifecycle state and Operation state based on current states received from hcd
-        // Monitor Actor can change its state depending on the current state of the HCD
+        // Monitor Actor can derive its state depending on the current state of the HCD
         if ("tmt.tcs.ecs.currentPosition".equals(currentState.prefixStr())) {
             log.debug(()->"Current position received - " + currentState);
 
@@ -183,7 +183,7 @@ public class JMonitorActor extends Behaviors.MutableBehavior<JMonitorActor.Monit
             // As of now keeping state as is.
             derivedAssemblyLifecycleState = assemblyLifecycleState;
             derivedAssemblyOperationalState = assemblyOperationalState;
-        } else if ("tmt.tcs.ecs.currentLifecycleState".equals(currentState.prefixStr())) {
+        } else if ("tmt.tcs.ecs.currentState".equals(currentState.prefixStr())) {
             log.debug(()->"Current states received - " + currentState);
 
             Parameter lifecycleStateParam = currentState.paramSet().find(x -> x.keyName().equals("LifecycleState")).get();
@@ -191,7 +191,12 @@ public class JMonitorActor extends Behaviors.MutableBehavior<JMonitorActor.Monit
             derivedAssemblyLifecycleState = JEncAssemblyHandlers.AssemblyLifecycleState.valueOf(lifecycleStateString);
             Parameter operationalStateParam = currentState.paramSet().find(x -> x.keyName().equals("OperationalState")).get();
             String operationalStateString = (String) operationalStateParam.get(0).get();
-            derivedAssemblyOperationalState = JEncAssemblyHandlers.AssemblyOperationalState.valueOf(operationalStateString);
+            if("Following".equals(operationalStateString)){
+                // As Subsystem is 'Following' demand position, changing assembly state to slewing.
+                derivedAssemblyOperationalState = JEncAssemblyHandlers.AssemblyOperationalState.Slewing;
+            }else{
+                derivedAssemblyOperationalState = JEncAssemblyHandlers.AssemblyOperationalState.valueOf(operationalStateString);
+            }
             log.debug(()->"Assembly states derived from HCD states - " + derivedAssemblyLifecycleState + " and " + derivedAssemblyOperationalState);
         }else {
             //no change in state

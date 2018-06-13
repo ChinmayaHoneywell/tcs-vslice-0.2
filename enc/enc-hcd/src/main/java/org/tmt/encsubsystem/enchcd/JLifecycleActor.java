@@ -118,12 +118,18 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
         Integer bazValue = assemblyConfig.getInt("foo.bar.baz");
 
         log.debug(()-> "foo.bar.baz config element value is: " + bazValue);
+        JStatePublisherActor.StartMessage startMessage = new JStatePublisherActor.StartMessage();
+
+        statePublisherActor.tell(startMessage);
 
     }
 
     private void onShutdown(ShutdownMessage message) {
 
         log.debug(()-> "Shutdown Message Received ");
+        JStatePublisherActor.StopMessage stopMessage = new JStatePublisherActor.StopMessage();
+
+        statePublisherActor.tell(stopMessage);
     }
 
     private void handleStartupCommand(ControlCommand controlCommand) {

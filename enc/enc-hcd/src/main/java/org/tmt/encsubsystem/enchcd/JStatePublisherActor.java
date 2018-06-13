@@ -14,6 +14,7 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import scala.concurrent.duration.Duration;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static csw.messages.javadsl.JUnits.degree;
@@ -35,13 +36,16 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
     public static final class PublishMessage implements StatePublisherMessage {
     }
 
-
+    /**
+     * This message is used to change state of HCD
+     * Either Lifecycle state or Operational state can be changed or both.
+     */
     public static final class StateChangeMessage implements StatePublisherMessage {
 
-        public final JEncHcdHandlers.LifecycleState lifecycleState;
-        public final JEncHcdHandlers.OperationalState operationalState;
+        public final Optional<JEncHcdHandlers.LifecycleState> lifecycleState;
+        public final Optional<JEncHcdHandlers.OperationalState> operationalState;
 
-        public StateChangeMessage(JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
+        public StateChangeMessage(Optional<JEncHcdHandlers.LifecycleState> lifecycleState, Optional<JEncHcdHandlers.OperationalState> operationalState) {
             this.lifecycleState = lifecycleState;
             this.operationalState = operationalState;
         }
@@ -58,7 +62,7 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
     //prefix
     String prefixCurrentPosition = "tmt.tcs.ecs.currentPosition";
-    String prefixCurrentLifecycleState = "tmt.tcs.ecs.currentLifecycleState";
+    String prefixCurrentLifecycleState = "tmt.tcs.ecs.currentState";
 
     //keys
     Key timestampKey = JKeyTypes.TimestampKey().make("timestampKey");
@@ -133,16 +137,18 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
     private void onStop(StopMessage message) {
 
         log.debug(()-> "Stop Message Received ");
+        timer.cancel(TIMER_KEY);
     }
 
     /**
-     * This method update state of hcd. this changed state will be published to assembly as per timer frequency.
+     * This method update state of hcd. this changed state is published to assembly.
      *
      * @param message
      */
     private void handleStateChange(StateChangeMessage message) {
-        this.lifecycleState = message.lifecycleState;
-        this.operationalState = message.operationalState;
+        //change current state or if state is not present in message keep it as is.
+       lifecycleState = message.lifecycleState.orElse(lifecycleState);
+       operationalState = message.operationalState.orElse(operationalState);
         CurrentState currentLifecycleState = new CurrentState(prefixCurrentLifecycleState)
                 .add(JKeyTypes.StringKey().make("LifecycleState").set(lifecycleState.name()))
                 .add(JKeyTypes.StringKey().make("OperationalState").set(operationalState.name()));
