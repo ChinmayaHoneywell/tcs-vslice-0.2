@@ -33,6 +33,7 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
   override def onMessage(controlCommand: ControlCommand): Behavior[ControlCommand] = {
     log.info(msg = s"Executing Datum command:  ${controlCommand.runId}")
     val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
+    log.info(msg = s"In Datum command actor param is : ${axes} and hcdLocation is : ${hcdLocation}")
     /*  val param = axes.head
       val axisKey : String = "axis"
       val axis : Key[String]= KeyType.StringKey.make(axisKey)
@@ -45,17 +46,21 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
       else if(param == "EL"){
         axis.set("EL")
       }*/
-    val setup = Setup(mcsHCDPrefix, CommandName(Commands.DATUM), controlCommand.maybeObsId).add(axes)
+    //val setup = Setup(mcsHCDPrefix, CommandName(Commands.DATUM), controlCommand.maybeObsId).add(axes)
     hcdLocation match {
       case Some(commandService) => {
-        val response = Await.result(commandService.submitAndSubscribe(setup), 10.seconds)
-        log.info(msg = s" updating datum command  ${controlCommand.runId} with response : ${response} ")
+        log.info(msg = s"DatumCommandActor sending datum command with parameters :  ${controlCommand} to hcd : ${hcdLocation}")
+        val response = Await.result(commandService.submitAndSubscribe(controlCommand), 10.seconds)
+        log.info(msg = s" updating datum command : ${controlCommand.runId} with response : ${response} ")
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
-        log.info(msg = s"completed datum command execution for command id : $controlCommand.runId")
+        log.info(
+          msg =
+            s"completed datum command execution for command id : ${controlCommand.runId} and updated its status in commandResponseManager : ${response}"
+        )
         this
       }
       case None => {
-        Future.successful(Error(Id(), s"Can't locate mcs hcd location : $hcdLocation"))
+        Future.successful(Error(Id(), s"Can't locate mcs hcd location : ${hcdLocation} in DatumCommandActor "))
         Behavior.unhandled
       }
     }

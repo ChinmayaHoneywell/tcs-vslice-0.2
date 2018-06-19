@@ -13,4 +13,6 @@ object Commands {
   val ELEVATIONSTOW     = "ElevationStow"
   val POINT             = "Point"
   val POINTDEMAND       = "PointDemand"
+  val STARTUP           = "Startup"
+  val SHUTDOWN          = "ShutDown"
 }

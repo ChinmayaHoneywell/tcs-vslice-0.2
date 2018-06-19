@@ -4,7 +4,7 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import csw.framework.scaladsl.{ComponentHandlers, CurrentStatePublisher}
 import csw.messages.commands.{CommandResponse, ControlCommand}
-import csw.messages.commands.CommandIssue.{UnsupportedCommandIssue, WrongInternalStateIssue, WrongNumberOfParametersIssue}
+import csw.messages.commands.CommandIssue.{UnsupportedCommandIssue, WrongNumberOfParametersIssue}
 import csw.messages.framework.ComponentInfo
 import csw.messages.location.TrackingEvent
 import csw.messages.params.generics.Parameter
@@ -12,7 +12,7 @@ import csw.messages.scaladsl.TopLevelActorMessage
 import csw.services.command.scaladsl.CommandResponseManager
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.EventMessage.{GetCurrentState, HCDLifeCycleStateChangeMsg, HCDOperationalStateChangeMsg}
+import org.tmt.tcs.mcs.MCShcd.EventMessage.{HCDLifeCycleStateChangeMsg, HCDOperationalStateChangeMsg}
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 //import akka.pattern.ask
@@ -75,19 +75,25 @@ class McsHcdHandlers(
       case Commands.POINT_DEMAND => {
         validatePointDemandCommand(controlCommand)
       }
+      case Commands.STARTUP => {
+        log.info(msg = s"validating startup command in HCD")
+        CommandResponse.Accepted(controlCommand.runId)
+      }
+      case Commands.SHUTDOWN => {
+        log.info(msg = s"validating shutdown command in HCD")
+        CommandResponse.Accepted(controlCommand.runId)
+      }
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
 
   private def validatePointDemandCommand(controlCommand: ControlCommand): CommandResponse = {
-    log.info(msg = "validating point demand command in HCD")
-    /*val azParam : Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "az").get
-        val elParam : Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "el").get
-        if(azParam.head == 0 || elParam.head == 0){
-          CommandResponse.Invalid(controlCommand.runId, In(s"Command $x is not supported"))
-        }*/
-    val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ! GetCurrentState()
+    log.info(msg = s"validating point demand command in HCD")
+    CommandResponse.Accepted(controlCommand.runId)
+
+    //TODO: skipped this till get confirmation regarding getting current state from eventHandlerActor
+    /*val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ! GetCurrentState()
     hcdCurrentState map {
       case msg: EventMessage.HcdCurrentState => {
         if ((msg.operationalState == HCDOperationalState.PointingDatumed || msg.operationalState == HCDOperationalState.PointingDrivePowerOn)
@@ -103,7 +109,7 @@ class McsHcdHandlers(
           )
         }
       }
-    }
+    }*/
   }
 
   private def validatePointCommand(controlCommand: ControlCommand): CommandResponse = {
@@ -113,7 +119,9 @@ class McsHcdHandlers(
     //TODO : set drive power on during startup command
 
     if (param == "BOTH" || param == "AZ" || param == "EL") {
-      val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ? GetCurrentState()
+      CommandResponse.Accepted(controlCommand.runId)
+      //TODO: skipped this till get confirmation regarding getting current state from eventHandlerActor
+      /*val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ? GetCurrentState()
       hcdCurrentState map {
         case msg: EventMessage.HcdCurrentState => {
           if ((msg.operationalState == HCDOperationalState.ServoOffDrivePowerOn || msg.operationalState == HCDOperationalState.ServoOffDatumed)
@@ -129,7 +137,15 @@ class McsHcdHandlers(
             )
           }
         }
-      }
+        case _ =>{
+          CommandResponse.Invalid(
+            controlCommand.runId,
+            WrongInternalStateIssue(
+              s" MCS HCD and subsystem is in unknown state so can't process this command"
+            )
+          )
+       }
+      }*/
 
     } else {
       CommandResponse.Invalid(controlCommand.runId,
@@ -148,7 +164,9 @@ class McsHcdHandlers(
     //TODO : set drive power on during startup command
 
     if (param == "BOTH" || param == "AZ" || param == "EL") {
-      val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ? GetCurrentState()
+      CommandResponse.Accepted(controlCommand.runId)
+      //TODO: skipped this till get confirmation regarding getting current state from eventHandlerActor
+      /* val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ? GetCurrentState()
       hcdCurrentState map {
         case msg: EventMessage.HcdCurrentState => {
           if (msg.operationalState == HCDOperationalState.ServoOffDrivePowerOn && msg.lifeCycleState == HCDLifeCycleState.Running) {
@@ -163,7 +181,15 @@ class McsHcdHandlers(
             )
           }
         }
-      }
+        case _ =>{
+          CommandResponse.Invalid(
+            controlCommand.runId,
+            WrongInternalStateIssue(
+              s" MCS HCD and subsystem is in unknown state so can't process this command"
+            )
+          )
+        }
+      }*/
 
     } else {
       CommandResponse.Invalid(controlCommand.runId,
@@ -173,8 +199,11 @@ class McsHcdHandlers(
 
   private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
     log.info("Validating follow command in HCD")
+
+    //TODO: skipped this till get confirmation regarding getting current state from eventHandlerActor
     if (controlCommand.paramSet.isEmpty) {
-      val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ! GetCurrentState()
+      CommandResponse.Accepted(controlCommand.runId)
+      /*val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ! GetCurrentState()
       hcdCurrentState map {
         case msg: EventMessage.HcdCurrentState => {
           if (msg.operationalState == HCDOperationalState.ServoOffDatumed && msg.lifeCycleState == HCDLifeCycleState.Running) {
@@ -193,12 +222,11 @@ class McsHcdHandlers(
           CommandResponse.Invalid(
             controlCommand.runId,
             WrongInternalStateIssue(
-              s" MCS HCD and subsystem is not in running state " +
-              s"and operational state must be servoOffDatumed to process follow command"
+              s" MCS HCD and subsystem is in unknown state so can't process this command"
             )
           )
-        }
       }
+     } */
     } else {
       CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue("Follow command should not have any parameters"))
 
@@ -212,11 +240,13 @@ class McsHcdHandlers(
     controlCommand.commandName.name match {
       case Commands.STARTUP => {
         log.info("On receipt of startup command changing MCS HCD state to Running")
+        //TODO : connecto to subsystem in above call to commandhandler actor
         eventHandlerActor ! HCDLifeCycleStateChangeMsg(HCDLifeCycleState.Running)
         eventHandlerActor ! HCDOperationalStateChangeMsg(HCDOperationalState.DrivePowerOff)
       }
       case Commands.SHUTDOWN => {
         log.info("On receipt of shutdown command changing MCS HCD state to Disconnected")
+        //TODO: send to subsystem
         eventHandlerActor ! HCDLifeCycleStateChangeMsg(HCDLifeCycleState.Disconnected)
       }
       case Commands.DATUM => {
@@ -230,7 +260,9 @@ class McsHcdHandlers(
       }
       case Commands.POINT | Commands.POINT_DEMAND => {
         log.info("changing HCD's operational state to pointing")
-        val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ? EventMessage.GetCurrentState
+        eventHandlerActor ! HCDOperationalStateChangeMsg(HCDOperationalState.PointingDatumed)
+        //TODO : decide state based on response
+        /* val hcdCurrentState: Future[EventMessage.HcdCurrentState] = eventHandlerActor ? EventMessage.GetCurrentState
         hcdCurrentState map {
           case msg: EventMessage.HcdCurrentState => {
             if (msg.operationalState == HCDOperationalState.ServoOffDatumed) {
@@ -239,7 +271,7 @@ class McsHcdHandlers(
               eventHandlerActor ! HCDOperationalStateChangeMsg(HCDOperationalState.PointingDrivePowerOn)
             }
           }
-        }
+        }*/
       }
 
     }

@@ -61,8 +61,13 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   private def doInitialize(): Unit = {
     log.info(msg = " Initializing MCS Assembly actor with the help of LifecycleActor")
     val assemblyConfig: Config = getAssemblyConfig()
-    val configValue            = assemblyConfig.getInt("")
-    log.info(msg = s"value for key : abc from configuration is $configValue")
+    val commandTimeout         = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
+    log.info(msg = s"command timeout duration is seconds ${commandTimeout}")
+    val numberOfRetries = assemblyConfig.getInt("tmt.tcs.mcs.retries")
+    log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${numberOfRetries}")
+    val velAccLimit = assemblyConfig.getInt("tmt.tcs.mcs.limit")
+    log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${velAccLimit}")
+
     log.info(msg = s"Successfully initialized assembly configuration")
   }
   /*TODO :-
@@ -72,10 +77,10 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = "Shutting down MCS assembly.")
   }
   private def getAssemblyConfig(): Config = {
-    val filePath                                 = Paths.get("")
+    val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    val configData: ConfigData                   = Await.result(getConfigData(filePath), 3.seconds)
+    val configData: ConfigData                   = Await.result(getConfigData(filePath), 20.seconds)
     Await.result(configData.toConfigObject, 3.seconds)
 
   }

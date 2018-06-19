@@ -57,7 +57,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     val currentState = CurrentState(prefix).add(lifeCycleParam)
     EventHandlerActor.createObject(currentStatePublisher, currLifeCycleState, operationalState, loggerFactory)
     currentStatePublisher.publish(currentState)
-
+    log.info(msg = s"published state : ${currentState} to MCS Assembly")
   }
 
   def onOperationalStateChange(msg: HCDOperationalStateChangeMsg) = {
@@ -70,6 +70,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     val currentState = CurrentState(prefix).add(operationalStateParam)
     EventHandlerActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, loggerFactory)
     currentStatePublisher.publish(currentState)
+    log.info(msg = s"published state : ${currentState} to MCS Assembly")
   }
 
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {

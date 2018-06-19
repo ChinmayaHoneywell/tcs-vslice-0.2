@@ -7,7 +7,7 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValue}
 import csw.framework.exceptions.FailureStop
 import csw.services.command.scaladsl.CommandResponseManager
 import csw.services.config.api.models.ConfigData
@@ -61,8 +61,17 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   private def doInitialize(): Unit = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
     val assemblyConfig: Config = getAssemblyConfig()
-    val configValue            = assemblyConfig.getInt("")
-    log.info(msg = s"value for key : abc from configuration is $configValue")
+    // val config = assemblyConfig.get
+    val zeroMQPushSocket: ConfigValue = assemblyConfig.getValue("tmt.tcs.mcs.zeroMQPush")
+    log.info(msg = s"push socket is : ${zeroMQPushSocket.toString}")
+    log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}")
+    val zeroMQPullSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQPull")
+    log.info(msg = s"zeroMQPullSocket from config file : mcs_hcd.conf is ${zeroMQPullSocket}")
+    val zeroMQPubSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQPub")
+    log.info(msg = s"zeroMQPubSocket from config file : mcs_hcd.conf is ${zeroMQPubSocket}")
+    val zeroMQSubSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQSub")
+    log.info(msg = s"zeroMQSubSocket from config file : mcs_hcd.conf is ${zeroMQSubSocket}")
+
     log.info(msg = s"Successfully initialized assembly configuration")
   }
   /*TODO :-
@@ -72,10 +81,10 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s"Shutting down MCS assembly.")
   }
   private def getAssemblyConfig(): Config = {
-    val filePath                                 = Paths.get("mcs_hcd.conf")
+    val filePath                                 = Paths.get("org/tmt/tcs/mcs_hcd.conf")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    val configData: ConfigData                   = Await.result(getConfigData(filePath), 3.seconds)
+    val configData: ConfigData                   = Await.result(getConfigData(filePath), 20.seconds)
     Await.result(configData.toConfigObject, 3.seconds)
 
   }

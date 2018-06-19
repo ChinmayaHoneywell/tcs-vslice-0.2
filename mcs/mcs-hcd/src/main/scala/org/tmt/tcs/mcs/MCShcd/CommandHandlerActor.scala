@@ -22,7 +22,7 @@ case class CommandHandlerActor(ctx: ActorContext[ControlCommand],
       case Commands.STARTUP => {
         log.info("Starting MCS HCD")
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, CommandResponse.Completed(controlCommand.runId))
-
+        log.info(msg = s"Successfully started MCS HCD")
       }
       case Commands.SHUTDOWN => {
         log.info("ShutDown MCS HCD")
@@ -31,30 +31,30 @@ case class CommandHandlerActor(ctx: ActorContext[ControlCommand],
       case Commands.POINT => {
         log.debug(s"handling point command: ${controlCommand}")
 
-        Thread.sleep(500)
+        Thread.sleep(50)
 
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, CommandResponse.Completed(controlCommand.runId))
       }
       case Commands.POINT_DEMAND => {
         log.debug(s"handling pointDemand command: ${controlCommand}")
 
-        Thread.sleep(1000)
+        Thread.sleep(100)
 
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, CommandResponse.Completed(controlCommand.runId))
       }
       case Commands.DATUM => {
         log.info("Received datum command in HCD commandHandler")
-        Thread.sleep(1000)
+        Thread.sleep(50)
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, CommandResponse.Completed(controlCommand.runId))
       }
       case Commands.FOLLOW => {
         log.info("Received follow command in HCD commandHandler")
-        Thread.sleep(1000)
+        Thread.sleep(100)
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, CommandResponse.Completed(controlCommand.runId))
 
       }
       case _ => {
-        log.error(msg = s"Incorrect command is sent to MCS HCD : $controlCommand")
+        log.error(msg = s"Incorrect command is sent to MCS HCD : ${controlCommand}")
         Behavior.unhandled
       }
     }

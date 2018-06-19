@@ -44,7 +44,8 @@ case class MoveCommandActor(ctx: ActorContext[ControlCommand],
         val response = Await.result(commandService.submitAllAndGetFinalResponse(Set(pointSetup, pointDemandSetup)), 3.seconds)
 
         log.info(msg = s" updating move command  ${controlCommand.runId} with response : ${response} ")
-        commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
+        commandResponseManager.addSubCommand(controlCommand.runId, response.runId)
+        commandResponseManager.updateSubCommand(response.runId, response)
         log.info(msg = s"completed move command execution for command id : $controlCommand.runId")
         this
       }

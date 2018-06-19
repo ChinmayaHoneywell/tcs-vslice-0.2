@@ -10,7 +10,10 @@ object Dependencies {
     CSW.`csw-logging`,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
-    Libs.`junit-interface` % Test
+    Libs.`junit-interface` % Test,
+    Libs.`mockito-core` % Test,
+    Libs.`akka-test` % Test
+
   )
 
   val McsHcd = Seq(
@@ -21,7 +24,9 @@ object Dependencies {
     CSW.`csw-logging`,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
-    Libs.`junit-interface` % Test
+    Libs.`junit-interface` % Test,
+    Libs.`mockito-core` % Test,
+    Libs.`akka-test` % Test
   )
 
   val McsDeploy = Seq(
