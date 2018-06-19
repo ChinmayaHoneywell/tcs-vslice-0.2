@@ -66,6 +66,7 @@ This template shows working examples of:
 	8.1 Submit command by typing on console.
 
 9. Junit Test Cases
+
 	9.1 Follow Command Actor Test case for follow command completion.
 
 ## Examples to be implemented
