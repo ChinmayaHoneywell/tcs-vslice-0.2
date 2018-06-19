@@ -78,11 +78,10 @@ public class JEncHcdHandlers extends JComponentHandlers {
 
     @Override
     public CompletableFuture<Void> jInitialize() {
-        return CompletableFuture.runAsync(() -> {
-            log.debug(()-> "initializing enc hcd");
-            lifecycleActor.tell(new JLifecycleActor.InitializeMessage());
-        });
-
+        CompletableFuture<Void> cf = new CompletableFuture<>();
+        log.debug(()->"initializing enc assembly");
+        lifecycleActor.tell(new JLifecycleActor.InitializeMessage(cf));
+        return cf;
     }
 
     @Override

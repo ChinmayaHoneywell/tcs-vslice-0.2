@@ -65,6 +65,9 @@ This template shows working examples of:
 
 	8.1 Submit command by typing on console.
 
+9. Junit Test Cases
+	9.1 Follow Command Actor Test case for follow command completion.
+
 ## Examples to be implemented
 
 1. Publish demandState from assembly to hcd
@@ -201,3 +204,6 @@ The Client App accept user input on console. Following command can be submitted 
 [startup, invalidMove, move, follow, shutdown]
 
 Or user can type 'exit' to stop client.
+
+### Run Junit Tests
+sbt test

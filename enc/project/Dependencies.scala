@@ -21,7 +21,8 @@ object Dependencies {
     CSW.`csw-logging`,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
-    Libs.`junit-interface` % Test
+    Libs.`junit-interface` % Test,
+    Libs.`mockito-core` % Test
   )
 
   val EncDeploy = Seq(

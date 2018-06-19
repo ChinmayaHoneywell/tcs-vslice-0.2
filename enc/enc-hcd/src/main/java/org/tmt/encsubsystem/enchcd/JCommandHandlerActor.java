@@ -49,6 +49,16 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
         public ImmediateResponseMessage(CommandResponse commandResponse) {
             this.commandResponse = commandResponse;
         }
+
+        @Override
+        public boolean equals(Object obj) {
+
+            if(!(obj instanceof  ImmediateResponseMessage)) {
+                return false;
+            }
+            boolean isSame= commandResponse.equals(((ImmediateResponseMessage) obj).commandResponse);
+           return isSame;
+        }
     }
 
 

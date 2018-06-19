@@ -20,6 +20,7 @@ import csw.services.logging.javadsl.JLoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
@@ -31,6 +32,10 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
     }
 
     public static final class InitializeMessage implements LifecycleMessage {
+        public final CompletableFuture<Void> cf;
+        public InitializeMessage(CompletableFuture<Void> cf) {
+            this.cf = cf;
+        }
     }
 
     public static final class ShutdownMessage implements LifecycleMessage {
@@ -111,16 +116,14 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
     private void onInitialize(InitializeMessage message) {
 
         log.debug(()-> "Initialize Message Received ");
-
         Config assemblyConfig = getHCDConfig();
 
         // example of working with Config
         Integer bazValue = assemblyConfig.getInt("foo.bar.baz");
 
         log.debug(()-> "foo.bar.baz config element value is: " + bazValue);
-        JStatePublisherActor.StartMessage startMessage = new JStatePublisherActor.StartMessage();
-
-        statePublisherActor.tell(startMessage);
+        statePublisherActor.tell( new JStatePublisherActor.StartMessage());
+        message.cf.complete(null);
 
     }
 

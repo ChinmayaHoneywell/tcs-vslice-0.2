@@ -49,6 +49,16 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
             this.lifecycleState = lifecycleState;
             this.operationalState = operationalState;
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if(!(obj instanceof StateChangeMessage)){
+                return false;
+            }
+          boolean isSame= this.lifecycleState.equals(((StateChangeMessage)obj).lifecycleState) && this.operationalState.equals(((StateChangeMessage)obj).operationalState);
+            System.out.println(isSame);
+return  isSame;
+        }
     }
 
     private JLoggerFactory loggerFactory;

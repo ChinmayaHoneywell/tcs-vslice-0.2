@@ -105,10 +105,11 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     @Override
     public CompletableFuture<Void> jInitialize() {
-        return CompletableFuture.runAsync(() -> {
+
+        CompletableFuture<Void> cf = new CompletableFuture<>();
             log.debug(()->"initializing enc assembly");
-            lifecycleActor.tell(new JLifecycleActor.InitializeMessage());
-        });
+            lifecycleActor.tell(new JLifecycleActor.InitializeMessage(cf));
+          return cf;
     }
 
     @Override
@@ -138,7 +139,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             // do something for the tracked location when it is no longer available
             hcdCommandService = Optional.empty();
             // FIXME: not sure if this is necessary
-            subscription.get().unsubscribe();
+            subscription.ifPresent(subscription-> subscription.unsubscribe());
         }
 
         // send messages to command handler and monitor actors
@@ -186,7 +187,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
                     return invalid;
                 }
             } else if (controlCommand.commandName().name().equals("follow")) {
-                //TODO: Put validations
+
                 try {
                     log.debug(()->"Follow command submitting to command handler from assembly and waiting for response");
                     //submitting command to commandHandler actor and waiting for completion.
