@@ -40,7 +40,7 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
 
 
-    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory,ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
@@ -50,7 +50,7 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
 
     }
 
-    public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory,ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+    public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         return Behaviors.setup(ctx -> {
             return (Behaviors.MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
         });
@@ -64,7 +64,7 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
                 .onMessage(FollowCommandMessage.class,
                         message -> {
                             handleSubmitCommand(message);
-                            return Behaviors.same();
+                            return Behaviors.stopped();
                         });
         return builder.build();
     }
@@ -77,10 +77,10 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
      */
     private void handleSubmitCommand(FollowCommandMessage message) {
         try {
-            log.debug(()-> "Follow Command Message Received by FollowCmdActor in HCD " + message.controlCommand);
+            log.debug(() -> "Follow Command Message Received by FollowCmdActor in HCD " + message.controlCommand);
             Thread.sleep(500);
             //Serialize command data, submit to subsystem using ethernet ip connection
-            log.debug(()-> "Got response from enc subsystem for follow command");
+            log.debug(() -> "Got response from enc subsystem for follow command");
             //Sending message to change operational state.
             statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.Following)));
             message.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(message.controlCommand.runId())));

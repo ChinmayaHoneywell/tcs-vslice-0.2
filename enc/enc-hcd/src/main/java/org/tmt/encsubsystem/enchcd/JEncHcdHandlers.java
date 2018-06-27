@@ -79,7 +79,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     @Override
     public CompletableFuture<Void> jInitialize() {
         CompletableFuture<Void> cf = new CompletableFuture<>();
-        log.debug(()->"initializing enc assembly");
+        log.debug(() -> "initializing enc assembly");
         lifecycleActor.tell(new JLifecycleActor.InitializeMessage(cf));
         return cf;
     }
@@ -87,28 +87,28 @@ public class JEncHcdHandlers extends JComponentHandlers {
     @Override
     public CompletableFuture<Void> jOnShutdown() {
         return CompletableFuture.runAsync(() -> {
-            log.debug(()-> "shutdown enc hcd");
+            log.debug(() -> "shutdown enc hcd");
             lifecycleActor.tell(new JLifecycleActor.ShutdownMessage());
         });
     }
 
     @Override
     public void onLocationTrackingEvent(TrackingEvent trackingEvent) {
-        log.debug(()-> "location changed " + trackingEvent);
+        log.debug(() -> "location changed " + trackingEvent);
     }
 
     @Override
     public CommandResponse validateCommand(ControlCommand controlCommand) {
-        log.debug(()-> "validating command in enc hcd");
+        log.debug(() -> "validating command in enc hcd");
         if (controlCommand.commandName().name().equals("follow")) {
             //TODO: Put validations
             try {
-                log.debug(()-> "Follow command submitting to command handler from hcd and waiting for response");
+                log.debug(() -> "Follow command submitting to command handler from hcd and waiting for response");
                 //submitting command to commandHandler actor and waiting for completion.
                 final CompletionStage<JCommandHandlerActor.ImmediateResponseMessage> reply = AskPattern.ask(commandHandlerActor, (ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo) ->
                         new JCommandHandlerActor.ImmediateCommandMessage(controlCommand, replyTo), new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler());
                 CommandResponse response = reply.toCompletableFuture().get().commandResponse;
-                log.debug(()-> "follow command response received in validate hook of hcd");
+                log.debug(() -> "follow command response received in validate hook of hcd");
                 return response;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -121,25 +121,25 @@ public class JEncHcdHandlers extends JComponentHandlers {
 
     @Override
     public void onSubmit(ControlCommand controlCommand) {
-        log.info(()-> "HCD , Command received - " + controlCommand);
+        log.info(() -> "HCD , Command received - " + controlCommand);
         switch (controlCommand.commandName().name()) {
 
 
             case "startup":
-                log.debug(()-> "handling startup command: " + controlCommand);
+                log.debug(() -> "handling startup command: " + controlCommand);
                 lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
                 break;
             case "shutdown":
-                log.debug(()-> "handling shutdown command: " + controlCommand);
+                log.debug(() -> "handling shutdown command: " + controlCommand);
                 lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
                 break;
             case "fastMove":
-                log.debug(()-> "handling fastMove command: " + controlCommand);
+                log.debug(() -> "handling fastMove command: " + controlCommand);
                 commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
                 break;
 
             case "trackOff":
-                log.debug(()-> "handling trackOff command: " + controlCommand);
+                log.debug(() -> "handling trackOff command: " + controlCommand);
                 commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
                 break;
 
@@ -152,16 +152,16 @@ public class JEncHcdHandlers extends JComponentHandlers {
 
     @Override
     public void onOneway(ControlCommand controlCommand) {
-        log.debug(()-> "processing one way command to enc hcd");
+        log.debug(() -> "processing one way command to enc hcd");
     }
 
     @Override
     public void onGoOffline() {
-        log.info(()->"HCD Go Offline hook");
+        log.info(() -> "HCD Go Offline hook");
     }
 
     @Override
     public void onGoOnline() {
-        log.info(()->"HCD Go Online hook");
+        log.info(() -> "HCD Go Online hook");
     }
 }

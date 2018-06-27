@@ -251,41 +251,41 @@ public class TcsTemplateJavaClient {
         LoggingSystem loggingSystem = JLoggingSystemFactory.start("TcsTemplateClientApp", "0.1", hostName, system);
         log = new JLoggerFactory("client-app").getLogger(tcsTemplateJavaClient.getClass());
 
-        log.info(()-> "TCS Client Starting..");
+        log.info(() -> "TCS Client Starting..");
 
         boolean keepRunning = true;
         while (keepRunning) {
-            log.info(()-> "Type command name [startup, invalidMove, move, follow, shutdown] or type 'exit' to stop client");
+            log.info(() -> "Type command name [startup, invalidMove, move, follow, shutdown] or type 'exit' to stop client");
 
             String commandName = scanner.nextLine();
             switch (commandName) {
                 case "startup":
-                    log.info(()-> "Sending startup command to enclosure assembly.. ");
+                    log.info(() -> "Sending startup command to enclosure assembly.. ");
                     CompletableFuture<CommandResponse> startUpCmdResponse = tcsTemplateJavaClient.startup(maybeObsId);
                     log.info("Response on  startup command: " + startUpCmdResponse.get());
                     break;
                 case "shutdown":
-                    log.info(()-> "Sending shutdown command to enclosure assembly.. ");
+                    log.info(() -> "Sending shutdown command to enclosure assembly.. ");
                     CompletableFuture<CommandResponse> shutdownCmdResponse = tcsTemplateJavaClient.shutdown(maybeObsId);
-                    log.info( "Response on  shutdown command: " + shutdownCmdResponse.get());
+                    log.info("Response on  shutdown command: " + shutdownCmdResponse.get());
                     break;
                 case "move":
-                    log.info(()-> "Commanding enclosure to move  fast: ");
+                    log.info(() -> "Commanding enclosure to move  fast: ");
                     CompletableFuture<CommandResponse> moveCmdResponse = tcsTemplateJavaClient.move(maybeObsId, 2.34, 5.67, "On", "fast");
                     CommandResponse respMoveCmd = moveCmdResponse.get();
-                    log.info(()-> "Enclosure moved: " + respMoveCmd);
+                    log.info(() -> "Enclosure moved: " + respMoveCmd);
                     break;
                 case "follow":
 
-                    log.info(()-> "Commanding enclosure with Follow Command: ");
+                    log.info(() -> "Commanding enclosure with Follow Command: ");
                     CompletableFuture<CommandResponse> followCmdResponse = tcsTemplateJavaClient.follow(maybeObsId);
                     CommandResponse respFollowCmd = followCmdResponse.get();
-                    log.info(()-> "Enclosure Follow: " + respFollowCmd);
+                    log.info(() -> "Enclosure Follow: " + respFollowCmd);
                     break;
                 case "invalidMove":
-                    log.info(()-> "Commanding enclosure to move with invalid param: ");
+                    log.info(() -> "Commanding enclosure to move with invalid param: ");
                     CompletableFuture<CommandResponse> invalidMoveCmdResponse = tcsTemplateJavaClient.moveInvalid(maybeObsId, 2.34, 5.67, "On", "fast");
-                    log.info( "Response on invalid move command: " + invalidMoveCmdResponse.get());
+                    log.info("Response on invalid move command: " + invalidMoveCmdResponse.get());
                     break;
                 case "exit":
                     keepRunning = false;

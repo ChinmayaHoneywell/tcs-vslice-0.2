@@ -50,19 +50,19 @@ public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug(()-> "Starup Received");
+                            log.debug(() -> "Starup Received");
                             handleStartupCommand(command);
-                            return Behaviors.same();
+                            return Behaviors.stopped();
                         });
         return builder.build();
     }
 
     private void handleStartupCommand(ControlCommand controlCommand) {
 
-        log.debug(()-> "HCD handling starup command = " + controlCommand);
+        log.debug(() -> "HCD handling starup command = " + controlCommand);
 
         try {
-            log.debug(()-> "TODO: should make connection to enc subsystem");
+            log.debug(() -> "should make connection to enc subsystem");
             //Serialize command data, submit to subsystem using ethernet ip connection
             Thread.sleep(500);
             commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));

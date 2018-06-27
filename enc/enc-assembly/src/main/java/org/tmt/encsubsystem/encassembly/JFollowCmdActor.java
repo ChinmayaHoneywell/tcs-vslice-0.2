@@ -74,9 +74,9 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
         ReceiveBuilder<FollowMessage> builder = receiveBuilder()
                 .onMessage(FollowCommandMessage.class,
                         followCommandMessage -> {
-                            log.debug(()->"Follow Command Message Received by FollowCmdActor in Assembly");
+                            log.debug(() -> "Follow Command Message Received by FollowCmdActor in Assembly");
                             handleSubmitCommand(followCommandMessage);
-                            return Behaviors.same();
+                            return Behaviors.stopped();// actor stops itself, it is meant to only process one command.
                         });
         return builder.build();
     }

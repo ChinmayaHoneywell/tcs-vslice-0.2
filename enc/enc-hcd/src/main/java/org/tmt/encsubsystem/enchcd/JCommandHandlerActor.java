@@ -53,11 +53,11 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
         @Override
         public boolean equals(Object obj) {
 
-            if(!(obj instanceof  ImmediateResponseMessage)) {
+            if (!(obj instanceof ImmediateResponseMessage)) {
                 return false;
             }
-            boolean isSame= commandResponse.equals(((ImmediateResponseMessage) obj).commandResponse);
-           return isSame;
+            boolean isSame = commandResponse.equals(((ImmediateResponseMessage) obj).commandResponse);
+            return isSame;
         }
     }
 
@@ -95,21 +95,21 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("fastMove"),
                         command -> {
-                            log.debug(()-> "FastMove Message Received");
+                            log.debug(() -> "FastMove Message Received");
                             handleFastMoveCommand(command.controlCommand);
                             return Behaviors.same();
                         })
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("trackOff"),
                         command -> {
-                            log.debug(()-> "trackOff Received");
+                            log.debug(() -> "trackOff Received");
                             handleTrackOffCommand(command.controlCommand);
                             return Behaviors.same();
                         })
                 .onMessage(ImmediateCommandMessage.class,
                         message -> message.controlCommand.commandName().name().equals("follow"),
                         message -> {
-                            log.debug(()-> "follow command received");
+                            log.debug(() -> "follow command received");
                             handleFollowCommand(message);
                             return Behaviors.same();
                         });
@@ -121,7 +121,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     private void handleFastMoveCommand(ControlCommand controlCommand) {
 
-        log.debug(()-> "HCD handling fastMove command = " + controlCommand);
+        log.debug(() -> "HCD handling fastMove command = " + controlCommand);
 
         ActorRef<ControlCommand> fastMoveCmdActor =
                 actorContext.spawnAnonymous(JFastMoveCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
@@ -136,7 +136,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     private void handleTrackOffCommand(ControlCommand controlCommand) {
 
-        log.debug(()-> "HCD handling trackOff command = " + controlCommand);
+        log.debug(() -> "HCD handling trackOff command = " + controlCommand);
 
 
         ActorRef<ControlCommand> trackOffCmdActor =
@@ -149,7 +149,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     private void handleFollowCommand(ImmediateCommandMessage message) {
 
-        log.debug(()-> "HCD handling follow command = " + message.controlCommand);
+        log.debug(() -> "HCD handling follow command = " + message.controlCommand);
 
 
         ActorRef<JFollowCmdActor.FollowMessage> followCmdActor =

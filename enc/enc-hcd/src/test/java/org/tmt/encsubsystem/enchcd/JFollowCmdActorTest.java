@@ -16,6 +16,29 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Optional;
 
+/**
+ * This is an Actor Level Test.
+ * <p>
+ * Test case can be -
+ * Handler level
+ * Actor level
+ * <p>
+ * Actor Level -
+ * Sending different message and checking if
+ * it respond with a message
+ * it create any child actor
+ * it send message to any other actor
+ * it changes its state
+ * it crashes
+ * <p>
+ * Handler Level -
+ * validation tests
+ * failed validation and successful validation
+ * <p>
+ * command tests
+ * test for immediate command
+ * test for long running command
+ */
 public class JFollowCmdActorTest {
 
     @ClassRule
@@ -27,30 +50,30 @@ public class JFollowCmdActorTest {
     @Mock
     CommandResponseManager commandResponseManager;
 
+    JLoggerFactory jLoggerFactory;
+    TestProbe<JStatePublisherActor.StatePublisherMessage> statePublisherMessageTestProbe;
+    ActorRef<JFollowCmdActor.FollowMessage> followCmdActor;
+
     @Before
     public void setUp() throws Exception {
-        System.out.println("test setup");
+        jLoggerFactory = new JLoggerFactory("enc-test-logger");
+        statePublisherMessageTestProbe = testKit.createTestProbe();
+        followCmdActor = testKit.spawn(JFollowCmdActor.behavior(commandResponseManager, jLoggerFactory, statePublisherMessageTestProbe.getRef()));
     }
 
     @After
     public void tearDown() throws Exception {
-        System.out.println("test tear down");
     }
 
     /**
      * given the HCD follow command actor is initialized, subsystem is also running
      * when valid follow message having follow command in it, is send
-     * then it should reply with command successfully completed,
-     *      state publisher actor should receive state change message.
+     * then it should reply with command successfully completed and
+     * state publisher actor should receive state change message.
      */
     @Test
     public void followCommandCompletion() {
-        JLoggerFactory jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        TestProbe<JStatePublisherActor.StatePublisherMessage> statePublisherMessageTestProbe = testKit.createTestProbe();
-        ActorRef<JFollowCmdActor.FollowMessage> followCmdActor = testKit.spawn(JFollowCmdActor.behavior(commandResponseManager, jLoggerFactory, statePublisherMessageTestProbe.getRef()));
-
         Setup setup = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
-        System.out.println("run id - " + setup.runId());
         TestProbe<JCommandHandlerActor.ImmediateResponseMessage> immediateResponseMessageTestProbe = testKit.createTestProbe();
         followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(setup, immediateResponseMessageTestProbe.getRef()));
         //checking if command completed message is received by test probe(replyTo actor)

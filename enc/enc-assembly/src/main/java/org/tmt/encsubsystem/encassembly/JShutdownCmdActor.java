@@ -53,9 +53,9 @@ public class JShutdownCmdActor extends Behaviors.MutableBehavior<ControlCommand>
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug(()->"Shutdown Received");
+                            log.debug(() -> "Shutdown Received");
                             handleSubmitCommand(command);
-                            return Behaviors.same();
+                            return Behaviors.stopped();// actor stops itself, it is meant to only process one command.
                         });
         return builder.build();
     }
@@ -63,13 +63,13 @@ public class JShutdownCmdActor extends Behaviors.MutableBehavior<ControlCommand>
     private void handleSubmitCommand(ControlCommand command) {
 
         if (hcdCommandService.isPresent()) {
-            log.debug(()->"Submitting shutdown command from assembly to hcd");
+            log.debug(() -> "Submitting shutdown command from assembly to hcd");
             hcdCommandService.get()
                     .submitAndSubscribe(
                             command,
                             Timeout.durationToTimeout(FiniteDuration.apply(5, TimeUnit.SECONDS))
                     ).thenAccept(response -> {
-                log.debug(()->"received response from hcd");
+                log.debug(() -> "received response from hcd");
                 commandResponseManager.addOrUpdateCommand(command.runId(), response);
 
             });

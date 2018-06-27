@@ -1,6 +1,5 @@
 package org.tmt.encsubsystem.enchcd;
 
-import akka.actor.ActorRefFactory;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
@@ -33,6 +32,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
     public static final class InitializeMessage implements LifecycleMessage {
         public final CompletableFuture<Void> cf;
+
         public InitializeMessage(CompletableFuture<Void> cf) {
             this.cf = cf;
         }
@@ -85,27 +85,27 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
         ReceiveBuilder<LifecycleMessage> builder = receiveBuilder()
                 .onMessage(InitializeMessage.class,
                         command -> {
-                            log.debug(()-> "InitializeMessage Received");
+                            log.debug(() -> "InitializeMessage Received");
                             onInitialize(command);
                             return Behaviors.same();
                         })
                 .onMessage(ShutdownMessage.class,
                         command -> {
-                            log.debug(()-> "ShutdownMessage Received");
+                            log.debug(() -> "ShutdownMessage Received");
                             onShutdown(command);
                             return Behaviors.same();
                         })
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("startup"),
                         command -> {
-                            log.debug(()-> "StartUp Received");
+                            log.debug(() -> "StartUp Received");
                             handleStartupCommand(command.controlCommand);
                             return Behaviors.same();
                         })
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("shutdown"),
                         command -> {
-                            log.debug(()-> "Shutdown Received");
+                            log.debug(() -> "Shutdown Received");
                             handleShutdownCommand(command.controlCommand);
                             return Behaviors.same();
                         });
@@ -115,21 +115,21 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
     private void onInitialize(InitializeMessage message) {
 
-        log.debug(()-> "Initialize Message Received ");
+        log.debug(() -> "Initialize Message Received ");
         Config assemblyConfig = getHCDConfig();
 
         // example of working with Config
         Integer bazValue = assemblyConfig.getInt("foo.bar.baz");
 
-        log.debug(()-> "foo.bar.baz config element value is: " + bazValue);
-        statePublisherActor.tell( new JStatePublisherActor.StartMessage());
+        log.debug(() -> "foo.bar.baz config element value is: " + bazValue);
+        statePublisherActor.tell(new JStatePublisherActor.StartMessage());
         message.cf.complete(null);
 
     }
 
     private void onShutdown(ShutdownMessage message) {
 
-        log.debug(()-> "Shutdown Message Received ");
+        log.debug(() -> "Shutdown Message Received ");
         JStatePublisherActor.StopMessage stopMessage = new JStatePublisherActor.StopMessage();
 
         statePublisherActor.tell(stopMessage);
@@ -137,16 +137,16 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
     private void handleStartupCommand(ControlCommand controlCommand) {
 
-        log.debug(()-> "handle Startup Command = " + controlCommand);
+        log.debug(() -> "handle Startup Command = " + controlCommand);
         ActorRef<ControlCommand> startupCmdActor =
                 actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
-
         startupCmdActor.tell(controlCommand);
+
     }
 
     private void handleShutdownCommand(ControlCommand controlCommand) {
 
-        log.debug(()-> "handle shutdown Command = " + controlCommand);
+        log.debug(() -> "handle shutdown Command = " + controlCommand);
         ActorRef<ControlCommand> shutdownCmdActor =
                 actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
 
@@ -162,7 +162,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
     private Config getHCDConfig() {
 
         try {
-            ActorRefFactory actorRefFactory = Adapter.toUntyped(actorContext.getSystem());
+            //ActorRefFactory actorRefFactory = Adapter.toUntyped(actorContext.getSystem());
 
             ActorRuntime actorRuntime = new ActorRuntime(Adapter.toUntyped(actorContext.getSystem()));
 
@@ -180,7 +180,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
     private ConfigData getHCDConfigData() throws ExecutionException, InterruptedException {
 
-        log.debug(()-> "loading hcd configuration");
+        log.debug(() -> "loading hcd configuration");
 
         // construct the path
         Path filePath = Paths.get("/org/tmt/tcs/tcs_test.conf");

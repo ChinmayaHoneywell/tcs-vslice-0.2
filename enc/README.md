@@ -67,15 +67,15 @@ This template shows working examples of:
 
 9. Junit Test Cases
 
-	9.1 Follow Command Actor Test case for follow command completion.
+	9.1 Follow Command Actor Test case for command completion.
+	9.2 FastMove Command Actor Test case for  command completion.
 
 ## Examples to be implemented
 
-1. Publish demandState from assembly to hcd
 
-2. Killing Worker actor after message processing
+1. Enhancement in sections - configuration usage, using latest csw build, validations, simple simulator and real simulator, measures
 
-3. Junit test cases.
+2. Junit test cases.
 
 
 ##  Documentation

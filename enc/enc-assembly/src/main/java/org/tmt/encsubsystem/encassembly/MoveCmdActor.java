@@ -62,9 +62,9 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug(()->"Move Received");
+                            log.debug(() -> "Move Received");
                             handleSubmitCommand(command);
-                            return Behaviors.same();
+                            return Behaviors.stopped();// actor stops itself, it is meant to only process one command.
                         });
         return builder.build();
     }
@@ -79,20 +79,18 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
         Parameter mode = message.paramSet().find(x -> x.keyName().equals("mode")).get();
         Parameter timeDuration = message.paramSet().find(x -> x.keyName().equals("timeDuration")).get();
 
-        // create Point and PointDemand messages and send to HCD
-
         CompletableFuture<CommandResponse> moveFuture = move(message.maybeObsId(), operation, azParam, elParam, mode, timeDuration);
 
         moveFuture.thenAccept((response) -> {
 
-            log.debug(()->"response = " + response);
-            log.debug(()->"runId = " + message.runId());
+            log.debug(() -> "response = " + response);
+            log.debug(() -> "runId = " + message.runId());
 
             commandResponseManager.addSubCommand(message.runId(), response.runId());
 
             commandResponseManager.updateSubCommand(response.runId(), response);
 
-            log.debug(()->"move command message handled");
+            log.debug(() -> "move command message handled");
 
 
         });
@@ -110,9 +108,9 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
                                             Parameter timeDuration) {
         String modeValue = (String) mode.get(0).get();
         if (hcdCommandService.isPresent()) {
-            log.debug(()->"Mode - " + modeValue);
+            log.debug(() -> "Mode - " + modeValue);
             if ("fast".equals(modeValue)) {
-                log.debug(()->"Submitting fastMove command to HCD");
+                log.debug(() -> "Submitting fastMove command to HCD");
                 Setup fastMoveSetupCmd = new Setup(templateHcdPrefix, new CommandName("fastMove"), Optional.empty())
                         .add(azParam)
                         .add(elParam)

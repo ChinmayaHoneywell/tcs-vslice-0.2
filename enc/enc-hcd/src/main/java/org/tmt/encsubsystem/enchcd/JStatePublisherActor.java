@@ -28,6 +28,17 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
     }
 
     public static final class StartMessage implements StatePublisherMessage {
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof StartMessage)) {
+                return false;
+            }
+            return true;
+
+        }
     }
 
     public static final class StopMessage implements StatePublisherMessage {
@@ -52,12 +63,11 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
         @Override
         public boolean equals(Object obj) {
-            if(!(obj instanceof StateChangeMessage)){
+            if (!(obj instanceof StateChangeMessage)) {
                 return false;
             }
-          boolean isSame= this.lifecycleState.equals(((StateChangeMessage)obj).lifecycleState) && this.operationalState.equals(((StateChangeMessage)obj).operationalState);
-            System.out.println(isSame);
-return  isSame;
+            boolean isSame = this.lifecycleState.equals(((StateChangeMessage) obj).lifecycleState) && this.operationalState.equals(((StateChangeMessage) obj).operationalState);
+            return isSame;
         }
     }
 
@@ -108,25 +118,25 @@ return  isSame;
         ReceiveBuilder<StatePublisherMessage> builder = receiveBuilder()
                 .onMessage(StartMessage.class,
                         command -> {
-                            log.debug(()-> "StartMessage Received");
+                            log.debug(() -> "StartMessage Received");
                             onStart(command);
                             return Behaviors.same();
                         })
                 .onMessage(StopMessage.class,
                         command -> {
-                            log.debug(()-> "StopMessage Received");
+                            log.debug(() -> "StopMessage Received");
                             onStop(command);
                             return Behaviors.same();
                         })
                 .onMessage(PublishMessage.class,
                         command -> {
-                            log.debug(()-> "PublishMessage Received");
+                            log.debug(() -> "PublishMessage Received");
                             onPublishMessage(command);
                             return Behaviors.same();
                         })
                 .onMessage(StateChangeMessage.class,
                         command -> {
-                            log.debug(()-> "LifecycleStateChangeMessage Received");
+                            log.debug(() -> "LifecycleStateChangeMessage Received");
                             handleStateChange(command);
                             return Behaviors.same();
                         });
@@ -135,18 +145,18 @@ return  isSame;
 
     private void onStart(StartMessage message) {
 
-        log.debug(()-> "Start Message Received ");
+        log.debug(() -> "Start Message Received ");
 
         timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.create(60, TimeUnit.SECONDS));
 
-        log.debug(()-> "start message completed");
+        log.debug(() -> "start message completed");
 
 
     }
 
     private void onStop(StopMessage message) {
 
-        log.debug(()-> "Stop Message Received ");
+        log.debug(() -> "Stop Message Received ");
         timer.cancel(TIMER_KEY);
     }
 
@@ -157,8 +167,8 @@ return  isSame;
      */
     private void handleStateChange(StateChangeMessage message) {
         //change current state or if state is not present in message keep it as is.
-       lifecycleState = message.lifecycleState.orElse(lifecycleState);
-       operationalState = message.operationalState.orElse(operationalState);
+        lifecycleState = message.lifecycleState.orElse(lifecycleState);
+        operationalState = message.operationalState.orElse(operationalState);
         CurrentState currentLifecycleState = new CurrentState(prefixCurrentLifecycleState)
                 .add(JKeyTypes.StringKey().make("LifecycleState").set(lifecycleState.name()))
                 .add(JKeyTypes.StringKey().make("OperationalState").set(operationalState.name()));
@@ -169,7 +179,7 @@ return  isSame;
 
     private void onPublishMessage(PublishMessage message) {
 
-        log.debug(()-> "Publish Message Received ");
+        log.debug(() -> "Publish Message Received ");
 
         // example parameters for a current state
 
