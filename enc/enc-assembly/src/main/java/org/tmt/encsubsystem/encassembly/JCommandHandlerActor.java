@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -15,7 +16,7 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import java.util.Optional;
 
 
-public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHandlerActor.CommandMessage> {
+public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.CommandMessage> {
 
 
     // add messages here
@@ -85,7 +86,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, Boolean online, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, hcdCommandService, online, loggerFactory);
+            return (MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, hcdCommandService, online, loggerFactory);
         });
     }
 

@@ -1,8 +1,9 @@
 package org.tmt.encsubsystem.enchcd;
 
+import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
+import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import akka.testkit.typed.javadsl.TestKitJunitResource;
-import akka.testkit.typed.javadsl.TestProbe;
+
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.api.models.ConfigData;
@@ -11,11 +12,12 @@ import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import scala.concurrent.duration.Duration;
+
 
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -72,7 +74,7 @@ public class JLifecycleActorTest {
         when(configClientApi.getActive(Paths.get("/org/tmt/tcs/tcs_test.conf"))).thenReturn(CompletableFuture.completedFuture(Optional.of(configData)));
         CompletableFuture<Void> cf = new CompletableFuture<>();
         lifecycleCmdActor.tell(new JLifecycleActor.InitializeMessage(cf));
-        statePublisherMessageTestProbe.expectMessage(Duration.create(60, TimeUnit.SECONDS), new JStatePublisherActor.StartMessage());
+        statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StartMessage());
         try {
             cf.get(5, TimeUnit.SECONDS);
             assertTrue(cf.isDone());

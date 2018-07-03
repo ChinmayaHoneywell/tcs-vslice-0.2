@@ -16,6 +16,7 @@ import csw.messages.scaladsl.TopLevelActorMessage;
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.client.javadsl.JConfigClientFactory;
+import csw.services.event.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
@@ -39,7 +40,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     }
 
     public enum OperationalState {
-        Idle, Ready, Following, InPosition, Faulted
+        Idle, Ready, Following, InPosition
     }
 
 
@@ -49,6 +50,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     private CurrentStatePublisher currentStatePublisher;
     private ActorContext<TopLevelActorMessage> actorContext;
     private ILocationService locationService;
+    IEventService eventService;
     private ComponentInfo componentInfo;
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
     ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor;
@@ -60,14 +62,16 @@ public class JEncHcdHandlers extends JComponentHandlers {
             CommandResponseManager commandResponseManager,
             CurrentStatePublisher currentStatePublisher,
             ILocationService locationService,
+            IEventService eventService,
             JLoggerFactory loggerFactory
     ) {
-        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, loggerFactory);
+        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, loggerFactory);
         this.currentStatePublisher = currentStatePublisher;
         this.log = loggerFactory.getLogger(getClass());
         this.commandResponseManager = commandResponseManager;
         this.actorContext = ctx;
         this.locationService = locationService;
+        this.eventService = eventService;
         this.componentInfo = componentInfo;
         configClientApi = JConfigClientFactory.clientApi(Adapter.toUntyped(actorContext.getSystem()), locationService);
         statePublisherActor = ctx.spawnAnonymous(JStatePublisherActor.behavior(currentStatePublisher, loggerFactory, LifecycleState.Initialized, OperationalState.Idle));
@@ -100,22 +104,13 @@ public class JEncHcdHandlers extends JComponentHandlers {
     @Override
     public CommandResponse validateCommand(ControlCommand controlCommand) {
         log.debug(() -> "validating command in enc hcd");
-        if (controlCommand.commandName().name().equals("follow")) {
-            //TODO: Put validations
-            try {
-                log.debug(() -> "Follow command submitting to command handler from hcd and waiting for response");
-                //submitting command to commandHandler actor and waiting for completion.
-                final CompletionStage<JCommandHandlerActor.ImmediateResponseMessage> reply = AskPattern.ask(commandHandlerActor, (ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo) ->
-                        new JCommandHandlerActor.ImmediateCommandMessage(controlCommand, replyTo), new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler());
-                CommandResponse response = reply.toCompletableFuture().get().commandResponse;
-                log.debug(() -> "follow command response received in validate hook of hcd");
-                return response;
-            } catch (Exception e) {
-                e.printStackTrace();
-                return new CommandResponse.Error(controlCommand.runId(), "Error occurred while executing command");
-            }
-        } else {
-            return new CommandResponse.Accepted(controlCommand.runId());
+        switch (controlCommand.commandName().name()) {
+            case "follow":
+                //Immediate command implementation, on submit hook will not be called.
+                return executeFollowCommandAndReturnResponse(controlCommand);
+            default:
+                //accepting all commands
+                return new CommandResponse.Accepted(controlCommand.runId());
         }
     }
 
@@ -123,8 +118,6 @@ public class JEncHcdHandlers extends JComponentHandlers {
     public void onSubmit(ControlCommand controlCommand) {
         log.info(() -> "HCD , Command received - " + controlCommand);
         switch (controlCommand.commandName().name()) {
-
-
             case "startup":
                 log.debug(() -> "handling startup command: " + controlCommand);
                 lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
@@ -164,4 +157,24 @@ public class JEncHcdHandlers extends JComponentHandlers {
     public void onGoOnline() {
         log.info(() -> "HCD Go Online hook");
     }
+
+    /**
+     * This method send command to command handler and return response of execution.
+     * The command execution is blocking, response is not return until command processing is completed
+     *
+     * @param controlCommand
+     * @return
+     */
+    private CommandResponse executeFollowCommandAndReturnResponse(ControlCommand controlCommand) {
+        //submitting command to commandHandler actor and waiting for completion.
+        try {
+            CompletionStage<JCommandHandlerActor.ImmediateResponseMessage> reply = AskPattern.ask(commandHandlerActor, (ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo) ->
+                    new JCommandHandlerActor.ImmediateCommandMessage(controlCommand, replyTo), new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler());
+
+            return reply.toCompletableFuture().get().commandResponse;
+        } catch (Exception e) {
+            return new CommandResponse.Error(controlCommand.runId(), "Error occurred while executing follow command");
+        }
+    }
+
 }

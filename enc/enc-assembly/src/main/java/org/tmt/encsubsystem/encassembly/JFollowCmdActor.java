@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.util.Timeout;
 import csw.messages.commands.CommandResponse;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * Assembly's Follow Command Actor.
  * This Actor submit follow command from assembly to hcd.
  */
-public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.FollowMessage> {
+public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessage> {
 
 
     // Add messages here
@@ -63,7 +64,7 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
 
     public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, hcdCommandService, loggerFactory);
+            return (MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, hcdCommandService, loggerFactory);
         });
     }
 

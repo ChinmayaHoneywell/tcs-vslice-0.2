@@ -5,6 +5,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -12,7 +13,7 @@ import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
-public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHandlerActor.CommandMessage> {
+public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.CommandMessage> {
 
 
     // add messages here
@@ -82,7 +83,7 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
 
     public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
+            return (MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
         });
     }
 
@@ -113,51 +114,32 @@ public class JCommandHandlerActor extends Behaviors.MutableBehavior<JCommandHand
                             handleFollowCommand(message);
                             return Behaviors.same();
                         });
-
-
         return builder.build();
     }
 
 
     private void handleFastMoveCommand(ControlCommand controlCommand) {
-
         log.debug(() -> "HCD handling fastMove command = " + controlCommand);
-
         ActorRef<ControlCommand> fastMoveCmdActor =
                 actorContext.spawnAnonymous(JFastMoveCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
-
         fastMoveCmdActor.tell(controlCommand);
 
-        // TODO: when the command is complete, kill the actor
-        // ctx.stop(setTargetWavelengthCmdActor)
 
     }
 
 
     private void handleTrackOffCommand(ControlCommand controlCommand) {
-
         log.debug(() -> "HCD handling trackOff command = " + controlCommand);
-
-
         ActorRef<ControlCommand> trackOffCmdActor =
                 actorContext.spawnAnonymous(JTrackOffCmdActor.behavior(commandResponseManager, loggerFactory));
-
         trackOffCmdActor.tell(controlCommand);
-
-
     }
 
     private void handleFollowCommand(ImmediateCommandMessage message) {
-
         log.debug(() -> "HCD handling follow command = " + message.controlCommand);
-
-
         ActorRef<JFollowCmdActor.FollowMessage> followCmdActor =
                 actorContext.spawnAnonymous(JFollowCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
-
         followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(message.controlCommand, message.replyTo));
-
-
     }
 
 

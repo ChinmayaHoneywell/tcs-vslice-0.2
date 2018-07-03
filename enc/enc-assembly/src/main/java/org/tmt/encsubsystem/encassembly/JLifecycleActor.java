@@ -3,10 +3,7 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.ActorRefFactory;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Adapter;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.ReceiveBuilder;
+import akka.actor.typed.javadsl.*;
 import akka.stream.Materializer;
 import com.typesafe.config.Config;
 import csw.framework.exceptions.FailureStop;
@@ -26,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
-public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.LifecycleMessage> {
+public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMessage> {
 
 
     // add messages here
@@ -85,7 +82,7 @@ public class JLifecycleActor extends Behaviors.MutableBehavior<JLifecycleActor.L
 
     public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, loggerFactory);
+            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, loggerFactory);
         });
     }
 

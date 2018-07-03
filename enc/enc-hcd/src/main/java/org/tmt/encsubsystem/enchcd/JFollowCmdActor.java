@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -13,7 +14,7 @@ import csw.services.logging.javadsl.JLoggerFactory;
 
 import java.util.Optional;
 
-public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.FollowMessage> {
+public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessage> {
 
 
     // Add messages here
@@ -52,7 +53,7 @@ public class JFollowCmdActor extends Behaviors.MutableBehavior<JFollowCmdActor.F
 
     public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
+            return (MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
         });
     }
 

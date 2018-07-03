@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -15,7 +16,7 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import java.util.Optional;
 
 
-public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
 
 
     private Prefix templateHcdPrefix = new Prefix("tcs.encA");
@@ -38,7 +39,7 @@ public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> 
 
     public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new JStartUpCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, statePublisherActor,
+            return (MutableBehavior<ControlCommand>) new JStartUpCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, statePublisherActor,
                     loggerFactory);
         });
     }

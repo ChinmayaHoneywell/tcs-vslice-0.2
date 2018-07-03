@@ -3,6 +3,7 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.util.Timeout;
 import csw.messages.commands.CommandResponse;
@@ -18,7 +19,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 
-public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
 
 
     private Prefix templateHcdPrefix = new Prefix("tcs.encA");
@@ -41,7 +42,7 @@ public class JStartUpCmdActor extends Behaviors.MutableBehavior<ControlCommand> 
 
     public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new JStartUpCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
+            return (MutableBehavior<ControlCommand>) new JStartUpCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
                     loggerFactory);
         });
     }

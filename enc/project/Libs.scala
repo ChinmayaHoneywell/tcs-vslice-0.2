@@ -11,7 +11,7 @@ object Libs {
 }
 
 object CSW {
-  val Version = "0.4.0"
+  val Version = "0.1-SNAPSHOT"
 
   val `csw-location`      = "org.tmt" %% "csw-location"      % Version
   val `csw-config-client` = "org.tmt" %% "csw-config-client" % Version

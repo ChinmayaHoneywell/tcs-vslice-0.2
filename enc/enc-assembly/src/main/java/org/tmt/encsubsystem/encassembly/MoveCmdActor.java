@@ -3,6 +3,7 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.util.Timeout;
 import csw.messages.commands.CommandName;
@@ -25,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 
-public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class MoveCmdActor extends MutableBehavior<ControlCommand> {
 
 
     // Add messages here
@@ -50,7 +51,7 @@ public class MoveCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
 
     public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new MoveCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
+            return (MutableBehavior<ControlCommand>) new MoveCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
                     loggerFactory);
         });
     }

@@ -2,6 +2,7 @@ package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.actor.typed.javadsl.TimerScheduler;
 import csw.framework.scaladsl.CurrentStatePublisher;
@@ -9,18 +10,18 @@ import csw.messages.params.generics.JKeyTypes;
 import csw.messages.params.generics.Key;
 import csw.messages.params.generics.Parameter;
 import csw.messages.params.states.CurrentState;
+import csw.messages.params.states.StateName;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import scala.concurrent.duration.Duration;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import static csw.messages.javadsl.JUnits.degree;
 
 
-public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublisherActor.StatePublisherMessage> {
+public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.StatePublisherMessage> {
 
 
     // add messages here
@@ -80,11 +81,20 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
     JEncHcdHandlers.OperationalState operationalState;
 
 
-    //prefix
-    String prefixCurrentPosition = "tmt.tcs.ecs.currentPosition";
-    String prefixCurrentLifecycleState = "tmt.tcs.ecs.currentState";
+    String currentStatePrefix = "tmt.tcs.ecs.currentStates";
 
-    //keys
+    // current state name and Object to represent lifecycle state and operational state of hcd/subsystem
+    String OpsAndLifecycleStateName = "OpsAndLifecycleState";
+    CurrentState OpsAndLyfCycleCurrentState;
+    //Keys to represent lifecycle state and operational state, parameters will be created from these keys
+    Key lifecycleKey = JKeyTypes.StringKey().make("LifecycleState");
+    Key operationalkey = JKeyTypes.StringKey().make("OperationalState");
+
+
+    // state name for current position
+    String currentPositionStateName = "currentPosition";
+
+    //keys for creating current position parameters
     Key timestampKey = JKeyTypes.TimestampKey().make("timestampKey");
 
     Key azPosKey = JKeyTypes.DoubleKey().make("azPosKey");
@@ -103,11 +113,13 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
         this.currentStatePublisher = currentStatePublisher;
         this.lifecycleState = lifecycleState;
         this.operationalState = operationalState;
+
+        OpsAndLyfCycleCurrentState = new CurrentState(currentStatePrefix, new StateName(OpsAndLifecycleStateName));
     }
 
     public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
         return Behaviors.withTimers(timers -> {
-            return (Behaviors.MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, currentStatePublisher, loggerFactory, lifecycleState, operationalState);
+            return (MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, currentStatePublisher, loggerFactory, lifecycleState, operationalState);
         });
     }
 
@@ -147,7 +159,7 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
 
         log.debug(() -> "Start Message Received ");
 
-        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.create(60, TimeUnit.SECONDS));
+        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.ofSeconds(60));
 
         log.debug(() -> "start message completed");
 
@@ -169,12 +181,10 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
         //change current state or if state is not present in message keep it as is.
         lifecycleState = message.lifecycleState.orElse(lifecycleState);
         operationalState = message.operationalState.orElse(operationalState);
-        CurrentState currentLifecycleState = new CurrentState(prefixCurrentLifecycleState)
-                .add(JKeyTypes.StringKey().make("LifecycleState").set(lifecycleState.name()))
-                .add(JKeyTypes.StringKey().make("OperationalState").set(operationalState.name()));
-
-
-        currentStatePublisher.publish(currentLifecycleState);
+        CurrentState currentState = OpsAndLyfCycleCurrentState
+                .add(lifecycleKey.set(lifecycleState.name()))
+                .add(operationalkey.set(operationalState.name()));
+        currentStatePublisher.publish(currentState);
     }
 
     private void onPublishMessage(PublishMessage message) {
@@ -193,7 +203,7 @@ public class JStatePublisherActor extends Behaviors.MutableBehavior<JStatePublis
         Parameter timestamp = timestampKey.set(Instant.now());
 
         //create CurrentState and use sequential add
-        CurrentState currentPosition = new CurrentState(prefixCurrentPosition)
+        CurrentState currentPosition = new CurrentState(currentStatePrefix, new StateName(currentPositionStateName))
                 .add(azPosParam)
                 .add(elPosParam)
                 .add(azPosErrorParam)

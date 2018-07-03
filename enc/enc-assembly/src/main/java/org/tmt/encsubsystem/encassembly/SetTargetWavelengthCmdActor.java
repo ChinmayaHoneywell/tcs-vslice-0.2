@@ -3,6 +3,7 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -11,7 +12,7 @@ import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
-public class SetTargetWavelengthCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class SetTargetWavelengthCmdActor extends MutableBehavior<ControlCommand> {
 
 
     // Add messages here
@@ -34,7 +35,7 @@ public class SetTargetWavelengthCmdActor extends Behaviors.MutableBehavior<Contr
 
     public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new SetTargetWavelengthCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager,
+            return (MutableBehavior<ControlCommand>) new SetTargetWavelengthCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager,
                     loggerFactory);
         });
     }

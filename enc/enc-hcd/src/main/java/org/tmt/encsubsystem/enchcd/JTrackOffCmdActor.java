@@ -3,6 +3,7 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -10,7 +11,7 @@ import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
-public class JTrackOffCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class JTrackOffCmdActor extends MutableBehavior<ControlCommand> {
 
 
     // Add messages here
@@ -34,7 +35,7 @@ public class JTrackOffCmdActor extends Behaviors.MutableBehavior<ControlCommand>
 
     public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new JTrackOffCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, loggerFactory);
+            return (MutableBehavior<ControlCommand>) new JTrackOffCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, loggerFactory);
         });
     }
 
