@@ -70,12 +70,16 @@ This template shows working examples of:
 	9.1 Follow Command Actor Test case for command completion.
 	9.2 FastMove Command Actor Test case for  command completion.
 
+10. Other Enhancements
+
+	10.1 Updated code to work with latest csw version (29th June)
+	10.2 Current state name
+	10.3 Configuration usage(TBD)
+	10.4 Simulator -Real vs Simple(TBD)
+
 ## Examples to be implemented
 
-
-1. Enhancement in sections - configuration usage, using latest csw build, validations, simple simulator and real simulator, measures
-
-2. Junit test cases.
+1. Junit test cases.
 
 
 ##  Documentation
