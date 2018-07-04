@@ -4,12 +4,12 @@ import java.nio.file.{Path, Paths}
 
 import akka.actor.{ActorRefFactory, UnhandledMessage}
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import csw.framework.exceptions.FailureStop
-import csw.services.command.scaladsl.CommandResponseManager
+import csw.services.command.CommandResponseManager
 import csw.services.config.api.models.ConfigData
 import csw.services.config.api.scaladsl.ConfigClientService
 import csw.services.config.client.scaladsl.ConfigClientFactory
@@ -29,14 +29,17 @@ object LifeCycleActor {
   def createObject(commandResponseManager: CommandResponseManager,
                    locationService: LocationService,
                    loggerFactory: LoggerFactory): Behavior[LifeCycleMessage] =
-    Behaviors.mutable(ctx => LifeCycleActor(ctx, commandResponseManager, locationService, loggerFactory))
+    Behaviors.setup(ctx => LifeCycleActor(ctx, commandResponseManager, locationService, loggerFactory))
 }
-
+/*
+This actor is responsible for processing lifecycle commands,
+It is called through lifecycle hooks of CSW
+ */
 case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
                           commandResponseManager: CommandResponseManager,
                           locationService: LocationService,
                           loggerFactory: LoggerFactory)
-    extends Behaviors.MutableBehavior[LifeCycleMessage] {
+    extends MutableBehavior[LifeCycleMessage] {
 
   private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
   private val log                               = loggerFactory.getLogger
@@ -53,12 +56,11 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     this
   }
   /*
-    TODO :
-   *   1.  initialize MCS HCD and configure assembly with configuration from config server.
-   *   2. decide path of MCS configuration file from config server.
+   This function loads assembly configuration file from config server
+   and configures assembly accordingly
 
    */
-  private def doInitialize(): Unit = {
+  private def doInitialize(): Behavior[LifeCycleMessage] = {
     log.info(msg = " Initializing MCS Assembly actor with the help of LifecycleActor")
     val assemblyConfig: Config = getAssemblyConfig()
     val commandTimeout         = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
@@ -69,12 +71,14 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${velAccLimit}")
 
     log.info(msg = s"Successfully initialized assembly configuration")
+    Behavior.same
   }
   /*TODO :-
   1. Decide tasks to be done on shutdown
    */
-  private def doShutdown(): Unit = {
+  private def doShutdown(): Behavior[LifeCycleMessage] = {
     log.info(msg = "Shutting down MCS assembly.")
+    Behavior.same
   }
   private def getAssemblyConfig(): Config = {
     val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")

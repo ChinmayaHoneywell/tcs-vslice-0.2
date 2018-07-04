@@ -20,7 +20,10 @@ import csw.services.logging.scaladsl.LoggingSystemFactory
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+/*
+This object acts as a client object to test execution of commands
 
+ */
 object MCSMainApp extends App {
   private val system: ActorSystem = ClusterAwareSettings.system
   private val locationService     = LocationServiceFactory.withSystem(system)
@@ -40,8 +43,8 @@ object MCSMainApp extends App {
   private val connection = AkkaConnection(ComponentId("McsAssembly", Assembly))
 
   private val axesKey: Key[String] = KeyType.StringKey.make("axes")
-  private val azKey: Key[Double]   = KeyType.DoubleKey.make("az")
-  private val elKey: Key[Double]   = KeyType.DoubleKey.make("el")
+  private val azKey: Key[Double]   = KeyType.DoubleKey.make("AZ")
+  private val elKey: Key[Double]   = KeyType.DoubleKey.make("EL")
 
   /**
    * Gets a reference to the running assembly from the location service, if found.
@@ -52,14 +55,17 @@ object MCSMainApp extends App {
   }
   val prefix = Prefix("tmt.tcs.McsAssembly-Client")
 
-  val resp1 = Await.result(sendStartupCommand, 20.seconds)
+  val resp1 = Await.result(sendStartupCommand, 30.seconds)
   println(s"Startup command response is : $resp1")
 
   val resp2 = Await.result(sendDatumCommand, 200.seconds)
   println(s"Datum command response is : $resp2")
 
-  val resp3 = Await.result(sendMoveCommand, 250.seconds)
-  println(s"Move command response is : $resp3")
+  val resp3 = Await.result(sendFollowCommand, 200.seconds)
+  println(s"Follow command response is : $resp3")
+
+  // val resp4 = Await.result(sendMoveCommand, 250.seconds)
+  //println(s"Move command response is : $resp4")
 
   def sendStartupCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
     getAssembly.flatMap {
@@ -82,6 +88,17 @@ object MCSMainApp extends App {
       case None => {
         Future.successful(Error(Id(), "Can't locate MCSAssembly"))
       }
+    }
+  }
+  def sendFollowCommand(): Future[CommandResponse] = {
+
+    getAssembly.flatMap {
+      case Some(commandService) =>
+        val setup = Setup(prefix, CommandName("Follow"), None)
+
+        commandService.submitAndSubscribe(setup)
+      case None =>
+        Future.successful(Error(Id(), "Can't locate TcsTemplateAssembly"))
     }
   }
   def sendMoveCommand(): Future[CommandResponse] = {

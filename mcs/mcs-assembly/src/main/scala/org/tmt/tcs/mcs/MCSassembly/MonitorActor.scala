@@ -1,9 +1,9 @@
 package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.params.generics.{KeyType, Parameter}
-import csw.messages.params.states.CurrentState
+import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.command.scaladsl.CommandService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
@@ -35,17 +35,23 @@ object MonitorActor {
   def createObject(assemblyState: AssemblyLifeCycleState.AssemblyState,
                    assemblyMotionState: AssemblyOperationalState.AssemblyMotionState,
                    loggerFactory: LoggerFactory): Behavior[MonitorMessage] =
-    Behaviors.mutable(ctx => MonitorActor(ctx, assemblyState, assemblyMotionState, loggerFactory))
+    Behaviors.setup(ctx => MonitorActor(ctx, assemblyState, assemblyMotionState, loggerFactory))
 
 }
+/*
+This actor is responsible for maintaing state of MCS assembly
+ */
 case class MonitorActor(ctx: ActorContext[MonitorMessage],
                         assemblyState: AssemblyLifeCycleState.AssemblyState,
                         assemblyMotionState: AssemblyOperationalState.AssemblyMotionState,
                         loggerFactory: LoggerFactory)
-    extends Behaviors.MutableBehavior[MonitorMessage] {
+    extends MutableBehavior[MonitorMessage] {
 
   private val log = loggerFactory.getLogger
-
+  /*
+  This function updates states as per messages received and publishes current states as per
+  request recevied
+    */
   override def onMessage(msg: MonitorMessage): Behavior[MonitorMessage] = {
     msg match {
       case x: AssemblyLifeCycleStateChangeMsg   => onAssemblyLifeCycleStateChangeMsg(x)
@@ -53,9 +59,9 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
       case x: LocationEventMsg                  => onLocationEvent(x.hcdLocation)
       case x: currentStateChangeMsg             => onCurrentStateChange(x)
       case x: GetCurrentState => {
-        log.info(s"Current lifeCycle state of assembly is  ${assemblyState} and operational state is  ${assemblyMotionState}")
+        log.info(s"Current lifeCycle state of assembly is : ${assemblyState} and operational state is : ${assemblyMotionState}")
         x.actorRef ! AssemblyCurrentState(assemblyState, assemblyMotionState)
-        this
+        Behavior.same
       }
       case _ => {
         log.error(msg = s"Incorrect message $msg is sent to MonitorActor")
@@ -64,64 +70,84 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
     }
     // this
   }
+  /*
+  This function updates assembly lifecycle state
+    */
   def onAssemblyLifeCycleStateChangeMsg(x: MonitorMessage with AssemblyLifeCycleStateChangeMsg): Behavior[MonitorMessage] = {
-    MonitorActor.createObject(x.assemblyState, assemblyMotionState, loggerFactory)
     log.info(msg = s"Successfully changed monitor assembly lifecycle state to ${x.assemblyState}")
-    this
+    MonitorActor.createObject(x.assemblyState, assemblyMotionState, loggerFactory)
   }
+  /*
+ This function updates assembly operational state
+   */
   def onAssemblyOperationalStateChangeMsg(x: MonitorMessage with AssemblyOperationalStateChangeMsg): Behavior[MonitorMessage] = {
-    MonitorActor.createObject(assemblyState, x.assemblyMotionState, loggerFactory)
     log.info(msg = s"Successfully changed monitor actor state to ${x.assemblyMotionState}")
-    this
+    MonitorActor.createObject(assemblyState, x.assemblyMotionState, loggerFactory)
   }
+  /*
+  This functiona receives hcd lifecycle state and current position and accordingly derives assembly operational state
+   */
   def onCurrentStateChange(x: MonitorMessage with currentStateChangeMsg): Behavior[MonitorMessage] = {
-    //TODO : here should be the logic to change assembly states based on current state
-    val currentState: CurrentState                           = x.currentState
-    val optHcdLifeCycleStateParam: Option[Parameter[String]] = currentState.get("hcdLifeCycleState", KeyType.StringKey)
-    val optHcdOperationStateParam: Option[Parameter[String]] = currentState.get("hcdOperationalState", KeyType.StringKey)
-    optHcdLifeCycleStateParam match {
-      case Some(hcdLifeCycleStateParam) => {
-        log.info(msg = s"Sent HCD LifeCycle state param : ${hcdLifeCycleStateParam} so updating hcdLifeCycle state param")
-        updateLifeCycleState(hcdLifeCycleStateParam)
-      }
-      case None => {
-        log.info(msg = " HCD lifecycle state param is not sent so not updating lifecycle state")
-      }
-    }
-    optHcdOperationStateParam match {
-      case Some(hcdOperationStateParam) => {
-        log.info(msg = s"Sent HCD operational state param : ${hcdOperationStateParam} so updating hcdOperational state param")
-        updateOperationalState(hcdOperationStateParam)
-      }
-      case None => {
-        log.info(msg = " HCD Operational state param is not sent so not updating HCD operational state")
+
+    val currentState: CurrentState = x.currentState
+    log.info(msg = s"Received state : ${currentState.stateName} from HCD")
+
+    def handleLifeCycleChange: Behavior[MonitorMessage] = {
+      val optHcdLifeCycleStateParam: Option[Parameter[String]] = currentState.get("hcdLifeCycleState", KeyType.StringKey)
+      optHcdLifeCycleStateParam match {
+        case Some(hcdLifeCycleStateParam) => {
+          log.info(msg = s"Received HCD LifeCycle state  : ${hcdLifeCycleStateParam} so updating MCSAssembly Lifecycle state")
+          updateLifeCycleState(hcdLifeCycleStateParam)
+        }
+        case None => {
+          log.info(msg = "Some incorrect information is received in hcdLifecycle state change msg")
+          Behavior.unhandled
+        }
       }
     }
 
-    this
+    currentState.stateName.name match {
+      case "lifecycleState" => {
+        handleLifeCycleChange
+      }
+      case "currentPosition" => {
+        //TODO : here should be the logic to change assembly states based on currentPosition such as slewing,tracking
+        MonitorActor.createObject(assemblyState, assemblyMotionState, loggerFactory)
+      }
+    }
+
   }
-
+/*
+This function updates assembly,lifecycle state as per hcd's lifecycle state
+ */
   private def updateLifeCycleState(hcdLifeCycleStateParam: Parameter[String]) = {
-    val hcdLifeCycleState = hcdLifeCycleStateParam.head
-    if (hcdLifeCycleState == "Running") {
-      // on startup command
-      log.info(
-        msg =
-          s"Updated life cycle state of assembly  on receipt of lifecycle state : ${hcdLifeCycleState} is ${AssemblyLifeCycleState.Running}"
-      )
-      MonitorActor.createObject(AssemblyLifeCycleState.Running, AssemblyOperationalState.Running, loggerFactory)
-      // this
-    } else if (hcdLifeCycleState == "Initialized") {
-      // this is for initializtion hook
-      log.info(
-        msg =
-          s"Updated life cycle state of assembly  on receipt of lifecycle state : ${hcdLifeCycleState} is ${AssemblyLifeCycleState.Initalized}"
-      )
-      MonitorActor.createObject(AssemblyLifeCycleState.Initalized, AssemblyOperationalState.Ready, loggerFactory) //check whether assembly operational state should be ready or not
-      //this
-    } else {
-      MonitorActor.createObject(assemblyState, assemblyMotionState, loggerFactory)
+    log.info(msg = s"Received state change message from HCD so updating Assembly state")
 
+    val hcdLifeCycleState = hcdLifeCycleStateParam.head
+    hcdLifeCycleState match {
+      case "Running" => {
+        log.info(
+          msg = s"Received life cycle state of HCD is : ${hcdLifeCycleState} so changing lifecycle state of Assembly to Running "
+        )
+        MonitorActor.createObject(AssemblyLifeCycleState.Running, AssemblyOperationalState.Running, loggerFactory)
+      }
+      case "Initialized" => {
+        log.info(
+          msg = s"Received life cycle state of HCD is : ${hcdLifeCycleState} so not changing lifecycle state of Assembly assembly" +
+          s"s default lifecyclestate  is ${assemblyState}  and operational state is : ${assemblyMotionState}"
+        )
+        MonitorActor.createObject(assemblyState, assemblyMotionState, loggerFactory)
+      }
+      case "Off" => {
+        log.info(
+          msg = s"Received life cycle state of HCD is : ${hcdLifeCycleState} so changing lifecycle state of Assembly to shutdown " +
+          s"and operational state to : disconnected "
+        )
+        MonitorActor.createObject(AssemblyLifeCycleState.Shutdown, AssemblyOperationalState.Disconnected, loggerFactory)
+      }
+      case _ => {
+        MonitorActor.createObject(assemblyState, assemblyMotionState, loggerFactory)
+      }
     }
 
   }
@@ -166,7 +192,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
         if (assemblyState == AssemblyLifeCycleState.RunningOffline) {
           MonitorActor.createObject(AssemblyLifeCycleState.Running, assemblyMotionState, loggerFactory)
         } else {
-          this
+          Behavior.same
         }
       }
       case None => {

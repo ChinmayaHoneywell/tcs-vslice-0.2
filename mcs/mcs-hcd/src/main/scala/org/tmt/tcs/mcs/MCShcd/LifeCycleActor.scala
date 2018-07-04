@@ -2,14 +2,14 @@ package org.tmt.tcs.mcs.MCShcd
 
 import java.nio.file.{Path, Paths}
 
-import akka.actor.{ActorRefFactory, UnhandledMessage}
+import akka.actor.{ActorRefFactory}
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
 import com.typesafe.config.{Config, ConfigValue}
 import csw.framework.exceptions.FailureStop
-import csw.services.command.scaladsl.CommandResponseManager
+import csw.services.command.CommandResponseManager
 import csw.services.config.api.models.ConfigData
 import csw.services.config.api.scaladsl.ConfigClientService
 import csw.services.config.client.scaladsl.ConfigClientFactory
@@ -29,14 +29,16 @@ object LifeCycleActor {
   def createObject(commandResponseManager: CommandResponseManager,
                    locationService: LocationService,
                    loggerFactory: LoggerFactory): Behavior[LifeCycleMessage] =
-    Behaviors.mutable(ctx => LifeCycleActor(ctx, commandResponseManager, locationService, loggerFactory))
+    Behaviors.setup(ctx => LifeCycleActor(ctx, commandResponseManager, locationService, loggerFactory))
 }
-
+/*
+This actor is responsible for initialization of HCD it is called through CSW lifecycle hooks
+ */
 case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
                           commandResponseManager: CommandResponseManager,
                           locationService: LocationService,
                           loggerFactory: LoggerFactory)
-    extends Behaviors.MutableBehavior[LifeCycleMessage] {
+    extends MutableBehavior[LifeCycleMessage] {
   implicit val ec: ExecutionContextExecutor     = ctx.executionContext
   private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
   private val log                               = loggerFactory.getLogger
@@ -47,18 +49,15 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
       case msg: ShutdownMsg   => doShutdown()
       case _ => {
         log.info(s"Incorrect message is sent to LifeCycleActor : $msg")
-        UnhandledMessage
+        Behavior.unhandled
       }
     }
-    this
+    // this
   }
   /*
-    TODO :
-   *   1.  initialize with  configuration from config server.
-   *   2. decide path of MCS configuration file from config server.
-
+    This functions loads configuration from  config server and configures assembly accordingly
    */
-  private def doInitialize(): Unit = {
+  private def doInitialize(): Behavior[LifeCycleMessage] = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
     val assemblyConfig: Config = getAssemblyConfig()
     // val config = assemblyConfig.get
@@ -73,18 +72,23 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s"zeroMQSubSocket from config file : mcs_hcd.conf is ${zeroMQSubSocket}")
 
     log.info(msg = s"Successfully initialized assembly configuration")
+    Behavior.same
   }
-  /*TODO :-
-  1. Decide tasks to be done on shutdown
-   */
-  private def doShutdown(): Unit = {
+  /*
+   This functions shuts down assembly
+  */
+  private def doShutdown(): Behavior[LifeCycleMessage] = {
     log.info(msg = s"Shutting down MCS assembly.")
+    Behavior.same
   }
   private def getAssemblyConfig(): Config = {
-    val filePath                                 = Paths.get("org/tmt/tcs/mcs_hcd.conf")
+    val fileName: String = "org/tmt/tcs/mcs_hcd.conf"
+    val filePath         = Paths.get(fileName)
+    log.info(msg = s" Loading config file : ${fileName} from config server")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val configData: ConfigData                   = Await.result(getConfigData(filePath), 20.seconds)
+    log.info(msg = s" Successfully loaded config file : ${fileName} from config server")
     Await.result(configData.toConfigObject, 3.seconds)
 
   }

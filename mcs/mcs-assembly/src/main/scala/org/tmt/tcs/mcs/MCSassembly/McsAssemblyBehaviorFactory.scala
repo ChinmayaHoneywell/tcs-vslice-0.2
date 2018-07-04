@@ -1,12 +1,14 @@
 package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.scaladsl.ActorContext
-import csw.framework.scaladsl.{ComponentBehaviorFactory, ComponentHandlers, CurrentStatePublisher}
+import csw.framework.CurrentStatePublisher
+import csw.framework.scaladsl.{ComponentBehaviorFactory, ComponentHandlers}
+import csw.messages.TopLevelActorMessage
 import csw.messages.framework.ComponentInfo
-import csw.messages.scaladsl.TopLevelActorMessage
-import csw.services.command.scaladsl.CommandResponseManager
+import csw.services.command.CommandResponseManager
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
+import csw.services.event.scaladsl.EventService
 
 class McsAssemblyBehaviorFactory extends ComponentBehaviorFactory {
 
@@ -16,8 +18,15 @@ class McsAssemblyBehaviorFactory extends ComponentBehaviorFactory {
       commandResponseManager: CommandResponseManager,
       currentStatePublisher: CurrentStatePublisher,
       locationService: LocationService,
+      eventService: EventService,
       loggerFactory: LoggerFactory
   ): ComponentHandlers =
-    new McsAssemblyHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, loggerFactory)
+    new McsAssemblyHandlers(ctx,
+                            componentInfo,
+                            commandResponseManager,
+                            currentStatePublisher,
+                            locationService,
+                            eventService,
+                            loggerFactory)
 
 }

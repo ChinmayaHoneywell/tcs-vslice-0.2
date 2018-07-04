@@ -1,7 +1,7 @@
 package org.tmt.tcs.mcs.MCSassembly
 
-import akka.actor.typed.{Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.Behavior
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.EventMessage.{EventPublishMsg, EventSubscribeMsg}
 
@@ -14,10 +14,14 @@ object EventMessage {
 
 object EventHandlerActor {
   def createObject(loggerFactory: LoggerFactory): Behavior[EventMessage] =
-    Behaviors.mutable(ctx => EventHandlerActor(ctx: ActorContext[EventMessage], loggerFactory: LoggerFactory))
+    Behaviors.setup(ctx => EventHandlerActor(ctx: ActorContext[EventMessage], loggerFactory: LoggerFactory))
 }
+/*
+This actor is responsible consuming incoming events to MCS Assembly and publishing outgoing
+events from MCS Assembly
+ */
 case class EventHandlerActor(ctx: ActorContext[EventMessage], loggerFactory: LoggerFactory)
-    extends Behaviors.MutableBehavior[EventMessage] {
+    extends MutableBehavior[EventMessage] {
 
   private val log = loggerFactory.getLogger
 
@@ -39,7 +43,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage], loggerFactory: Log
    */
   def subscribeEventMsg(x: EventSubscribeMsg): Behavior[EventMessage] = {
     log.info(msg = s"Received message : $x")
-    this
+    Behavior.same
   }
 
 }

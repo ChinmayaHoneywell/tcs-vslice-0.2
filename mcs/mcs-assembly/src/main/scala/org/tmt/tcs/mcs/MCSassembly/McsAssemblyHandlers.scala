@@ -1,14 +1,12 @@
 package org.tmt.tcs.mcs.MCSassembly
 
-import akka.actor.Status.{Failure, Success}
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
-import csw.framework.scaladsl.{ComponentHandlers, CurrentStatePublisher}
+import csw.framework.scaladsl.ComponentHandlers
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.framework.ComponentInfo
 import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, TrackingEvent}
-import csw.messages.scaladsl.TopLevelActorMessage
-import csw.services.command.scaladsl.{CommandResponseManager, CommandService, CurrentStateSubscription}
+import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import csw.messages.commands.CommandIssue.{UnsupportedCommandInStateIssue, UnsupportedCommandIssue, WrongNumberOfParametersIssue}
@@ -18,7 +16,15 @@ import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 import org.tmt.tcs.mcs.MCSassembly.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
 
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.duration._
+import akka.util.Timeout
+
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import akka.actor.typed.scaladsl.AskPattern._
+import csw.framework.CurrentStatePublisher
+import csw.messages.TopLevelActorMessage
+import csw.services.command.CommandResponseManager
+import csw.services.event.scaladsl.EventService
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -34,8 +40,15 @@ class McsAssemblyHandlers(
     commandResponseManager: CommandResponseManager,
     currentStatePublisher: CurrentStatePublisher,
     locationService: LocationService,
+    eventService: EventService,
     loggerFactory: LoggerFactory
-) extends ComponentHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, loggerFactory) {
+) extends ComponentHandlers(ctx,
+                              componentInfo,
+                              commandResponseManager,
+                              currentStatePublisher,
+                              locationService,
+                              eventService,
+                              loggerFactory) {
 
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
@@ -54,17 +67,27 @@ class McsAssemblyHandlers(
     "CommandHandlerActor"
   )
 
+  /*
+  This function sends initializes lifecycle actor ans updates Monitor actor status to Initialized
+
+   */
   override def initialize(): Future[Unit] = Future {
     log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
+  /*
+  This function sends shutdown msg to lifecycle actor and updates Monitor actor status to shutdown
+   */
   override def onShutdown(): Future[Unit] = Future {
     log.info(msg = "Shutting down MCS Assembly")
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Shutdown)
     lifeCycleActor ! ShutdownMsg()
   }
-
+  /*
+    This component tracks for updated hcd locations on command service and accordingly updates
+    command handler actor and monitor actor
+     */
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
     log.info(msg = s"Location Tracking event changed: ${trackingEvent}")
     trackingEvent match {
@@ -81,8 +104,8 @@ class McsAssemblyHandlers(
     log.info(msg = s"Sending new hcdLocation : ${hcdLocation} to commandHandlerActor and MonitorActor")
     monitorActor ! LocationEventMsg(hcdLocation)
     commandHandlerActor ! updateHCDLocation(hcdLocation)
-    log.info(msg = s"Sent hcd location : $hcdLocation to monitorActor for update")
-    log.info(msg = s"Sent hcd location : $hcdLocation to commandHandlerActor for update")
+    //log.info(msg = s"Sent hcd location : $hcdLocation to monitorActor for update")
+    // log.info(msg = s"Sent hcd location : $hcdLocation to commandHandlerActor for update")
 
   }
 
@@ -90,30 +113,6 @@ class McsAssemblyHandlers(
     log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
 
-      case Commands.ELEVATIONSTOW => {
-        //TODO : Add validation logic here
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.READCONFIGURATION => {
-        //TODO : Add validation logic here
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.CANCELPROCESSING => {
-        //TODO : Add validation logic here
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.SETDIAGNOSTICS => {
-        //TODO : Add validation logic here
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.RESET => {
-        //TODO : Add validation logic here
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.SERVO_OFF => {
-        //TODO : Add validation logic here
-        CommandResponse.Accepted(controlCommand.runId)
-      }
       case Commands.FOLLOW => {
         validateFollowCommand(controlCommand)
       }
@@ -126,9 +125,7 @@ class McsAssemblyHandlers(
         validateDatumCommand(controlCommand)
 
       }
-      case Commands.AXIS => {
-        CommandResponse.Accepted(controlCommand.runId)
-      }
+
       case Commands.STARTUP => {
         CommandResponse.Accepted(controlCommand.runId)
       }
@@ -139,67 +136,109 @@ class McsAssemblyHandlers(
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
+  /*
+  This function validates follow command for assembly state
+   */
   private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
-    log.info("Validating Follow Command and calling monitorACtor for status")
-    /* ctx.ask(monitorActor)(GetCurrentState) {
-      case Success(AssemblyCurrentState(msg)) => {
-        log.info(msg = s"Response from MonitorActor is : ${msg}")
-      }
-    }*/
-    CommandResponse.Accepted(controlCommand.runId)
-    //TODO:skipped this till get confirmation regarding getting current state from MonitorActor
-    /* val assemblyCurrentState: MonitorMessage.AssemblyCurrentState = monitorActor ! GetCurrentState()
-    if (assemblyCurrentState.lifeCycleState == AssemblyLifeCycleState.Running) {
+    log.info("Validating Follow Command and calling monitorActor for status")
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+    val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
+      MonitorMessage.GetCurrentState(ref)
+    }, 3.seconds)
+    log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
+    if (validateAssemblyState(assemblyCurrentState)) {
+      //commandHandlerActor ! controlCommand
+      monitorActor ! AssemblyOperationalStateChangeMsg(AssemblyOperationalState.Slewing)
       CommandResponse.Accepted(controlCommand.runId)
+
     } else {
-      CommandResponse.Invalid(
+      CommandResponse.NotAllowed(
         controlCommand.runId,
         UnsupportedCommandInStateIssue(s" Follow command is not allowed if assembly is not in Running state")
       )
-    }*/
+    }
   }
+  /*
+    This function checks whether assembly state is running or not
+     */
+  private def validateAssemblyState(assemblyCurrentState: MonitorMessage): Boolean = {
+    assemblyCurrentState match {
+      case x: MonitorMessage.AssemblyCurrentState => {
+        log.info(msg = s"Assembly current state from monitor actor  is : ${x}")
+        x.lifeCycleState.toString match {
+          case "Running" if x.operationalState.toString().equals("Running") => {
+            return true
+          }
+          case _ => {
+            return false
+          }
+        }
+      }
+      case _ => {
+        log.error(msg = s"Incorrect current state is provided to assembly by monitor actor")
+        return false
+      }
+    }
 
-  private def validateMoveCommand(controlCommand: ControlCommand): CommandResponse = {
+  }
+  /*
+  This function checks whether aces parameters are provided or not
+   */
+  private def validateParams(controlCommand: ControlCommand): Boolean = {
     val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
     log.info(s"axes value is ${axes}")
     val param = axes.head
     if (param == "BOTH" || param == "AZ" || param == "EL") {
-      CommandResponse.Accepted(controlCommand.runId)
-      //TODO: skipped this till get confirmation regarding getting current state from MonitorActor
-      /*   val assemblyCurrentState: MonitorMessage.AssemblyCurrentState = monitorActor ! GetCurrentState()
-      if (assemblyCurrentState.lifeCycleState == AssemblyLifeCycleState.Running) {
+      return true
+    }
+    return false
+  }
+  /*
+    This function validates move command based on parameters and state
+     */
+  private def validateMoveCommand(controlCommand: ControlCommand): CommandResponse = {
+    if (validateParams(controlCommand)) {
+      implicit val duration: Timeout = 20 seconds
+      implicit val scheduler         = ctx.system.scheduler
+      val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
+        MonitorMessage.GetCurrentState(ref)
+      }, 3.seconds)
+      log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
+      if (validateAssemblyState(assemblyCurrentState)) {
+        monitorActor ! AssemblyOperationalStateChangeMsg(AssemblyOperationalState.Inposition)
         CommandResponse.Accepted(controlCommand.runId)
       } else {
-        CommandResponse.Invalid(
+        CommandResponse.NotAllowed(
           controlCommand.runId,
           UnsupportedCommandInStateIssue(s" Move command is not allowed if assembly is not in Running state")
         )
-      }*/
+      }
     } else {
       CommandResponse.Invalid(controlCommand.runId,
-                              WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
+                              WrongNumberOfParametersIssue(s" axes parameter is not provided for move command"))
     }
   }
-
+  /*
+  This function validates datum command based on parameters and state
+    */
   private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
-    // check hcd is in running state or in drive power on state
-    val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
-    val param              = axes.head
-    //  hcdLocation.get.
-
-    if (param == "BOTH" || param == "AZ" || param == "EL") {
-      log.info(msg = s"Correct parameters : ${param} are provided to datum command successfully validated datum command")
-      CommandResponse.Accepted(controlCommand.runId)
-      //TODO: skipped this till get confirmation regarding getting current state from MonitorActor
-      /* val assemblyCurrentState: MonitorMessage.AssemblyCurrentState = monitorActor ! GetCurrentState()
-      if (assemblyCurrentState.lifeCycleState == AssemblyLifeCycleState.Running) {
+    // check hcd is in running state
+    if (validateParams(controlCommand)) {
+      implicit val duration: Timeout = 20 seconds
+      implicit val scheduler         = ctx.system.scheduler
+      val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
+        MonitorMessage.GetCurrentState(ref)
+      }, 3.seconds)
+      log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
+      if (validateAssemblyState(assemblyCurrentState)) {
         CommandResponse.Accepted(controlCommand.runId)
       } else {
-        CommandResponse.Invalid(
+        CommandResponse.NotAllowed(
           controlCommand.runId,
           UnsupportedCommandInStateIssue(s" Datum command is not allowed if assembly is not in Running state")
         )
-      }*/
+      }
     } else {
       CommandResponse.Invalid(controlCommand.runId,
                               WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))

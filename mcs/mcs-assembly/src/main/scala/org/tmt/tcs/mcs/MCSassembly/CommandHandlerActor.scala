@@ -1,9 +1,9 @@
 package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandName, ControlCommand, Setup}
-import csw.services.command.scaladsl.{CommandResponseManager, CommandService}
+import csw.services.command.scaladsl.CommandService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.CommandMessage.{submitCommandMsg, updateHCDLocation, GoOfflineMsg, GoOnlineMsg}
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
@@ -12,6 +12,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
 import csw.messages.params.models.{Prefix, Subsystem}
+import csw.services.command.CommandResponseManager
 sealed trait CommandMessage
 object CommandMessage {
   case class GoOnlineMsg()                                          extends CommandMessage
@@ -25,19 +26,28 @@ object CommandHandlerActor {
                    isOnline: Boolean,
                    hcdLocation: Option[CommandService],
                    loggerFactory: LoggerFactory): Behavior[CommandMessage] =
-    Behaviors.mutable(ctx => CommandHandlerActor(ctx, commandResponseManager, isOnline, hcdLocation, loggerFactory))
+    Behaviors.setup(ctx => CommandHandlerActor(ctx, commandResponseManager, isOnline, hcdLocation, loggerFactory))
 
 }
+/*
+This class acts as a router for commands it rounds each command to individual
+command worker actor, it uses commandResponseManager to save and update command responses
+ */
 case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
                                commandResponseManager: CommandResponseManager,
                                isOnline: Boolean,
                                hcdLocation: Option[CommandService],
                                loggerFactory: LoggerFactory)
-    extends Behaviors.MutableBehavior[CommandMessage] {
+    extends MutableBehavior[CommandMessage] {
   import org.tmt.tcs.mcs.MCSassembly.CommandHandlerActor._
   private val log                = loggerFactory.getLogger
   implicit val duration: Timeout = 20 seconds
-  private val mcsHCDPrefix       = Prefix(Subsystem.MCS, "tmt.tcs.mcs")
+  private val mcsHCDPrefix       = Prefix(Subsystem.MCS.toString)
+  /*
+  This function processes goOnline, goOffline,handleSubmit,updateHCDLocation
+   command messages
+
+   */
   override def onMessage(msg: CommandMessage): Behavior[CommandMessage] = {
     msg match {
       case x: GoOnlineMsg => {
@@ -49,7 +59,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       case x: submitCommandMsg => {
         log.info(msg = s"In commandHandlerActor submitCommandMsg case value of hcdLocation is : ${hcdLocation}")
         handleSubmitCommand(x)
-        this
+        Behavior.same
       }
       case x: updateHCDLocation => {
         log.info(
@@ -65,24 +75,23 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     }
 
   }
+  /*
+    This function creates individual actor for each command and delegates
+    working to it
+   */
   def handleSubmitCommand(msg: submitCommandMsg): Unit = {
     log.info(
       msg = s"In commandHandlerActor handleSubmitCommand()" +
       s" function value of hcdLocation is : ${hcdLocation}"
     )
     msg.controlCommand.commandName.name match {
-      case Commands.STARTUP           => handleStartupCommand(msg)
-      case Commands.SHUTDOWN          => handleShutDownCommand(msg)
-      case Commands.AXIS              => handleAxisCommand(msg)
-      case Commands.DATUM             => handleDatumCommand(msg)
-      case Commands.MOVE              => handleMoveCommand(msg)
-      case Commands.FOLLOW            => handleFollowCommand(msg)
-      case Commands.SERVO_OFF         => handleServoOffCommand(msg)
-      case Commands.RESET             => handleResetCommand(msg)
-      case Commands.SETDIAGNOSTICS    => handleDiagnosticsCommand(msg)
-      case Commands.CANCELPROCESSING  => handleCancelProcessing(msg)
-      case Commands.READCONFIGURATION => handleReadConfiguration(msg)
-      case Commands.ELEVATIONSTOW     => handleElevationStowCommand(msg)
+      case Commands.STARTUP  => handleStartupCommand(msg)
+      case Commands.SHUTDOWN => handleShutDownCommand(msg)
+
+      case Commands.DATUM  => handleDatumCommand(msg)
+      case Commands.MOVE   => handleMoveCommand(msg)
+      case Commands.FOLLOW => handleFollowCommand(msg)
+
       case _ => {
         log.error(msg = s"Incorrect command : ${msg} is sent to MCS Assembly CommandHandlerActor")
       }
@@ -119,12 +128,6 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       }
     }
   }
-  def handleAxisCommand(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  Axis command to AxisCommandActor")
-    val axisCommandActor: ActorRef[ControlCommand] =
-      ctx.spawn(AxisCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "AxisCommandActor")
-    axisCommandActor ! msg.controlCommand
-  }
 
   def handleDatumCommand(msg: submitCommandMsg) = {
     log.info(msg = "Sending  Datum command to DatumCommandActor")
@@ -145,49 +148,6 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     val followCommandActor: ActorRef[ControlCommand] =
       ctx.spawn(FollowCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "FollowCommandActor")
     followCommandActor ! msg.controlCommand
-  }
-
-  def handleServoOffCommand(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  ServoOff command to ServoCommandActor")
-    val servoCommandActor: ActorRef[ControlCommand] =
-      ctx.spawn(ServoCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "ServoCommandActor")
-    servoCommandActor ! msg.controlCommand
-  }
-
-  def handleResetCommand(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  Reset command to ResetCommandActor")
-    val resetCommandActor: ActorRef[ControlCommand] =
-      ctx.spawn(ResetCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "ResetCommandActor")
-    resetCommandActor ! msg.controlCommand
-  }
-
-  def handleDiagnosticsCommand(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  diagnostics command to DiagnosticsCmdActor")
-    val diagnosticsCmdActor: ActorRef[ControlCommand] =
-      ctx.spawn(DiagnosticsCmdActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "DiagnosticsCmdActor")
-    diagnosticsCmdActor ! msg.controlCommand
-  }
-
-  def handleCancelProcessing(msg: submitCommandMsg) = {
-    log.info(msg = "Sending cancelprocessing command to CancelCmdActor")
-    val cancelCmdActor: ActorRef[ControlCommand] =
-      ctx.spawn(CancelCmdActor.createObject(commandResponseManager, hcdLocation, loggerFactory), name = "CancelCmdActor")
-    cancelCmdActor ! msg.controlCommand
-  }
-
-  def handleReadConfiguration(msg: submitCommandMsg) = {
-    log.info(msg = "Sending readBehaviour command to ReadBehaviorCmdActor.")
-    val readConfigCmdActor: ActorRef[ControlCommand] = ctx.spawn(
-      ReadConfigCmdActor.createObject(commandResponseManager, hcdLocation, loggerFactory),
-      name = "ReadConfigurationActor"
-    )
-    readConfigCmdActor ! msg.controlCommand
-  }
-  def handleElevationStowCommand(msg: submitCommandMsg): Unit = {
-    log.info(msg = "Sending elevation stow command to ElevationStowCommandActor")
-    val elevationStowActor: ActorRef[ControlCommand] =
-      ctx.spawn(ElevationStowActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "ElevationStowActor")
-    elevationStowActor ! msg.controlCommand
   }
 
 }
