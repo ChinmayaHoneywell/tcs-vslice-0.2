@@ -77,13 +77,9 @@ This template shows working examples of:
 	
 	10.2 Current state name.
 	
-	10.3 Configuration usage(TBD).
+	10.3 Configuration usage - Loading vent opening percentage value and passing to command handler for use in command.
 	
 	10.4 Simulator -Real vs Simple(TBD).
-
-## Examples to be implemented
-
-1. Junit test cases.
 
 
 ##  Documentation
@@ -191,11 +187,15 @@ cd csw-prod/target/universal/stage/bin
 
 ./csw-config-server --initRepo
 
-### Populate the assembly configuration
+### Populate the configuration
 
-cd enc-deploy/src/main/resources
+#### Create assembly configuration
+cd /enc-deploy/src/main/resources/
+curl -X  POST --data '@enc_assembly.conf' http://192.168.122.1:4000/config/org/tmt/tcs/enc/enc_assembly.conf
 
-./initialize-config.sh <ip address>
+#### Create HCD configuration
+cd /enc-hcd/src/main/resources/
+curl -X  POST --data '@enc_hcd.conf' http://192.168.122.1:4000/config/org/tmt/tcs/enc/enc_hcd.conf
 
 ### Start the enc Assembly
 

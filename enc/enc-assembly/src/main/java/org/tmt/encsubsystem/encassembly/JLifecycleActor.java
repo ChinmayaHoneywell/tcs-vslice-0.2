@@ -68,21 +68,23 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
     private IConfigClientService configClientApi;
     private CommandResponseManager commandResponseManager;
     private Optional<JCommandService> hcdCommandService;
+    ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor;
 
 
-    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
+    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, JLoggerFactory loggerFactory) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
         this.configClientApi = configClientApi;
         this.commandResponseManager = commandResponseManager;
         this.hcdCommandService = hcdCommandService;
+        this.commandHandlerActor = commandHandlerActor;
 
     }
 
-    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
+    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, loggerFactory);
+            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, loggerFactory);
         });
     }
 
@@ -121,7 +123,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
                         command -> {
                             log.debug(() -> "UpdateTemplateHcdMessage Received");
                             // update the template hcd
-                            return behavior(commandResponseManager, command.commandServiceOptional, configClientApi, loggerFactory);
+                            return behavior(commandResponseManager, command.commandServiceOptional, configClientApi, commandHandlerActor, loggerFactory);
                         });
         return builder.build();
     }
@@ -130,8 +132,10 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         log.debug(() -> "Initialize Message Received ");
         Config assemblyConfig = getAssemblyConfig();
         // example of working with Config
-        Integer bazValue = assemblyConfig.getInt("foo.bar.baz");
-        log.debug(() -> "foo.bar.baz config element value is: " + bazValue);
+        Double ventopenpercentage = assemblyConfig.getDouble("ventopenpercentage");
+        log.debug(() -> "ventopenpercentage element value is: " + ventopenpercentage);
+        //providing configuration to command actor for use in command.
+        commandHandlerActor.tell(new JCommandHandlerActor.UpdateConfigMessage(Optional.of(assemblyConfig)));
         message.cf.complete(null);
 
     }
@@ -189,7 +193,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         log.debug(() -> "loading assembly configuration");
 
         // construct the path
-        Path filePath = Paths.get("/org/tmt/tcs/tcs_test.conf");
+        Path filePath = Paths.get("/org/tmt/tcs/enc/enc_assembly.conf");
 
         ConfigData activeFile = configClientApi.getActive(filePath).get().get();
 

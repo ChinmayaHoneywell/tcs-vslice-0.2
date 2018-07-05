@@ -6,6 +6,7 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
+import com.typesafe.config.Config;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.services.command.javadsl.JCommandService;
@@ -68,25 +69,35 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
         }
     }
 
+    public static final class UpdateConfigMessage implements  CommandMessage{
+        public final Optional<Config> assemblyConfig;
+        public UpdateConfigMessage(Optional<Config> assemblyConfig){
+            this.assemblyConfig = assemblyConfig;
+        }
+    }
+
     private ActorContext<CommandMessage> actorContext;
     private JLoggerFactory loggerFactory;
     private ILogger log;
     private Boolean online;
     private CommandResponseManager commandResponseManager;
     private Optional<JCommandService> hcdCommandService;
+    // assembly configuration recevied from lifecycle actor for use in command, event etc.
+    private Optional<Config> assemblyConfig;
 
-    private JCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, Boolean online, JLoggerFactory loggerFactory) {
+    private JCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, Boolean online, JLoggerFactory loggerFactory, Optional<Config> assemblyConfig) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
         this.online = online;
         this.commandResponseManager = commandResponseManager;
         this.hcdCommandService = hcdCommandService;
+        this.assemblyConfig = assemblyConfig;
     }
 
-    public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, Boolean online, JLoggerFactory loggerFactory) {
+    public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, Boolean online, JLoggerFactory loggerFactory, Optional<Config> assemblyConfig) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, hcdCommandService, online, loggerFactory);
+            return (MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, hcdCommandService, online, loggerFactory, assemblyConfig);
         });
     }
 
@@ -113,19 +124,25 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
                         command -> {
                             log.debug(() -> "GoOnlineMessage Received");
                             // change the behavior to online
-                            return behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory);
+                            return behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory, assemblyConfig);
                         })
                 .onMessage(UpdateTemplateHcdMessage.class,
                         command -> {
                             log.debug(() -> "UpdateTemplateHcdMessage Received");
                             // update the template hcd
-                            return behavior(commandResponseManager, command.commandServiceOptional, online, loggerFactory);
+                            return behavior(commandResponseManager, command.commandServiceOptional, online, loggerFactory, assemblyConfig);
+                        })
+                .onMessage(UpdateConfigMessage.class,
+                        updateConfigMessage ->{
+                            log.debug(()-> "UpdateConfigMessage Received");
+
+                            return behavior(commandResponseManager, hcdCommandService, online, loggerFactory, updateConfigMessage.assemblyConfig);
                         })
                 .onMessage(GoOfflineMessage.class,
                         command -> {
                             log.debug(() -> "GoOfflineMessage Received");
                             // change the behavior to online
-                            return behavior(commandResponseManager, hcdCommandService, Boolean.FALSE, loggerFactory);
+                            return behavior(commandResponseManager, hcdCommandService, Boolean.FALSE, loggerFactory, assemblyConfig);
                         });
 
         return builder.build();

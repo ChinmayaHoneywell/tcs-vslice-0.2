@@ -95,11 +95,11 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
         // Load the configuration from the configuration service
         // Config assemblyConfig = getAssemblyConfig();
         log.debug(() -> "Spawning Handler Actors in assembly");
-        commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory));
+        commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory, Optional.empty()));
 
         eventHandlerActor = ctx.spawnAnonymous(JEventHandlerActor.behavior(loggerFactory));
 
-        lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, hcdCommandService, configClientApi, loggerFactory));
+        lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, loggerFactory));
 
         monitorActor = ctx.spawnAnonymous(JMonitorActor.behavior(JEncAssemblyHandlers.LifecycleState.Initialized, JEncAssemblyHandlers.OperationalState.Idle, loggerFactory, eventHandlerActor, commandHandlerActor));
 

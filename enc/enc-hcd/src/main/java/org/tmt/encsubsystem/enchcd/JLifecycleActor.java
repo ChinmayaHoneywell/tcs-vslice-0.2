@@ -116,9 +116,9 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         Config assemblyConfig = getHCDConfig();
 
         // example of working with Config
-        Integer bazValue = assemblyConfig.getInt("foo.bar.baz");
+        String ethernetaddress = assemblyConfig.getString("ethernetaddress");
 
-        log.debug(() -> "foo.bar.baz config element value is: " + bazValue);
+        log.debug(() -> "ethernetaddress config element value is: " + ethernetaddress);
         statePublisherActor.tell(new JStatePublisherActor.StartMessage());
         message.cf.complete(null);
 
@@ -180,7 +180,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         log.debug(() -> "loading hcd configuration");
 
         // construct the path
-        Path filePath = Paths.get("/org/tmt/tcs/tcs_test.conf");
+        Path filePath = Paths.get("/org/tmt/tcs/enc/enc_hcd.conf");
 
         ConfigData activeFile = configClientApi.getActive(filePath).get().get();
 
