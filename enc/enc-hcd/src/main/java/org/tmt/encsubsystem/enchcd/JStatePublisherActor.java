@@ -43,6 +43,17 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
     }
 
     public static final class StopMessage implements StatePublisherMessage {
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof StopMessage)) {
+                return false;
+            }
+            return true;
+
+        }
     }
 
     public static final class PublishMessage implements StatePublisherMessage {
@@ -178,12 +189,13 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
      * @param message
      */
     private void handleStateChange(StateChangeMessage message) {
-        //change current state or if state is not present in message keep it as is.
+        //change current state or if state is not present in message then keep it as is.
         lifecycleState = message.lifecycleState.orElse(lifecycleState);
         operationalState = message.operationalState.orElse(operationalState);
         CurrentState currentState = OpsAndLyfCycleCurrentState
                 .add(lifecycleKey.set(lifecycleState.name()))
                 .add(operationalkey.set(operationalState.name()));
+
         currentStatePublisher.publish(currentState);
     }
 

@@ -59,7 +59,7 @@ public class JShutdownCmdActor extends MutableBehavior<ControlCommand> {
     }
 
     private void handleShutdownCommand(ControlCommand controlCommand) {
-
+        System.out.println("handling shutdown message");
         log.debug(() -> "HCD handling shutdown command = " + controlCommand);
         log.debug(() -> "TODO: should park enc and the disconnet with subsystem");
 

@@ -38,7 +38,7 @@ public class JLifecycleActorTest {
     @Mock
     private IConfigClientService configClientApi;
     //copy of original configuration for testing
-    String fileLocation = "tcs_test.conf";
+    String fileLocation = "enc_hcd.conf";
     ConfigData configData;
 
     JLoggerFactory jLoggerFactory;
@@ -64,14 +64,14 @@ public class JLifecycleActorTest {
 
     /**
      * Given lifecycle actor is created,
-     * when Initialize message is send to lifecycle actor,
+     * when Initialize message is send to lifecycle actor as part of framework initialization activity,,
      * then it should load configuration using configuration service,
-     *      tell state publisher actor to start publishing hcd current states
+     *      tell state publisher actor to start publishing current states
      *      and mark complete the completableFuture.
      */
     @Test
     public void testOnInitializeMessage() {
-        when(configClientApi.getActive(Paths.get("/org/tmt/tcs/tcs_test.conf"))).thenReturn(CompletableFuture.completedFuture(Optional.of(configData)));
+        when(configClientApi.getActive(Paths.get("/org/tmt/tcs/enc/enc_hcd.conf"))).thenReturn(CompletableFuture.completedFuture(Optional.of(configData)));
         CompletableFuture<Void> cf = new CompletableFuture<>();
         lifecycleCmdActor.tell(new JLifecycleActor.InitializeMessage(cf));
         statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StartMessage());
@@ -81,5 +81,17 @@ public class JLifecycleActorTest {
         } catch (Exception e) {
             assertTrue(false);
         }
+    }
+
+    /**
+     * Given lifecycle actor is created, initialized,
+     * when Shutdown message is send to lifecycle actor as part of framework shutdown activity,
+     * then it should release resources, disconnect with subsystem,
+     *      tell state publisher actor to stop publishing current states
+     */
+    @Test
+    public void testOnShutdownMessage() {
+       lifecycleCmdActor.tell(new JLifecycleActor.ShutdownMessage());
+        statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StopMessage());
     }
 }

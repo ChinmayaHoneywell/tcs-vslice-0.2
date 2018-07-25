@@ -59,6 +59,7 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
      * @param message
      */
     private void handleSubmitCommand(ControlCommand message) {
+        System.out.println("worker actor handling command fast move");
         Parameter operation = message.paramSet().find(x -> x.keyName().equals("operation")).get();
         Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
         Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
