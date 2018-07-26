@@ -34,7 +34,7 @@ class DatumActorTest1 extends FunSuite with Matchers with BeforeAndAfterAll {
 
   private val mocks                             = new FrameworkTestMocks()
 
-  private val datumActorProbe1 = TestProbe[DatumCommandActor]
+  private val commandServiceProbe = TestProbe[CommandService]
 
   def createDatumActorBehavior() : BehaviorTestKit[ControlCommand] = BehaviorTestKit(DatumCommandActor.createObject(mocks.commandResponseManager,Some(mocks.commandService),mocks.loggerFactory))
 
