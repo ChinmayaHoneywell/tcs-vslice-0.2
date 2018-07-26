@@ -57,7 +57,7 @@ case class MoveCommandActor(ctx: ActorContext[ControlCommand],
         commandResponseManager.addSubCommand(controlCommand.runId, response.runId)
         commandResponseManager.updateSubCommand(response.runId, response)
         log.info(msg = s"completed move command execution for command id : $controlCommand.runId")
-        Behavior.same
+        Behavior.stopped
       }
       case None => {
         Future.successful(Error(Id(), s"Can't locate mcs hcd location : $hcdLocation"))

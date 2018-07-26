@@ -43,7 +43,7 @@ case class FollowCommandActor(ctx: ActorContext[ControlCommand],
         //commandResponseManager.updateSubCommand(response.runId, response)
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
         log.info(msg = s"completed follow command execution for command id : $controlCommand.runId")
-        Behavior.same
+        Behavior.stopped
       }
       case None => {
         Future.successful(Error(Id(), s"Can't locate mcs hcd location : $hcdLocation"))

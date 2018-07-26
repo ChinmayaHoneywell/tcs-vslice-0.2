@@ -87,7 +87,7 @@ class McsAssemblyHandlers(
   /*
     This component tracks for updated hcd locations on command service and accordingly updates
     command handler actor and monitor actor
-     */
+   */
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
     log.info(msg = s"Location Tracking event changed: ${trackingEvent}")
     trackingEvent match {
@@ -97,16 +97,12 @@ class McsAssemblyHandlers(
       }
       case LocationRemoved(_) => {
         hcdLocation = None
-        // FIXME: not sure if this is necessary
-        hcdStateSubscriber.get.unsubscribe()
+        log.info(s"HCD location is not registered with assembly")
       }
     }
     log.info(msg = s"Sending new hcdLocation : ${hcdLocation} to commandHandlerActor and MonitorActor")
     monitorActor ! LocationEventMsg(hcdLocation)
     commandHandlerActor ! updateHCDLocation(hcdLocation)
-    //log.info(msg = s"Sent hcd location : $hcdLocation to monitorActor for update")
-    // log.info(msg = s"Sent hcd location : $hcdLocation to commandHandlerActor for update")
-
   }
 
   override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
@@ -161,7 +157,7 @@ class McsAssemblyHandlers(
   }
   /*
     This function checks whether assembly state is running or not
-     */
+   */
   private def validateAssemblyState(assemblyCurrentState: MonitorMessage): Boolean = {
     assemblyCurrentState match {
       case x: MonitorMessage.AssemblyCurrentState => {
@@ -196,7 +192,7 @@ class McsAssemblyHandlers(
   }
   /*
     This function validates move command based on parameters and state
-     */
+   */
   private def validateMoveCommand(controlCommand: ControlCommand): CommandResponse = {
     if (validateParams(controlCommand)) {
       implicit val duration: Timeout = 20 seconds
@@ -221,7 +217,7 @@ class McsAssemblyHandlers(
   }
   /*
   This function validates datum command based on parameters and state
-    */
+   */
   private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
     // check hcd is in running state
     if (validateParams(controlCommand)) {
@@ -246,7 +242,6 @@ class McsAssemblyHandlers(
   }
 
   override def onSubmit(controlCommand: ControlCommand): Unit = {
-    // log.info(msg = "Executing submit command in assembly")
     commandHandlerActor ! submitCommandMsg(controlCommand)
   }
 

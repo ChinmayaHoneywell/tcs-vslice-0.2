@@ -40,6 +40,9 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
     hcdLocation match {
       case Some(commandService) => {
         log.info(msg = s"DatumCommandActor sending datum command with parameters :  ${controlCommand} to hcd : ${hcdLocation}")
+        //println(commandService)
+        println("Before calling commandService ")
+        println(commandService.submitAndSubscribe(controlCommand)(10.seconds))
         val response = Await.result(commandService.submitAndSubscribe(controlCommand), 10.seconds)
         log.info(msg = s" updating datum command : ${controlCommand.runId} with response : ${response} ")
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
@@ -47,7 +50,7 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
           msg =
             s"completed datum command execution for command id : ${controlCommand.runId} and updated its status in commandResponseManager : ${response}"
         )
-        Behavior.same
+        Behavior.stopped
       }
       case None => {
         Future.successful(Error(Id(), s"Can't locate mcs hcd location : ${hcdLocation} in DatumCommandActor "))

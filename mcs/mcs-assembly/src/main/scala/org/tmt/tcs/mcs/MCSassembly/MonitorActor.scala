@@ -51,7 +51,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
   /*
   This function updates states as per messages received and publishes current states as per
   request recevied
-    */
+   */
   override def onMessage(msg: MonitorMessage): Behavior[MonitorMessage] = {
     msg match {
       case x: AssemblyLifeCycleStateChangeMsg   => onAssemblyLifeCycleStateChangeMsg(x)
@@ -72,7 +72,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
   }
   /*
   This function updates assembly lifecycle state
-    */
+   */
   def onAssemblyLifeCycleStateChangeMsg(x: MonitorMessage with AssemblyLifeCycleStateChangeMsg): Behavior[MonitorMessage] = {
     log.info(msg = s"Successfully changed monitor assembly lifecycle state to ${x.assemblyState}")
     MonitorActor.createObject(x.assemblyState, assemblyMotionState, loggerFactory)
@@ -90,13 +90,13 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
   def onCurrentStateChange(x: MonitorMessage with currentStateChangeMsg): Behavior[MonitorMessage] = {
 
     val currentState: CurrentState = x.currentState
-    log.info(msg = s"Received state : ${currentState.stateName} from HCD")
+    log.info(msg = s"Received state change msg from HCD")
 
     def handleLifeCycleChange: Behavior[MonitorMessage] = {
       val optHcdLifeCycleStateParam: Option[Parameter[String]] = currentState.get("hcdLifeCycleState", KeyType.StringKey)
       optHcdLifeCycleStateParam match {
         case Some(hcdLifeCycleStateParam) => {
-          log.info(msg = s"Received HCD LifeCycle state  : ${hcdLifeCycleStateParam} so updating MCSAssembly Lifecycle state")
+
           updateLifeCycleState(hcdLifeCycleStateParam)
         }
         case None => {
@@ -108,6 +108,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
 
     currentState.stateName.name match {
       case "lifecycleState" => {
+        log.info("Received life cycle state change message from HCD updating state of assembly correcsponding to change")
         handleLifeCycleChange
       }
       case "currentPosition" => {
@@ -117,9 +118,9 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
     }
 
   }
-/*
+  /*
 This function updates assembly,lifecycle state as per hcd's lifecycle state
- */
+   */
   private def updateLifeCycleState(hcdLifeCycleStateParam: Parameter[String]) = {
     log.info(msg = s"Received state change message from HCD so updating Assembly state")
 

@@ -50,7 +50,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
       case msg: ShutdownMsg   => doShutdown()
       case _ => {
         log.info(s"Incorrect message is sent to LifeCycleActor : $msg")
-        UnhandledMessage
+        Behavior.unhandled
       }
     }
     this
@@ -62,14 +62,14 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(): Behavior[LifeCycleMessage] = {
     log.info(msg = " Initializing MCS Assembly actor with the help of LifecycleActor")
-    val assemblyConfig: Config = getAssemblyConfig()
+    /* val assemblyConfig: Config = getAssemblyConfig()
     val commandTimeout         = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
     log.info(msg = s"command timeout duration is seconds ${commandTimeout}")
     val numberOfRetries = assemblyConfig.getInt("tmt.tcs.mcs.retries")
     log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${numberOfRetries}")
     val velAccLimit = assemblyConfig.getInt("tmt.tcs.mcs.limit")
     log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${velAccLimit}")
-
+     */
     log.info(msg = s"Successfully initialized assembly configuration")
     Behavior.same
   }
@@ -78,7 +78,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doShutdown(): Behavior[LifeCycleMessage] = {
     log.info(msg = "Shutting down MCS assembly.")
-    Behavior.same
+    Behavior.stopped
   }
   private def getAssemblyConfig(): Config = {
     val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")
