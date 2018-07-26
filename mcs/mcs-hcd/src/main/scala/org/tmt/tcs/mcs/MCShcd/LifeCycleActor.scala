@@ -59,8 +59,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(): Behavior[LifeCycleMessage] = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
-    val assemblyConfig: Config = getAssemblyConfig()
-    // val config = assemblyConfig.get
+    /*  val assemblyConfig: Config = getAssemblyConfig()
+
     val zeroMQPushSocket: ConfigValue = assemblyConfig.getValue("tmt.tcs.mcs.zeroMQPush")
     log.info(msg = s"push socket is : ${zeroMQPushSocket.toString}")
     log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}")
@@ -70,16 +70,16 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s"zeroMQPubSocket from config file : mcs_hcd.conf is ${zeroMQPubSocket}")
     val zeroMQSubSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQSub")
     log.info(msg = s"zeroMQSubSocket from config file : mcs_hcd.conf is ${zeroMQSubSocket}")
-
-    log.info(msg = s"Successfully initialized assembly configuration")
+     */
+    log.info(msg = s"Successfully initialized hcd configuration")
     Behavior.same
   }
   /*
    This functions shuts down assembly
-  */
+   */
   private def doShutdown(): Behavior[LifeCycleMessage] = {
-    log.info(msg = s"Shutting down MCS assembly.")
-    Behavior.same
+    log.info(msg = s"Shutting down MCS hcd.")
+    Behavior.stopped
   }
   private def getAssemblyConfig(): Config = {
     val fileName: String = "org/tmt/tcs/mcs_hcd.conf"

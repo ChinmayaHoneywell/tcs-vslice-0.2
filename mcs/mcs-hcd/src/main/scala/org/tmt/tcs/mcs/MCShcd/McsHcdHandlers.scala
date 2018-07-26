@@ -107,7 +107,7 @@ class McsHcdHandlers(
   }
   /*
      This functions validates point demand command based upon paramters and hcd state
-    */
+   */
   private def validatePointDemandCommand(controlCommand: ControlCommand): CommandResponse = {
     log.info(msg = s"validating point demand command in HCD")
 
@@ -173,7 +173,7 @@ class McsHcdHandlers(
   }
   /*
        This functions validates point  command based upon paramters and hcd state
-      */
+   */
   private def validatePointCommand(controlCommand: ControlCommand): CommandResponse = {
     log.info(msg = "Validating point command in HCD")
     def validateParams: Boolean = {
@@ -234,7 +234,7 @@ class McsHcdHandlers(
   }
   /*
        This functions validates datum  command based upon paramters and hcd state
-      */
+   */
   private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
     log.info("Validating Datum command in HCD")
     def validateParams: Boolean = {
@@ -295,7 +295,7 @@ class McsHcdHandlers(
   }
   /*
        This functions validates folow  command based upon paramters and hcd state
-      */
+   */
   private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
     log.info("Validating follow command in HCD")
     def validateParamset: Boolean = {
@@ -349,19 +349,19 @@ class McsHcdHandlers(
   /*
        This functions routes all commands to commandhandler actor and bsed upon command execution updates states of HCD by sending it
        to statepublisher actor
-      */
+   */
   override def onSubmit(controlCommand: ControlCommand): Unit = {
 
-    log.info(msg = "Command submitted to HCD in onSubmit wrapper")
     commandHandlerActor ! controlCommand
     controlCommand.commandName.name match {
       case Commands.STARTUP => {
         log.info("On receipt of startup command changing MCS HCD state to Running")
+
         statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Running, HCDOperationalState.DrivePowerOff)
       }
       case Commands.SHUTDOWN => {
         log.info("On receipt of shutdown command changing MCS HCD state to Disconnected")
-        //TODO: send to subsystem
+
         statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Off, HCDOperationalState.Disconnected)
       }
       case Commands.DATUM => {
