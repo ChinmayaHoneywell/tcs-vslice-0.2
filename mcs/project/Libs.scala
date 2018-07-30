@@ -9,6 +9,9 @@ object Libs {
   val `junit-interface` = "com.novocode"           % "junit-interface" % "0.11"   //BSD 2-clause "Simplified" License
   val `mockito-core`    = "org.mockito"            % "mockito-core"    % "2.16.0" //MIT License
   val `akka-test`       = "com.typesafe.akka"      %% "akka-actor-testkit-typed"   % "2.5.13"
+  //val `zeroMQ` = "org.zeromq" % "zeromq-scala-binding_2.11.0-M3" % "0.0.7"
+  val `zeroMQ` = "org.zeromq" % "jeromq" % "0.4.3"
+  val `protobuf`= "com.google.protobuf" % "protobuf-java" % "3.5.1"
 }
 
 object CSW {

@@ -22,11 +22,14 @@ object Dependencies {
     CSW.`csw-location`,
     CSW.`csw-messages`,
     CSW.`csw-logging`,
+    Libs.`zeroMQ`,
+    Libs.`protobuf`,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test,
     Libs.`mockito-core` % Test,
     Libs.`akka-test` % Test
+
   )
 
   val McsDeploy = Seq(
