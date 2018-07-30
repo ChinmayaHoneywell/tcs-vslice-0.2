@@ -5,24 +5,24 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.services.command.CommandResponseManager
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
-import org.tmt.tcs.mcs.MCShcd.simulator.Simulator
+import org.tmt.tcs.mcs.MCShcd.SubsystemManager
 
 object ShutdownCmdActor {
   def create(commandResponseManager: CommandResponseManager,
-             simulator: Simulator,
+             subSystemManager: SubsystemManager,
              loggerFactory: LoggerFactory): Behavior[ControlCommand] =
-    Behaviors.setup(ctx => ShutdownCmdActor(ctx, commandResponseManager, simulator, loggerFactory))
+    Behaviors.setup(ctx => ShutdownCmdActor(ctx, commandResponseManager, subSystemManager, loggerFactory))
 }
 case class ShutdownCmdActor(ctx: ActorContext[ControlCommand],
                             commandResponseManager: CommandResponseManager,
-                            simulator: Simulator,
+                            subSystemManager: SubsystemManager,
                             loggerFactory: LoggerFactory)
     extends MutableBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
 
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
     log.info(s"Submitting shutdown  command with id : ${msg.runId} to simulator")
-    val commandResponse: CommandResponse = simulator.submitCommand(msg)
+    val commandResponse: CommandResponse = subSystemManager.sendCommand(msg)
     log.info(s"Response from simulator for command runID : ${msg.runId} is : ${commandResponse}")
     commandResponseManager.addOrUpdateCommand(msg.runId, commandResponse)
     Behavior.stopped

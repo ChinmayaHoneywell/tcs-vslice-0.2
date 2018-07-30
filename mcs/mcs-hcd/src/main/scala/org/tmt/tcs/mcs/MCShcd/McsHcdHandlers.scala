@@ -62,7 +62,7 @@ class McsHcdHandlers(
     "StatePublisherActor"
   )
   private val commandHandlerActor: ActorRef[ControlCommand] =
-    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, loggerFactory), "CommandHandlerActor")
+    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, loggerFactory), "CommandHandlerActor")
   /*
   This function initializes HCD and intilizes Lifecycle actor and statepublisher actor
   with initialized state

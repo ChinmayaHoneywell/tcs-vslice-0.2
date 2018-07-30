@@ -2,11 +2,11 @@ package org.tmt.tcs.mcs.MCShcd
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-import csw.messages.commands.{CommandResponse, ControlCommand}
+import akka.util.Timeout
+import csw.messages.commands.ControlCommand
 import csw.services.command.CommandResponseManager
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
-import org.tmt.tcs.mcs.MCShcd.simulator.SimpleSimulator
 import org.tmt.tcs.mcs.MCShcd.workers.{
   DatumCmdActor,
   FollowCmdActor,
@@ -16,9 +16,17 @@ import org.tmt.tcs.mcs.MCShcd.workers.{
   StartupCmdActor
 }
 
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import akka.actor.typed.scaladsl.AskPattern._
+import com.typesafe.config.Config
+import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.HCDConfig
+
+import scala.concurrent.duration._
 object CommandHandlerActor {
-  def createObject(commandResponseManager: CommandResponseManager, loggerFactory: LoggerFactory): Behavior[ControlCommand] =
-    Behaviors.setup(ctx => CommandHandlerActor(ctx, commandResponseManager, loggerFactory))
+  def createObject(commandResponseManager: CommandResponseManager,
+                   lifeCycleActor: ActorRef[LifeCycleMessage],
+                   loggerFactory: LoggerFactory): Behavior[ControlCommand] =
+    Behaviors.setup(ctx => CommandHandlerActor(ctx, commandResponseManager, lifeCycleActor, loggerFactory))
 }
 /*
 This actor acts as simple simulator for HCD commands, it simply sleeps the current thread and updates
@@ -26,52 +34,67 @@ command responses with completed messages
  */
 case class CommandHandlerActor(ctx: ActorContext[ControlCommand],
                                commandResponseManager: CommandResponseManager,
+                               lifeCycleActor: ActorRef[LifeCycleMessage],
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[ControlCommand] {
-  private val log                        = loggerFactory.getLogger
-  private val simulator: SimpleSimulator = SimpleSimulator.create(loggerFactory)
+  implicit val ec: ExecutionContextExecutor      = ctx.executionContext
+  private val log                                = loggerFactory.getLogger
+  private val subSystemManager: SubsystemManager = SubsystemManager.create(loggerFactory)
   override def onMessage(controlCommand: ControlCommand): Behavior[ControlCommand] = {
 
     controlCommand.commandName.name match {
       case Commands.STARTUP => {
         log.info("Starting MCS HCD")
+        implicit val duration: Timeout = 20 seconds
+        implicit val scheduler         = ctx.system.scheduler
+
+        val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
+          LifeCycleMessage.GetConfig(ref)
+        }, 3.seconds)
+
+        var config: Config = null
+        lifecycleMsg match {
+          case x: LifeCycleMessage.HCDConfig => {
+            config = x.config
+          }
+        }
         val startupCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(StartupCmdActor.create(commandResponseManager, simulator, loggerFactory), "StartupCmdActor")
+          ctx.spawn(StartupCmdActor.create(commandResponseManager, subSystemManager, config, loggerFactory), "StartupCmdActor")
         startupCmdActor ! controlCommand
         Behavior.same
       }
       case Commands.SHUTDOWN => {
         log.info("ShutDown MCS HCD")
         val shutDownCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(ShutdownCmdActor.create(commandResponseManager, simulator, loggerFactory), "ShutdownCmdActor")
+          ctx.spawn(ShutdownCmdActor.create(commandResponseManager, subSystemManager, loggerFactory), "ShutdownCmdActor")
         shutDownCmdActor ! controlCommand
         Behavior.stopped
       }
       case Commands.POINT => {
         log.debug(s"handling point command: ${controlCommand}")
         val pointCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(PointCmdActor.create(commandResponseManager, simulator, loggerFactory), "PointCmdActor")
+          ctx.spawn(PointCmdActor.create(commandResponseManager, subSystemManager, loggerFactory), "PointCmdActor")
         pointCmdActor ! controlCommand
         Behavior.same
       }
       case Commands.POINT_DEMAND => {
         log.debug(s"handling pointDemand command: ${controlCommand}")
         val pointDemandCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(PointDemandCmdActor.create(commandResponseManager, simulator, loggerFactory), "PointDemandCmdActor")
+          ctx.spawn(PointDemandCmdActor.create(commandResponseManager, subSystemManager, loggerFactory), "PointDemandCmdActor")
         pointDemandCmdActor ! controlCommand
         Behavior.same
       }
       case Commands.DATUM => {
         log.info("Received datum command in HCD commandHandler")
         val datumCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(DatumCmdActor.create(commandResponseManager, simulator, loggerFactory), "DatumCmdActor")
+          ctx.spawn(DatumCmdActor.create(commandResponseManager, subSystemManager, loggerFactory), "DatumCmdActor")
         datumCmdActor ! controlCommand
         Behavior.same
       }
       case Commands.FOLLOW => {
         log.info("Received follow command in HCD commandHandler")
         val followCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(FollowCmdActor.create(commandResponseManager, simulator, loggerFactory), name = "FollowCmdActor")
+          ctx.spawn(FollowCmdActor.create(commandResponseManager, subSystemManager, loggerFactory), name = "FollowCmdActor")
         followCmdActor ! controlCommand
         Behavior.same
       }

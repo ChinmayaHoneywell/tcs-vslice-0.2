@@ -2,12 +2,12 @@ package org.tmt.tcs.mcs.MCShcd
 
 import java.nio.file.{Path, Paths}
 
-import akka.actor.{ActorRefFactory}
-import akka.actor.typed.Behavior
+import akka.actor.ActorRefFactory
+import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
-import com.typesafe.config.{Config, ConfigValue}
+import com.typesafe.config.Config
 import csw.framework.exceptions.FailureStop
 import csw.services.command.CommandResponseManager
 import csw.services.config.api.models.ConfigData
@@ -15,15 +15,17 @@ import csw.services.config.api.scaladsl.ConfigClientService
 import csw.services.config.client.scaladsl.ConfigClientFactory
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
+import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{GetConfig, HCDConfig, InitializeMsg, ShutdownMsg}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
 sealed trait LifeCycleMessage
 object LifeCycleMessage {
-  case class InitializeMsg() extends LifeCycleMessage
-  case class ShutdownMsg()   extends LifeCycleMessage
+  case class InitializeMsg()                               extends LifeCycleMessage
+  case class ShutdownMsg()                                 extends LifeCycleMessage
+  case class GetConfig(sender: ActorRef[LifeCycleMessage]) extends LifeCycleMessage
+  case class HCDConfig(config: Config)                     extends LifeCycleMessage
 }
 object LifeCycleActor {
   def createObject(commandResponseManager: CommandResponseManager,
@@ -42,11 +44,15 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   implicit val ec: ExecutionContextExecutor     = ctx.executionContext
   private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
   private val log                               = loggerFactory.getLogger
-
+  private var hcdConfig: Option[Config]         = None
   override def onMessage(msg: LifeCycleMessage): Behavior[LifeCycleMessage] = {
     msg match {
       case msg: InitializeMsg => doInitialize()
       case msg: ShutdownMsg   => doShutdown()
+      case msg: GetConfig => {
+        msg.sender ! HCDConfig(hcdConfig.get)
+        Behavior.same
+      }
       case _ => {
         log.info(s"Incorrect message is sent to LifeCycleActor : $msg")
         Behavior.unhandled
@@ -59,7 +65,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(): Behavior[LifeCycleMessage] = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
-    /*  val assemblyConfig: Config = getAssemblyConfig()
+    val config: Config = getHCDConfig()
+    /*
 
     val zeroMQPushSocket: ConfigValue = assemblyConfig.getValue("tmt.tcs.mcs.zeroMQPush")
     log.info(msg = s"push socket is : ${zeroMQPushSocket.toString}")
@@ -72,6 +79,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s"zeroMQSubSocket from config file : mcs_hcd.conf is ${zeroMQSubSocket}")
      */
     log.info(msg = s"Successfully initialized hcd configuration")
+    hcdConfig = Some(config)
     Behavior.same
   }
   /*
@@ -81,7 +89,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s"Shutting down MCS hcd.")
     Behavior.stopped
   }
-  private def getAssemblyConfig(): Config = {
+  private def getHCDConfig(): Config = {
     val fileName: String = "org/tmt/tcs/mcs_hcd.conf"
     val filePath         = Paths.get(fileName)
     log.info(msg = s" Loading config file : ${fileName} from config server")
