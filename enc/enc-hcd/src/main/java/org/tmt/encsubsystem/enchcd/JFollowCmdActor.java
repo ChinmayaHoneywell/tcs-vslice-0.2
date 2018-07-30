@@ -12,6 +12,7 @@ import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessage> {
@@ -32,6 +33,16 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
             this.controlCommand = controlCommand;
             this.replyTo = replyTo;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FollowCommandMessage that = (FollowCommandMessage) o;
+            return Objects.equals(controlCommand, that.controlCommand) &&
+                    Objects.equals(replyTo, that.replyTo);
+        }
+
     }
 
     private ActorContext<FollowMessage> actorContext;

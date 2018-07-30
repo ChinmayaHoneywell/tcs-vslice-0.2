@@ -38,10 +38,13 @@ public class JCommandHandlerActorTest {
     TestInbox<JStatePublisherActor.StatePublisherMessage> statePublisherActorInbox;
     BehaviorTestKit<JCommandHandlerActor.CommandMessage> commandHandlerBehaviourKit;
 
+    TestInbox<JCommandHandlerActor.ImmediateResponseMessage> replyTo;
+
     @Before
     public void setUp() throws Exception {
         when(jLoggerFactory.getLogger(isA(ActorContext.class),any())).thenReturn(logger);
         statePublisherActorInbox = TestInbox.create();
+        replyTo = TestInbox.create();
         commandHandlerBehaviourKit= BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, jLoggerFactory, statePublisherActorInbox.getRef()));
     }
 
@@ -67,6 +70,39 @@ public class JCommandHandlerActorTest {
      //   commandHandlerBehaviourKit.expectEffect(Effects.spawnedAnonymous(JFastMoveCmdActor.behavior(commandResponseManager,jLoggerFactory, statePublisherActorInbox.getRef()),Props.empty()));
         TestInbox<ControlCommand> commandWorkerActorInbox =   commandHandlerBehaviourKit.childInbox("$a");
         TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(fastMoveSetupCmd);
+
+    }
+
+    /**
+     * given HCD is running,
+     * when trackOff command as message is send to CommandHandlerActor,
+     * then one Command Worker Actor (JTrackOffCmdActor) should be created
+     *      and command should be send to newly created actor to process.
+     */
+    @Test
+    public void handleTrackOffCommandTest() throws InterruptedException {
+
+        Setup trackOffCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("trackOff"), Optional.empty())
+                .add(JKeyTypes.StringKey().make("operation").set("Off"));
+        commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(trackOffCommand));
+        TestInbox<ControlCommand> commandWorkerActorInbox =   commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(trackOffCommand);
+
+    }
+
+    /**
+     * given HCD is running,
+     * when follow command as message is send to CommandHandlerActor,
+     * then one Command Worker Actor (JFollowCmdActor) should be created
+     *      and command should be send to newly created actor to process.
+     */
+    @Test
+    public void handleFollowCommandTest() throws InterruptedException {
+        Setup followCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
+        JCommandHandlerActor.ImmediateCommandMessage message = new JCommandHandlerActor.ImmediateCommandMessage(followCommand, replyTo.getRef());
+        commandHandlerBehaviourKit.run(message);
+        TestInbox<JFollowCmdActor.FollowMessage> commandWorkerActorInbox =   commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<JFollowCmdActor.FollowMessage> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(new JFollowCmdActor.FollowCommandMessage(message.controlCommand, message.replyTo));
 
     }
 }
