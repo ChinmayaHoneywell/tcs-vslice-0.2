@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * You can find more information on this here : https://tmtsoftware.github.io/csw-prod/framework.html
  */
 public class JEncHcdHandlers extends JComponentHandlers {
-    // what shouldb be the initial state when hcd is just deployed, even before the onInitialize hook get called.
+    // what should be the initial state when hcd is just deployed, even before the onInitialize hook get called.
     public enum LifecycleState {
         Initialized, Running
     }

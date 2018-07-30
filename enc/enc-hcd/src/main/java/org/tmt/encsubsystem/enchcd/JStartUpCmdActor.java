@@ -59,7 +59,6 @@ public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
     }
 
     private void handleStartupCommand(ControlCommand controlCommand) {
-
         log.debug(() -> "HCD handling starup command = " + controlCommand);
 
         try {

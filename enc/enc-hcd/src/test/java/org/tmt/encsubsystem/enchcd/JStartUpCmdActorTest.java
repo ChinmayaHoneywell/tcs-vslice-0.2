@@ -64,6 +64,7 @@ public class JStartUpCmdActorTest {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         statePublisherMessageTestProbe = testKit.createTestProbe();
         startUpCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, statePublisherMessageTestProbe.getRef(), jLoggerFactory));
+
     }
 
     @After

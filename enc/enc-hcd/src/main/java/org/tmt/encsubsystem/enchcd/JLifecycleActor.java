@@ -125,20 +125,16 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
     }
 
     private void onShutdown(ShutdownMessage message) {
-
         log.debug(() -> "Shutdown Message Received ");
         JStatePublisherActor.StopMessage stopMessage = new JStatePublisherActor.StopMessage();
-
         statePublisherActor.tell(stopMessage);
     }
 
     private void handleStartupCommand(ControlCommand controlCommand) {
-
         log.debug(() -> "handle Startup Command = " + controlCommand);
         ActorRef<ControlCommand> startupCmdActor =
                 actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
         startupCmdActor.tell(controlCommand);
-
     }
 
     private void handleShutdownCommand(ControlCommand controlCommand) {
