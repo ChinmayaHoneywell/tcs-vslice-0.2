@@ -16,6 +16,7 @@ import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,15 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
         public FollowCommandMessage(ControlCommand controlCommand, ActorRef<JCommandHandlerActor.ImmediateResponseMessage> replyTo) {
             this.controlCommand = controlCommand;
             this.replyTo = replyTo;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            FollowCommandMessage that = (FollowCommandMessage) o;
+            return Objects.equals(controlCommand, that.controlCommand) &&
+                    Objects.equals(replyTo, that.replyTo);
         }
     }
 

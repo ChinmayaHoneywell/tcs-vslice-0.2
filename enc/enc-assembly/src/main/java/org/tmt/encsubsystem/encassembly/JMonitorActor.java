@@ -116,7 +116,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
                 .onMessage(AssemblyLifecycleStateChangeMessage.class,
                         message -> {
                             log.debug(() -> "AssemblyStateChangeMessage Received");
-                            // change the behavior state
+                            // change the lifecycle state
                             return behavior(message.assemblyLifecycleState, assemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
 
                         })
