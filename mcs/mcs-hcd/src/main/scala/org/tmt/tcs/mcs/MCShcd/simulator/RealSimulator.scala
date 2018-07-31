@@ -1,9 +1,9 @@
 package org.tmt.tcs.mcs.MCShcd.simulator
 
 import com.typesafe.config.Config
-import csw.messages.commands.{CommandResponse, ControlCommand}
+import csw.messages.commands.ControlCommand
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.msgTransformers.{IMessageTransformer, ProtoBuffMsgTransformer, SubystemResponse}
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.{IMessageTransformer, ProtoBuffMsgTransformer, SubscribedEvent, SubystemResponse}
 import org.zeromq.ZMQ
 
 object RealSimulator {
@@ -14,15 +14,34 @@ case class RealSimulator(loggerFactory: LoggerFactory) extends Simulator {
   private val zmqContext: ZMQ.Context                 = ZMQ.context(1)
   private val pushSocket: ZMQ.Socket                  = zmqContext.socket(ZMQ.PUSH)
   private val pullSocket: ZMQ.Socket                  = zmqContext.socket(ZMQ.PULL)
+  private val subscribeSocket: ZMQ.Socket             = zmqContext.socket(ZMQ.SUB)
   private val addr: String                            = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer = ProtoBuffMsgTransformer.create(loggerFactory)
 
   override def initializeSimulator(config: Config): Unit = {
     val zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
     pushSocket.bind(zeroMQPushSocketStr)
+    log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and pull socket is : ${zeroMQPushSocketStr}")
     val zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
     pullSocket.connect(zeroMQPullSocketStr)
-    log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and pull socket is : ${zeroMQPullSocketStr}")
+    log.info(msg = s"ZeroMQ pull socket is : ${zeroMQPullSocketStr} and pull socket is : ${zeroMQPullSocketStr}")
+    val zeroMQSubScribeSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQSub")
+    log.info(msg = s"ZeroMQ sub scribe socket is : ${zeroMQSubScribeSocketStr} and pull socket is : ${zeroMQSubScribeSocketStr}")
+    subscribeSocket.subscribe("Welcome to MCS Events".getBytes)
+    subscribeSocket.connect(zeroMQSubScribeSocketStr)
+  }
+  override def publishCurrentPosition(): CurrentPosition = {
+    log.info(msg = s"Receiving current position from MCS subsystem")
+    val eventName: String = subscribeSocket.recvStr()
+    if (eventName.equalsIgnoreCase("CurrentPosition")) {
+      val subscribedEvent: SubscribedEvent = messageTransformer.decodeEvent("", subscribeSocket.recv(ZMQ.DONTWAIT))
+      val mcsCurrPosition                  = subscribedEvent.mcsCurrentPosition
+      CurrentPosition(mcsCurrPosition.getAzPos,
+                      mcsCurrPosition.getElPos,
+                      mcsCurrPosition.getAzPosError,
+                      mcsCurrPosition.getElPosError)
+    }
+    CurrentPosition(0, 0, 0, 0)
   }
   override def submitCommand(controlCommand: ControlCommand): Option[Boolean] = {
     val commandName: String = controlCommand.commandName.name

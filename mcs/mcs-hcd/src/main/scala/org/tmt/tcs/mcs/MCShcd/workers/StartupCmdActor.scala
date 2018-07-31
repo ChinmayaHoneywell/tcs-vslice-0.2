@@ -14,21 +14,19 @@ import org.tmt.tcs.mcs.MCShcd.simulator.{RealSimulator, SimpleSimulator, Simulat
 object StartupCmdActor {
   def create(commandResponseManager: CommandResponseManager,
              subSystemManager: SubsystemManager,
-             config: Config,
              loggerFactory: LoggerFactory): Behavior[ControlCommand] =
-    Behaviors.setup(ctx => StartupCmdActor(ctx, commandResponseManager, subSystemManager, config: Config, loggerFactory))
+    Behaviors.setup(ctx => StartupCmdActor(ctx, commandResponseManager, subSystemManager, loggerFactory))
 }
 case class StartupCmdActor(ctx: ActorContext[ControlCommand],
                            commandResponseManager: CommandResponseManager,
                            subsystemManager: SubsystemManager,
-                           config: Config,
                            loggerFactory: LoggerFactory)
     extends MutableBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
 
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
     log.info(s"Submitting startup  command with id : ${msg.runId} to simulator")
-    var simulator: Simulator             = null
+    /* var simulator: Simulator             = null
     val simulatorTypeParam: Parameter[_] = msg.paramSet.find(msg => msg.keyName == "simulatorType").get
     val simulatorType: String            = simulatorTypeParam.head.asInstanceOf[String]
     if (simulatorType.equals("Simple")) {
@@ -36,7 +34,7 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
     } else {
       simulator = RealSimulator.create(loggerFactory)
     }
-    subsystemManager.initialize(config, simulator)
+    subsystemManager.initialize(config, simulator)*/
     val commandResponse: CommandResponse = subsystemManager.sendCommand(msg)
     log.info(s"Response from simulator for command runID : ${msg.runId} is : ${commandResponse}")
 

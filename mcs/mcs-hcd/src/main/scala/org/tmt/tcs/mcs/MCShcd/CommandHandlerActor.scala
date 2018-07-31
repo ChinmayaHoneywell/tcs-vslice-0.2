@@ -19,14 +19,14 @@ import org.tmt.tcs.mcs.MCShcd.workers.{
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
-import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.HCDConfig
 
 import scala.concurrent.duration._
 object CommandHandlerActor {
   def createObject(commandResponseManager: CommandResponseManager,
                    lifeCycleActor: ActorRef[LifeCycleMessage],
+                   subSystemManager: SubsystemManager,
                    loggerFactory: LoggerFactory): Behavior[ControlCommand] =
-    Behaviors.setup(ctx => CommandHandlerActor(ctx, commandResponseManager, lifeCycleActor, loggerFactory))
+    Behaviors.setup(ctx => CommandHandlerActor(ctx, commandResponseManager, lifeCycleActor, subSystemManager, loggerFactory))
 }
 /*
 This actor acts as simple simulator for HCD commands, it simply sleeps the current thread and updates
@@ -35,20 +35,19 @@ command responses with completed messages
 case class CommandHandlerActor(ctx: ActorContext[ControlCommand],
                                commandResponseManager: CommandResponseManager,
                                lifeCycleActor: ActorRef[LifeCycleMessage],
+                               subSystemManager: SubsystemManager,
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[ControlCommand] {
-  implicit val ec: ExecutionContextExecutor      = ctx.executionContext
-  private val log                                = loggerFactory.getLogger
-  private val subSystemManager: SubsystemManager = SubsystemManager.create(loggerFactory)
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  private val log                           = loggerFactory.getLogger
+
   override def onMessage(controlCommand: ControlCommand): Behavior[ControlCommand] = {
 
     controlCommand.commandName.name match {
       case Commands.STARTUP => {
         log.info("Starting MCS HCD")
-        implicit val duration: Timeout = 20 seconds
-        implicit val scheduler         = ctx.system.scheduler
 
-        val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
+        /* val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
           LifeCycleMessage.GetConfig(ref)
         }, 3.seconds)
 
@@ -57,9 +56,9 @@ case class CommandHandlerActor(ctx: ActorContext[ControlCommand],
           case x: LifeCycleMessage.HCDConfig => {
             config = x.config
           }
-        }
+        }*/
         val startupCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(StartupCmdActor.create(commandResponseManager, subSystemManager, config, loggerFactory), "StartupCmdActor")
+          ctx.spawn(StartupCmdActor.create(commandResponseManager, subSystemManager, loggerFactory), "StartupCmdActor")
         startupCmdActor ! controlCommand
         Behavior.same
       }

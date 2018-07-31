@@ -5,6 +5,7 @@ import csw.messages.params.generics.Parameter
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsCommandProtos._
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.McsCurrentPositionEvent
 
 object ProtoBuffMsgTransformer {
   def create(loggerFactory: LoggerFactory): ProtoBuffMsgTransformer = ProtoBuffMsgTransformer(loggerFactory)
@@ -24,6 +25,10 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       SubystemResponse(true, None, None)
     }
     SubystemResponse(false, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
+  }
+  override def decodeEvent(eventName: String, encodedEventData: Array[Byte]): SubscribedEvent = {
+    val mcsCurrentPosEvent: McsCurrentPositionEvent = McsCurrentPositionEvent.parseFrom(encodedEventData)
+    SubscribedEvent(mcsCurrentPosEvent)
   }
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
     log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")

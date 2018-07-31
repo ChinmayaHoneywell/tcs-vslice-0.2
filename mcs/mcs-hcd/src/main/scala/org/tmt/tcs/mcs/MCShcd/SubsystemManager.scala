@@ -3,30 +3,26 @@ package org.tmt.tcs.mcs.MCShcd
 import com.typesafe.config.Config
 import csw.messages.commands.CommandIssue.WrongInternalStateIssue
 import csw.messages.commands.{CommandIssue, CommandResponse, ControlCommand}
-
 import csw.messages.params.models.Id
 import csw.services.logging.scaladsl.LoggerFactory
-
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.SubystemResponse
-import org.tmt.tcs.mcs.MCShcd.simulator.{Simulator}
+import org.tmt.tcs.mcs.MCShcd.simulator.{CurrentPosition, Simulator}
 
 object SubsystemManager {
-  def create(loggerFactory: LoggerFactory): SubsystemManager = SubsystemManager(loggerFactory)
+  def create(simulator: Simulator, loggerFactory: LoggerFactory): SubsystemManager = SubsystemManager(simulator, loggerFactory)
 }
-case class SubsystemManager(loggerFactory: LoggerFactory) {
-  private val log                  = loggerFactory.getLogger
-  var simulator: Option[Simulator] = None
+case class SubsystemManager(simulator: Simulator, loggerFactory: LoggerFactory) {
+  private val log = loggerFactory.getLogger
 
-  def initialize(config: Config, simulator: Simulator): Unit = {
-    this.simulator = Some(simulator)
-    this.simulator.get.initializeSimulator(config)
+  def initialize(config: Config): Unit = {
+    simulator.initializeSimulator(config)
   }
 
   def sendCommand(controlCommand: ControlCommand): CommandResponse = {
 
-    val status: Option[Boolean] = simulator.get.submitCommand(controlCommand)
+    val status: Option[Boolean] = simulator.submitCommand(controlCommand)
     if (status.get) {
-      val response: Option[SubystemResponse] = simulator.get.readCommandResponse(controlCommand.commandName.name)
+      val response: Option[SubystemResponse] = simulator.readCommandResponse(controlCommand.commandName.name)
       return processCommandResponse(controlCommand.runId, response)
     }
     CommandResponse.Error(
@@ -34,7 +30,10 @@ case class SubsystemManager(loggerFactory: LoggerFactory) {
       s"Unable to submit command : ${controlCommand.runId} and name : ${controlCommand.commandName} to subsystem"
     )
   }
-  def processCommandResponse(runID: Id, subsystemResponse: Option[SubystemResponse]): CommandResponse = {
+  def receiveCurrentPosition(): CurrentPosition = {
+    simulator.publishCurrentPosition
+  }
+  private def processCommandResponse(runID: Id, subsystemResponse: Option[SubystemResponse]): CommandResponse = {
     subsystemResponse match {
       case Some(response) => {
         response.commandResponse match {
@@ -48,7 +47,7 @@ case class SubsystemManager(loggerFactory: LoggerFactory) {
     }
     CommandResponse.Invalid(runID, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
   }
-  def decodeErrorState(runID: Id, response: SubystemResponse): CommandResponse = {
+  private def decodeErrorState(runID: Id, response: SubystemResponse): CommandResponse = {
     response.errorReason.get match {
       case "ILLEGAL_STATE" => {
         return CommandResponse.Invalid(runID, WrongInternalStateIssue(response.errorInfo.get))

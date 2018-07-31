@@ -22,10 +22,10 @@ import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
 sealed trait LifeCycleMessage
 object LifeCycleMessage {
-  case class InitializeMsg()                               extends LifeCycleMessage
-  case class ShutdownMsg()                                 extends LifeCycleMessage
-  case class GetConfig(sender: ActorRef[LifeCycleMessage]) extends LifeCycleMessage
-  case class HCDConfig(config: Config)                     extends LifeCycleMessage
+  case class InitializeMsg(sender: ActorRef[LifeCycleMessage]) extends LifeCycleMessage
+  case class ShutdownMsg()                                     extends LifeCycleMessage
+  case class GetConfig(sender: ActorRef[LifeCycleMessage])     extends LifeCycleMessage
+  case class HCDConfig(config: Config)                         extends LifeCycleMessage
 }
 object LifeCycleActor {
   def createObject(commandResponseManager: CommandResponseManager,
@@ -47,8 +47,12 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   private var hcdConfig: Option[Config]         = None
   override def onMessage(msg: LifeCycleMessage): Behavior[LifeCycleMessage] = {
     msg match {
-      case msg: InitializeMsg => doInitialize()
-      case msg: ShutdownMsg   => doShutdown()
+      case msg: InitializeMsg => {
+        val config: Config = doInitialize(msg)
+        msg.sender ! HCDConfig(config)
+        Behavior.same
+      }
+      case msg: ShutdownMsg => doShutdown()
       case msg: GetConfig => {
         msg.sender ! HCDConfig(hcdConfig.get)
         Behavior.same
@@ -63,7 +67,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   /*
     This functions loads configuration from  config server and configures assembly accordingly
    */
-  private def doInitialize(): Behavior[LifeCycleMessage] = {
+  private def doInitialize(message: LifeCycleMessage): Config = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
     val config: Config = getHCDConfig()
     /*
@@ -80,7 +84,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
      */
     log.info(msg = s"Successfully initialized hcd configuration")
     hcdConfig = Some(config)
-    Behavior.same
+    config
   }
   /*
    This functions shuts down assembly

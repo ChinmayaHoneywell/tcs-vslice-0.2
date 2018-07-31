@@ -1,9 +1,10 @@
 package org.tmt.tcs.mcs.MCShcd
 
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.actor.typed.scaladsl.{Behaviors, MutableBehavior, TimerScheduler}
 import csw.framework.CurrentStatePublisher
 import csw.messages.params.generics.{KeyType, Parameter}
 import csw.messages.params.models.Units.degree
@@ -11,6 +12,9 @@ import csw.messages.params.models.{Prefix, Subsystem}
 import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
+import org.tmt.tcs.mcs.MCShcd.simulator.CurrentPosition
+
+import scala.concurrent.duration.Duration
 
 sealed trait EventMessage
 object EventMessage {
@@ -26,6 +30,7 @@ object EventMessage {
   case class HcdCurrentState(lifeCycleState: HCDLifeCycleState.lifeCycleState,
                              operationalState: HCDOperationalState.operationalState)
       extends EventMessage
+  case class StartPublishing() extends EventMessage
 
 }
 
@@ -42,18 +47,24 @@ object StatePublisherActor {
   def createObject(currentStatePublisher: CurrentStatePublisher,
                    lifeCycleState: HCDLifeCycleState.lifeCycleState,
                    operationalState: HCDOperationalState.operationalState,
+                   subsystemManager: SubsystemManager,
                    loggerFactory: LoggerFactory): Behavior[EventMessage] =
-    Behaviors.setup(ctx => StatePublisherActor(ctx, currentStatePublisher, lifeCycleState, operationalState, loggerFactory))
+    Behaviors.withTimers(
+      timers =>
+        StatePublisherActor(timers, currentStatePublisher, lifeCycleState, operationalState, subsystemManager, loggerFactory)
+    )
 
 }
+private case object TimerKey
 /*
 This actor is responsible for publishing state, events for MCS to assembly it dervies HCD states from
 MCS state and  events received
  */
-case class StatePublisherActor(ctx: ActorContext[EventMessage],
+case class StatePublisherActor(timer: TimerScheduler[EventMessage],
                                currentStatePublisher: CurrentStatePublisher,
                                lifeCycleState: HCDLifeCycleState.lifeCycleState,
                                operationalState: HCDOperationalState.operationalState,
+                               subsystemManager: SubsystemManager,
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[EventMessage] {
   private val log               = loggerFactory.getLogger
@@ -69,7 +80,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
     val currOperationalState = msg.operationalState
 
     log.info(msg = s"current operational state of MCS HCD is: ${currOperationalState} ")
-    StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, loggerFactory)
+    StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, subsystemManager, loggerFactory)
   }
   /*
        This functions publishes HCD current lifecycle state, current position to assembly by using statePublisher actor
@@ -77,6 +88,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     log.info(msg = s"Received event : $msg ")
     msg match {
+
       case msg: StateChangeMsg => {
         val currLifeCycleState = msg.lifeCycleState
         val state              = currLifeCycleState.toString
@@ -88,21 +100,31 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
         log.info(s"Publishing state : ${currentState} to assembly with currentStatePublishier : ${currentStatePublisher}")
         currentStatePublisher.publish(currentState)
         log.info(msg = s"Successfully published state to ASSEMBLY")
-        StatePublisherActor.createObject(currentStatePublisher, currLifeCycleState, msg.oerationalState, loggerFactory)
+        StatePublisherActor.createObject(currentStatePublisher,
+                                         currLifeCycleState,
+                                         msg.oerationalState,
+                                         subsystemManager,
+                                         loggerFactory)
       }
 
       case msg: HCDOperationalStateChangeMsg => onOperationalStateChange(msg)
+      case msg: StartPublishing => {
+        timer.startPeriodicTimer(TimerKey, publishCurrentPosition(), Duration.create(10, TimeUnit.SECONDS))
+        Behavior.same
+      }
       case msg: publishCurrentPosition => {
-        val azPosKey          = KeyType.DoubleKey.make("azPosKey")
-        val azPosErrorKey     = KeyType.DoubleKey.make("azPosErrorKey")
-        val elPosKey          = KeyType.DoubleKey.make("elPosKey")
-        val elPosErrorKey     = KeyType.DoubleKey.make("elPosErrorKey")
-        val azInPositionKey   = KeyType.BooleanKey.make("azInPositionKey")
-        val elInPositionKey   = KeyType.BooleanKey.make("elInPositionKey")
-        val azPosParam        = azPosKey.set(35.34).withUnits(degree)
-        val azPosErrorParam   = azPosErrorKey.set(0.34).withUnits(degree)
-        val elPosParam        = elPosKey.set(46.7).withUnits(degree)
-        val elPosErrorParam   = elPosErrorKey.set(0.03).withUnits(degree)
+        val azPosKey                         = KeyType.DoubleKey.make("azPosKey")
+        val azPosErrorKey                    = KeyType.DoubleKey.make("azPosErrorKey")
+        val elPosKey                         = KeyType.DoubleKey.make("elPosKey")
+        val elPosErrorKey                    = KeyType.DoubleKey.make("elPosErrorKey")
+        val azInPositionKey                  = KeyType.BooleanKey.make("azInPositionKey")
+        val elInPositionKey                  = KeyType.BooleanKey.make("elInPositionKey")
+        val currentPosition: CurrentPosition = subsystemManager.receiveCurrentPosition()
+
+        val azPosParam        = azPosKey.set(currentPosition.azPos).withUnits(degree)
+        val azPosErrorParam   = azPosErrorKey.set(currentPosition.asPosError).withUnits(degree)
+        val elPosParam        = elPosKey.set(currentPosition.elPos).withUnits(degree)
+        val elPosErrorParam   = elPosErrorKey.set(currentPosition.elPosError).withUnits(degree)
         val azInPositionParam = azInPositionKey.set(false)
         val elInPositionParam = elInPositionKey.set(true)
 

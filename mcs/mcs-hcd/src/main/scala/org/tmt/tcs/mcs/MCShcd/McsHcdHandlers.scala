@@ -15,9 +15,11 @@ import org.tmt.tcs.mcs.MCShcd.EventMessage.{publishCurrentPosition, HCDOperation
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
+import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
 import csw.services.command.CommandResponseManager
+import org.tmt.tcs.mcs.MCShcd.simulator.{SimpleSimulator, Simulator}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -54,22 +56,42 @@ class McsHcdHandlers(
 
   private val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, locationService, loggerFactory), "LifeCycleActor")
+
+  private val simulator: Simulator               = SimpleSimulator.create(loggerFactory)
+  private val subSystemManager: SubsystemManager = SubsystemManager.create(simulator, loggerFactory)
+  private val commandHandlerActor: ActorRef[ControlCommand] =
+    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, subSystemManager, loggerFactory),
+              "CommandHandlerActor")
+
   private val statePublisherActor: ActorRef[EventMessage] = ctx.spawn(
     StatePublisherActor.createObject(currentStatePublisher,
                                      HCDLifeCycleState.Off,
                                      HCDOperationalState.DrivePowerOff,
+                                     subSystemManager,
                                      loggerFactory),
     "StatePublisherActor"
   )
-  private val commandHandlerActor: ActorRef[ControlCommand] =
-    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, loggerFactory), "CommandHandlerActor")
   /*
-  This function initializes HCD and intilizes Lifecycle actor and statepublisher actor
-  with initialized state
+  This function initializes HCD, uses configuration object to initialize simulator and
+  sends updated states tp state publisher actor for publishing
    */
   override def initialize(): Future[Unit] = Future {
     log.info(msg = "Initializing MCS HCD")
-    lifeCycleActor ! InitializeMsg()
+
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+
+    val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
+      LifeCycleMessage.InitializeMsg(ref)
+    }, 3.seconds)
+
+    var config: Config = null
+    lifecycleMsg match {
+      case x: LifeCycleMessage.HCDConfig => {
+        config = x.config
+      }
+    }
+    subSystemManager.initialize(config)
     statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
   }
 
