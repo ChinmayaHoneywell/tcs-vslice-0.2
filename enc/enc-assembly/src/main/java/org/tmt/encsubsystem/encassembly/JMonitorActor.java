@@ -181,7 +181,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
                 switch (hcdOperationState) {
                     case Following:
                         /* As control system is following demand positions, marking assembly state as slewing,
-                         more appropriate state can be derived by comparing current position and demand position.
+                         more appropriate state will be derived by comparing current position and demand position.
                          */
                         assemblyOperationalState = JEncAssemblyHandlers.OperationalState.Slewing;
                         assemblyLifecycleState = hcdLifecycleState;

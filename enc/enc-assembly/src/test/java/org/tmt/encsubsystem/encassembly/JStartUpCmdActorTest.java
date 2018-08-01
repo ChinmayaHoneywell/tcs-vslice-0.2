@@ -59,7 +59,7 @@ public class JStartUpCmdActorTest {
     public void startupCommandCompletion() throws InterruptedException {
 
         Setup startupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("startup"), Optional.empty());
-        when(hcdCommandService.submitAndSubscribe( any(), any() )).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(startupCmd.runId())));
+        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(startupCmd.runId())));
         startUpCmdActor.tell(startupCmd);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(commandResponseManager).addOrUpdateCommand(startupCmd.runId(), new CommandResponse.Completed(startupCmd.runId()));

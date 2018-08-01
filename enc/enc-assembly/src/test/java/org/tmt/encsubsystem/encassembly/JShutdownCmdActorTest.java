@@ -18,7 +18,6 @@ import org.mockito.junit.MockitoRule;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,7 +58,7 @@ public class JShutdownCmdActorTest {
     public void shutdownCommandCompletion() throws InterruptedException {
 
         Setup shutdownCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("shutdown"), Optional.empty());
-        when(hcdCommandService.submitAndSubscribe( any(), any() )).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(shutdownCmd.runId())));
+        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(shutdownCmd.runId())));
         shutdownCmdActor.tell(shutdownCmd);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(commandResponseManager).addOrUpdateCommand(shutdownCmd.runId(), new CommandResponse.Completed(shutdownCmd.runId()));

@@ -16,12 +16,11 @@ import org.mockito.junit.MockitoRule;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class JLifecycleActorTest {
@@ -68,7 +67,7 @@ public class JLifecycleActorTest {
      * Given lifecycle actor is created,
      * when Initialize message is send to lifecycle actor as part of framework initialization activity,,
      * then it should load configuration using configuration service
-     *      and mark initialization complete.
+     * and mark initialization complete.
      */
     @Test
     public void testOnInitializeMessage() {

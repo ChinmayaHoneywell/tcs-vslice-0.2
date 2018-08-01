@@ -21,7 +21,6 @@ import org.mockito.junit.MockitoRule;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,10 +40,11 @@ public class MoveCmdActorTest {
 
     JLoggerFactory jLoggerFactory;
     ActorRef<ControlCommand> moveCmdActor;
+
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        moveCmdActor = testKit.spawn(MoveCmdActor.behavior(commandResponseManager,Optional.of(hcdCommandService), jLoggerFactory));
+        moveCmdActor = testKit.spawn(MoveCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory));
     }
 
     @After
@@ -71,7 +71,7 @@ public class MoveCmdActorTest {
                 .add(JKeyTypes.DoubleKey().make("el").set(5.76))
                 .add(JKeyTypes.StringKey().make("mode").set("fast"))
                 .add(JKeyTypes.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
-        when(hcdCommandService.submitAndSubscribe( any(), any() )).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(responseId)));
+        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(responseId)));
         moveCmdActor.tell(moveCommand);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(commandResponseManager).addSubCommand(moveCommand.runId(), responseId);

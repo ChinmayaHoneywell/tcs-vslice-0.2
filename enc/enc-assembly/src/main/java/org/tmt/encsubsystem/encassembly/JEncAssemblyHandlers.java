@@ -2,6 +2,7 @@ package org.tmt.encsubsystem.encassembly;
 
 
 import akka.actor.typed.ActorRef;
+import akka.actor.typed.ActorSystem;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Adapter;
 import akka.actor.typed.javadsl.AskPattern;
@@ -162,7 +163,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
                     return new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.MissingKeyIssue("Move command is missing mode parameter"));
                 }
                 //State based validation
-                if (!isStateValid(askOperationalStateFromMonitor())) {
+                if (!isStateValid(askOperationalStateFromMonitor(monitorActor, actorContext.getSystem()))) {
                     return new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.WrongInternalStateIssue("Assembly is not in valid operational state"));
                 }
                 return accepted;
@@ -170,7 +171,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             case "follow":
 
                 //State based validation
-                if (!isStateValid(askOperationalStateFromMonitor())) {
+                if (!isStateValid(askOperationalStateFromMonitor(monitorActor, actorContext.getSystem()))) {
                     return new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.WrongInternalStateIssue("Assembly is not in valid operational state"));
                 }
                 //Immediate command implementation, on submit hook will not be called.
@@ -267,14 +268,14 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
      *
      * @return
      */
-    private OperationalState askOperationalStateFromMonitor() {
+    public static OperationalState askOperationalStateFromMonitor(ActorRef<JMonitorActor.MonitorMessage> actor, ActorSystem system) {
 
         final JMonitorActor.AssemblyStatesResponseMessage assemblyStates;
         try {
-            assemblyStates = AskPattern.ask(monitorActor, (ActorRef<JMonitorActor.AssemblyStatesResponseMessage> replyTo) ->
+            assemblyStates = AskPattern.ask(actor, (ActorRef<JMonitorActor.AssemblyStatesResponseMessage> replyTo) ->
                             new JMonitorActor.AssemblyStatesAskMessage(replyTo)
-                    , new Timeout(10, TimeUnit.SECONDS), actorContext.getSystem().scheduler()).toCompletableFuture().get();
-            log.debug(() -> "Got Assembly state from monitor actor - " + assemblyStates.assemblyOperationalState + " ,  " + assemblyStates.assemblyLifecycleState);
+                    , new Timeout(10, TimeUnit.SECONDS), system.scheduler()).toCompletableFuture().get();
+            //  log.debug(() -> "Got Assembly state from monitor actor - " + assemblyStates.assemblyOperationalState + " ,  " + assemblyStates.assemblyLifecycleState);
             return assemblyStates.assemblyOperationalState;
         } catch (Exception e) {
             e.printStackTrace();

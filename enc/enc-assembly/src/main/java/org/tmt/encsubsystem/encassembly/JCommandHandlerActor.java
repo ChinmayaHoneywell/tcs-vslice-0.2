@@ -79,9 +79,10 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
         }
     }
 
-    public static final class UpdateConfigMessage implements  CommandMessage{
+    public static final class UpdateConfigMessage implements CommandMessage {
         public final Optional<Config> assemblyConfig;
-        public UpdateConfigMessage(Optional<Config> assemblyConfig){
+
+        public UpdateConfigMessage(Optional<Config> assemblyConfig) {
             this.assemblyConfig = assemblyConfig;
         }
     }
@@ -143,8 +144,8 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
                             return behavior(commandResponseManager, command.commandServiceOptional, online, loggerFactory, assemblyConfig);
                         })
                 .onMessage(UpdateConfigMessage.class,
-                        updateConfigMessage ->{
-                            log.debug(()-> "UpdateConfigMessage Received");
+                        updateConfigMessage -> {
+                            log.debug(() -> "UpdateConfigMessage Received");
 
                             return behavior(commandResponseManager, hcdCommandService, online, loggerFactory, updateConfigMessage.assemblyConfig);
                         })

@@ -23,7 +23,6 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Optional;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
@@ -45,11 +44,12 @@ public class JCommandHandlerActorTest {
     BehaviorTestKit<JCommandHandlerActor.CommandMessage> commandHandlerBehaviourKit;
 
     TestInbox<JCommandHandlerActor.ImmediateResponseMessage> replyTo;
+
     @Before
     public void setUp() throws Exception {
-        when(jLoggerFactory.getLogger(isA(ActorContext.class),any())).thenReturn(logger);
+        when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         replyTo = TestInbox.create();
-        commandHandlerBehaviourKit= BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, Optional.of(hcdCommandService), true, jLoggerFactory, Optional.empty()));
+        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, Optional.of(hcdCommandService), true, jLoggerFactory, Optional.empty()));
     }
 
     @After
@@ -60,7 +60,7 @@ public class JCommandHandlerActorTest {
      * given Assembly is running,
      * when move command as message is send to CommandHandlerActor,
      * then one Command Worker Actor (MoveCmdActor) should be created
-     *      and command should be send to newly created actor to process.
+     * and command should be send to newly created actor to process.
      */
     @Test
     public void handleMoveCommandTest() {
@@ -74,25 +74,24 @@ public class JCommandHandlerActorTest {
                 .add(JKeyTypes.LongKey().make("timeDuration").set(timeValue, JUnits.second));
         commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(moveSetupCmd));
         //   commandHandlerBehaviourKit.expectEffect(Effects.spawnedAnonymous(JFastMoveCmdActor.behavior(commandResponseManager,jLoggerFactory, statePublisherActorInbox.getRef()),Props.empty()));
-        TestInbox<ControlCommand> commandWorkerActorInbox =   commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
         TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(moveSetupCmd);
 
     }
-
 
 
     /**
      * given Assembly is running,
      * when follow command as message is send to CommandHandlerActor,
      * then one Command Worker Actor (JFollowCmdActor) should be created
-     *      and command should be send to newly created actor to process.
+     * and command should be send to newly created actor to process.
      */
     @Test
     public void handleFollowCommandTest() {
         Setup followCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
         JCommandHandlerActor.ImmediateCommandMessage message = new JCommandHandlerActor.ImmediateCommandMessage(followCommand, replyTo.getRef());
         commandHandlerBehaviourKit.run(message);
-        TestInbox<JFollowCmdActor.FollowMessage> commandWorkerActorInbox =   commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<JFollowCmdActor.FollowMessage> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
         TestInbox<JFollowCmdActor.FollowMessage> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(new JFollowCmdActor.FollowCommandMessage(message.controlCommand, message.replyTo));
 
     }

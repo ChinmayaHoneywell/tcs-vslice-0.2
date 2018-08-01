@@ -5,11 +5,7 @@ import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
 import csw.messages.commands.CommandName;
 import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
 import csw.messages.commands.Setup;
-import csw.messages.javadsl.JUnits;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.models.Id;
 import csw.messages.params.models.Prefix;
 import csw.services.command.javadsl.JCommandService;
 import csw.services.command.scaladsl.CommandResponseManager;
@@ -22,9 +18,7 @@ import org.mockito.junit.MockitoRule;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class JFollowCmdActorTest {
@@ -60,9 +54,9 @@ public class JFollowCmdActorTest {
      * and response is send back sender immediately.
      */
     @Test
-    public void followCommandCompletion()  {
+    public void followCommandCompletion() {
         Setup followCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
-        when(hcdCommandService.submitAndSubscribe( any(), any() )).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
+        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
         TestProbe<JCommandHandlerActor.ImmediateResponseMessage> responseTestProbe = testKit.createTestProbe();
         followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(followCommand, responseTestProbe.getRef()));
         responseTestProbe.expectMessage(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(followCommand.runId())));
