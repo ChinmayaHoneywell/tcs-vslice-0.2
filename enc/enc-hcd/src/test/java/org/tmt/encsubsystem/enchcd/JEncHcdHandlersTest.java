@@ -1,11 +1,5 @@
 package org.tmt.encsubsystem.enchcd;
 
-import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.ControlCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

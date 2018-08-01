@@ -84,5 +84,5 @@ public class JShutdownCmdActorTest {
         statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Initialized), Optional.of(JEncHcdHandlers.OperationalState.Idle)));
 
         verify(commandResponseManager).addOrUpdateCommand(shutdownCmd.runId(), new CommandResponse.Completed(shutdownCmd.runId()));
-       }
+    }
 }

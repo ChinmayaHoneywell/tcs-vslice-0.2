@@ -1,16 +1,9 @@
 package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
-import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
 import csw.framework.scaladsl.CurrentStatePublisher;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.models.Prefix;
 import csw.messages.params.states.CurrentState;
-import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
 import org.mockito.ArgumentCaptor;
@@ -21,9 +14,8 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Optional;
 
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
 
 /**
  * This is an Actor Level Test.
@@ -80,8 +72,8 @@ public class JStatePublisherActorTest {
      * given hcd is initialized,
      * when state publisher actor received state change message
      * then it should publish change to assembly using current state publisher
-     *
-     *
+     * <p>
+     * <p>
      * Ref -
      * How to test if actor has executed some function?
      * https://stackoverflow.com/questions/27091629/akka-test-that-function-from-test-executed?answertab=oldest#tab-top
@@ -94,7 +86,7 @@ public class JStatePublisherActorTest {
         verify(currentStatePublisher).publish(currentStateArgumentCaptor.capture());
         CurrentState currentState = currentStateArgumentCaptor.getValue();
         assertEquals(currentState.stateName().name(), "OpsAndLifecycleState");
-       }
+    }
 
     /**
      * given hcd is initialized,

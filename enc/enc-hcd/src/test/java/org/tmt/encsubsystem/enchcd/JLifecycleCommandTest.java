@@ -6,7 +6,6 @@ import akka.actor.typed.javadsl.ActorContext;
 import csw.messages.commands.CommandName;
 import csw.messages.commands.ControlCommand;
 import csw.messages.commands.Setup;
-import csw.messages.params.generics.JKeyTypes;
 import csw.messages.params.models.Prefix;
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
@@ -46,9 +45,9 @@ public class JLifecycleCommandTest {
 
     @Before
     public void setUp() throws Exception {
-        when(jLoggerFactory.getLogger(isA(ActorContext.class),any())).thenReturn(logger);
+        when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         statePublisherActorInbox = TestInbox.create();
-        lifecycleBehaviourKit= BehaviorTestKit.create(JLifecycleActor.behavior(commandResponseManager, statePublisherActorInbox.getRef(), configClientApi, jLoggerFactory));
+        lifecycleBehaviourKit = BehaviorTestKit.create(JLifecycleActor.behavior(commandResponseManager, statePublisherActorInbox.getRef(), configClientApi, jLoggerFactory));
     }
 
     @After
@@ -59,13 +58,13 @@ public class JLifecycleCommandTest {
      * given HCD is initialized,
      * when startup command as message is send to LifecycleActor,
      * then one Command Worker Actor (JStartUpCmdActor) should be created
-     *      and command should be send to newly created actor to process.
+     * and command should be send to newly created actor to process.
      */
     @Test
     public void handleStartupCommandTest() throws InterruptedException {
         Setup startupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("startup"), Optional.empty());
         lifecycleBehaviourKit.run(new JLifecycleActor.SubmitCommandMessage(startupCmd));
-        TestInbox<ControlCommand> commandWorkerActorInbox =   lifecycleBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> commandWorkerActorInbox = lifecycleBehaviourKit.childInbox("$a");
         TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(startupCmd);
 
 
@@ -75,13 +74,13 @@ public class JLifecycleCommandTest {
      * given HCD is initialized,
      * when shutdown command as message is send to LifecycleActor,
      * then one Command Worker Actor (JShutdownCmdActor) should be created
-     *      and command should be send to newly created actor to process.
+     * and command should be send to newly created actor to process.
      */
     @Test
-    public void handleShutdownCommandTest()  {
+    public void handleShutdownCommandTest() {
         Setup shutdownCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("shutdown"), Optional.empty());
         lifecycleBehaviourKit.run(new JLifecycleActor.SubmitCommandMessage(shutdownCmd));
-        TestInbox<ControlCommand> commandWorkerActorInbox =   lifecycleBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> commandWorkerActorInbox = lifecycleBehaviourKit.childInbox("$a");
         TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(shutdownCmd);
 
     }

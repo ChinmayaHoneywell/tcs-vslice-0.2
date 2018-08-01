@@ -18,8 +18,7 @@ import org.mockito.junit.MockitoRule;
 import java.time.Duration;
 import java.util.Optional;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 
 /**
  * This is an Actor Level Test.
@@ -86,5 +85,5 @@ public class JStartUpCmdActorTest {
         statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Running), Optional.of(JEncHcdHandlers.OperationalState.Ready)));
 
         verify(commandResponseManager).addOrUpdateCommand(startupCmd.runId(), new CommandResponse.Completed(startupCmd.runId()));
-       }
+    }
 }

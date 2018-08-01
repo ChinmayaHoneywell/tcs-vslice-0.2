@@ -3,7 +3,6 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.api.models.ConfigData;
@@ -12,7 +11,6 @@ import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -66,8 +64,8 @@ public class JLifecycleActorTest {
      * Given lifecycle actor is created,
      * when Initialize message is send to lifecycle actor as part of framework initialization activity,,
      * then it should load configuration using configuration service,
-     *      tell state publisher actor to start publishing current states
-     *      and mark complete the completableFuture.
+     * tell state publisher actor to start publishing current states
+     * and mark complete the completableFuture.
      */
     @Test
     public void testOnInitializeMessage() {
@@ -87,11 +85,11 @@ public class JLifecycleActorTest {
      * Given lifecycle actor is created, initialized,
      * when Shutdown message is send to lifecycle actor as part of framework shutdown activity,
      * then it should release resources, disconnect with subsystem,
-     *      tell state publisher actor to stop publishing current states
+     * tell state publisher actor to stop publishing current states
      */
     @Test
     public void testOnShutdownMessage() {
-       lifecycleCmdActor.tell(new JLifecycleActor.ShutdownMessage());
+        lifecycleCmdActor.tell(new JLifecycleActor.ShutdownMessage());
         statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StopMessage());
     }
 }
