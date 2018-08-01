@@ -75,23 +75,23 @@ This template shows working examples of:
 	
 	94 Simulator -Real vs Simple(TBD).
 
-## Junit Test Cases
+## Assembly Junit Test Cases
 
 ### Command Handler Actor
      
-     1.	given Assembly is running,
+     1.	Move Command - Given Assembly is running,
      when move command as message is send to CommandHandlerActor,
      then one Command Worker Actor (MoveCmdActor) should be created
      and command should be send to newly created actor to process.
      
-     2. given Assembly is running,
+     2. Follow Command - Given Assembly is running,
      when follow command as message is send to CommandHandlerActor,
      then one Command Worker Actor (JFollowCmdActor) should be created
      and command should be send to newly created actor to process.
      
 ### Lifecycle Actor
 	
-	1. Given lifecycle actor is created,
+	1. Initialization - Given lifecycle actor is created,
      	when Initialize message is send to lifecycle actor as part of framework initialization activity,,
      	then it should load configuration using configuration service
      	and mark initialization complete.
@@ -121,7 +121,91 @@ This template shows working examples of:
      	when valid shutdown command is send to command worker actor
      	then worker actor submit command to HCD and update command response in command response manager.
 	
+	4. Move Command - Given the Assembly is running,
+     	when valid move command is send to command worker actor
+     	then worker actor create and submit sub command to HCD,
+     	join sub command with actual command
+     	and update command response in command response manager.
+	
 ### Monitor Actor
+	
+	1. HCD Connection Failure -  Given Assembly is initialized or running or ready
+     	when hcd connection is lost
+     	then monitor actor should transition assembly to faulted state
+	
+## HCD Junit Test Cases
+
+### Command Handler Actor
+     
+     1.	Fast Move Command - Given HCD is running,
+     	when fastMove command as message is send to CommandHandlerActor,
+     	then one Command Worker Actor (JFastMoveCmdActor) should be created
+     	and command should be send to newly created actor to process.
+     
+     2. Follow Command - Given HCD is running,
+     	when follow command as message is send to CommandHandlerActor,
+     	then one Command Worker Actor (JFollowCmdActor) should be created
+     	and command should be send to newly created actor to process.
+     
+     3. TrackOff Command - Given HCD is running,
+     	when trackOff command as message is send to CommandHandlerActor,
+     	then one Command Worker Actor (JTrackOffCmdActor) should be created
+     	and command should be send to newly created actor to process.
+     
+### Lifecycle Actor
+	
+	1. Initialization - Given lifecycle actor is created,
+     	when Initialize message is send to lifecycle actor as part of framework initialization activity,,
+     	then it should load configuration using configuration service,
+     	tell state publisher actor to start publishing current states
+     	and mark complete the completableFuture.
+	
+	2. Shutdown Hook - Given lifecycle actor is created, initialized,
+     	when Shutdown message is send to lifecycle actor as part of framework shutdown activity,
+     	then it should release resources, disconnect with subsystem,
+     	tell state publisher actor to stop publishing current states.
+	
+	2. Startup Command - given HCD is initialized,
+     	when startup command as message is send to LifecycleActor,
+     	then one Command Worker Actor (JStartUpCmdActor) should be created
+     	and command should be send to newly created actor to process
+
+	3. Shutdown Command - given HCD is initialized,
+     	when shutdown command as message is send to LifecycleActor,
+     	then one Command Worker Actor (JShutdownCmdActor) should be created
+     	and command should be send to newly created actor to process.
+	
+### Command Worker Actor
+
+	1. Follow Command - Given the HCD follow command actor is running, subsystem is also running
+     	when valid follow message having follow command in it, is send
+     	then it should reply with command successfully completed and
+     	state publisher actor should receive state change message.
+	
+	2. Startup  Command - Given the HCD is initialized, subsystem is initialized
+     	when valid startup command is send
+     	then command should successfully complete and state should transition to running,
+     	also state publisher actor should  get state change message.
+	
+	3. Shutdown Command - given the HCD is running, subsystem is running
+     	when valid shutdown command is send
+     	then command should successfully complete and state should transition to initialized,
+     	also state publisher actor should  get state change message.
+	
+	4. Fast Move Command - Given the HCD fastMove command actor is initialized, subsystem is also running
+     	when message having valid fastMove command in it, is send
+     	then it should  update command response manager that command successfully completed and
+     	state publisher actor should receive state change message.
+	
+### State Publisher Actor
+	
+	1. State Change -   given hcd is initialized,
+     	when state publisher actor received state change message
+     	then it should publish change to assembly using current state publisher.
+	
+	2. Current state - given hcd is initialized,
+     	when state publisher actor received publish message
+     	then it should publish current position of enclosure using current state publisher
 
 ##  Documentation
 
