@@ -65,22 +65,63 @@ This template shows working examples of:
 
 	8.1 Submit command by typing on console.
 
-9. Junit Test Cases
+9. Other Enhancements
 
-	9.1 Follow Command Actor Test case for command completion.
+	9.1 Updated code to work with latest csw version (29th June).
 	
-	9.2 FastMove Command Actor Test case for  command completion.
+	9.2 Current state name.
+	
+	9. Configuration usage - Loading vent opening percentage value and passing to command handler for use in command.
+	
+	94 Simulator -Real vs Simple(TBD).
 
-10. Other Enhancements
+## Junit Test Cases
 
-	10.1 Updated code to work with latest csw version (29th June).
+### Command Handler Actor
+     
+     1.	given Assembly is running,
+     when move command as message is send to CommandHandlerActor,
+     then one Command Worker Actor (MoveCmdActor) should be created
+     and command should be send to newly created actor to process.
+     
+     2. given Assembly is running,
+     when follow command as message is send to CommandHandlerActor,
+     then one Command Worker Actor (JFollowCmdActor) should be created
+     and command should be send to newly created actor to process.
+     
+### Lifecycle Actor
 	
-	10.2 Current state name.
+	1. Given lifecycle actor is created,
+     	when Initialize message is send to lifecycle actor as part of framework initialization activity,,
+     	then it should load configuration using configuration service
+     	and mark initialization complete.
 	
-	10.3 Configuration usage - Loading vent opening percentage value and passing to command handler for use in command.
-	
-	10.4 Simulator -Real vs Simple(TBD).
+	2. Startup Command - given assembly is initialized,
+     	when startup command as message is send to LifecycleActor,
+     	then one Command Worker Actor (JStartUpCmdActor) should be created
+     	and command should be send to newly created actor to process.
 
+	3. Shutdown Command - given assembly is initialized,
+     	when shutdown command as message is send to LifecycleActor,
+     	then one Command Worker Actor (JShutdownCmdActor) should be created
+     	and command should be send to newly created actor to process.
+	
+### Command Worker Actor
+
+	1. Follow Command - given the Assembly is running,
+   	when valid follow command is send to command worker actor
+     	then worker actor submit command to HCD,
+     	and response is send back sender immediately.
+	
+	2. Startup  Command - When Assembly is initialized, subsystem is initialized
+     	when valid startup command is send to command worker actor
+     	then worker actor submit command to HCD and update command response in command response manager. 
+	
+	3. Shutdown Command - Wiven the Assembly is running, subsystem is running
+     	when valid shutdown command is send to command worker actor
+     	then worker actor submit command to HCD and update command response in command response manager.
+	
+### Monitor Actor
 
 ##  Documentation
 
