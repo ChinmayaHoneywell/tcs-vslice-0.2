@@ -11,7 +11,9 @@ object Dependencies {
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test,
-    Libs.`mockito-core` % Test
+    Libs.`mockito-core` % Test,
+    Libs.`powermock-module` % Test,
+    Libs.`powermock-api` % Test
   )
 
   val EncHcd = Seq(

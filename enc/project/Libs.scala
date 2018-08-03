@@ -8,6 +8,9 @@ object Libs {
   val `junit`           = "junit"                  % "junit"           % "4.12"   //Eclipse Public License 1.0
   val `junit-interface` = "com.novocode"           % "junit-interface" % "0.11"   //BSD 2-clause "Simplified" License
   val `mockito-core`    = "org.mockito"            % "mockito-core"    % "2.16.0" //MIT License
+  val `powermock-module`= "org.powermock"          % "powermock-module-junit4" % "2.0.0-beta.5"
+  val `powermock-api`   = "org.powermock"          % "powermock-api-mockito2" % "2.0.0-beta.5"
+
 }
 
 object CSW {
