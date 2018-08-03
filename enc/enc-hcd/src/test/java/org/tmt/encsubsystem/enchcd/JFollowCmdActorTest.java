@@ -66,7 +66,7 @@ public class JFollowCmdActorTest {
     }
 
     /**
-     * given the HCD follow command actor is initialized, subsystem is also running
+     * given the HCD follow command actor is running, subsystem is also running
      * when valid follow message having follow command in it, is send
      * then it should reply with command successfully completed and
      * state publisher actor should receive state change message.
