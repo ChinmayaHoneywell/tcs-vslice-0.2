@@ -61,16 +61,8 @@ public class MoveCmdActorTest {
 
     @Test
     public void startupCommandCompletion() throws InterruptedException {
-
-        Long[] timeDurationValue = new Long[1];
-        timeDurationValue[0] = 10L;
         Id responseId = new Id("");
-        Setup moveCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("move"), Optional.empty())
-                .add(JKeyTypes.StringKey().make("operation").set("On"))
-                .add(JKeyTypes.DoubleKey().make("az").set(2.34))
-                .add(JKeyTypes.DoubleKey().make("el").set(5.76))
-                .add(JKeyTypes.StringKey().make("mode").set("fast"))
-                .add(JKeyTypes.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
+        Setup moveCommand = TestConstants.moveCommand();
         when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(responseId)));
         moveCmdActor.tell(moveCommand);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
