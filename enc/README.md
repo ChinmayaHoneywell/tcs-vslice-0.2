@@ -133,6 +133,12 @@ This template shows working examples of:
      	when hcd connection is lost
      	then monitor actor should transition assembly to faulted state
 	
+### Assembly Handler
+
+	1. Given assembly is in ready state,
+     	when HCD connection is lost and move command is submitted
+     	then command should fail and invalid state command response should be returned.
+	
 ## HCD Junit Test Cases
 
 ### Command Handler Actor
