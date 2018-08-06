@@ -89,18 +89,19 @@ class McsAssemblyHandlers(
     command handler actor and monitor actor
    */
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    log.info(msg = s"Location Tracking event changed: ${trackingEvent}")
+    log.info(msg = s"Received HCD location: ${trackingEvent}")
     trackingEvent match {
       case LocationUpdated(location) => {
         hcdLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
         hcdStateSubscriber = Some(hcdLocation.get.subscribeCurrentState(monitorActor ! currentStateChangeMsg(_)))
+        log.info(msg = s"Received HCD location: ${trackingEvent}")
       }
       case LocationRemoved(_) => {
         hcdLocation = None
-        log.info(s"HCD location is not registered with assembly")
+        log.error(s"Removing HCD Location registered with assembly")
       }
     }
-    log.info(msg = s"Sending new hcdLocation : ${hcdLocation} to commandHandlerActor and MonitorActor")
+
     monitorActor ! LocationEventMsg(hcdLocation)
     commandHandlerActor ! updateHCDLocation(hcdLocation)
   }
