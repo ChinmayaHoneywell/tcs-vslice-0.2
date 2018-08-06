@@ -36,6 +36,8 @@ object Common extends AutoPlugin {
     ),
     resolvers += Resolver.url("bintray-sbt-plugins", url("https://dl.bintray.com/sbt/sbt-plugin-releases/"))(Resolver.ivyStylePatterns),
     resolvers += Resolver.bintrayRepo("twtmt", "maven"),
+    resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/maven-releases/",
+    resolvers += "Sonatype (releases)" at "https://oss.sonatype.org/content/repositories/releases/",
     version := "0.0.1",
     fork := true,
     parallelExecution in Test := false,
