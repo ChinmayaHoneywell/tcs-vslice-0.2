@@ -59,7 +59,6 @@ case class SimpleSimulator(loggerFactory: LoggerFactory) extends Simulator {
       if (elCurrent < elDemanded) {
         elCurrent += positionIncr
       }
-      CurrentPosition(azCurrent, elCurrent, azDemanded - azCurrent, elDemanded - elCurrent)
     }
     CurrentPosition(azCurrent, elCurrent, azDemanded - azCurrent, elDemanded - elCurrent)
   }

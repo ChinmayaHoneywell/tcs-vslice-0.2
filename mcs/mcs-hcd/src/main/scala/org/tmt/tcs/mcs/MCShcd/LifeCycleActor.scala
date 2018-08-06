@@ -1,13 +1,17 @@
 package org.tmt.tcs.mcs.MCShcd
 
 import java.nio.file.{Path, Paths}
+import java.{lang, time, util}
+import java.time.Period
+import java.time.temporal.TemporalAmount
+import java.util.Map
 
 import akka.actor.ActorRefFactory
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
-import com.typesafe.config.Config
+import com.typesafe.config._
 import csw.framework.exceptions.FailureStop
 import csw.services.command.CommandResponseManager
 import csw.services.config.api.models.ConfigData
@@ -70,18 +74,17 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   private def doInitialize(message: LifeCycleMessage): Config = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
     val config: Config = getHCDConfig()
-    /*
 
-    val zeroMQPushSocket: ConfigValue = assemblyConfig.getValue("tmt.tcs.mcs.zeroMQPush")
-    log.info(msg = s"push socket is : ${zeroMQPushSocket.toString}")
+    val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
+
     log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}")
-    val zeroMQPullSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQPull")
+    val zeroMQPullSocket = config.getInt("tmt.tcs.mcs.zeroMQPull")
     log.info(msg = s"zeroMQPullSocket from config file : mcs_hcd.conf is ${zeroMQPullSocket}")
-    val zeroMQPubSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQPub")
+    val zeroMQPubSocket = config.getInt("tmt.tcs.mcs.zeroMQPub")
     log.info(msg = s"zeroMQPubSocket from config file : mcs_hcd.conf is ${zeroMQPubSocket}")
-    val zeroMQSubSocket = assemblyConfig.getInt("tmt.tcs.mcs.zeroMQSub")
+    val zeroMQSubSocket = config.getInt("tmt.tcs.mcs.zeroMQSub")
     log.info(msg = s"zeroMQSubSocket from config file : mcs_hcd.conf is ${zeroMQSubSocket}")
-     */
+
     log.info(msg = s"Successfully initialized hcd configuration")
     hcdConfig = Some(config)
     config
@@ -99,7 +102,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s" Loading config file : ${fileName} from config server")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    val configData: ConfigData                   = Await.result(getConfigData(filePath), 20.seconds)
+    val configData: ConfigData                   = Await.result(getConfigData(filePath), 7.seconds)
     log.info(msg = s" Successfully loaded config file : ${fileName} from config server")
     Await.result(configData.toConfigObject, 3.seconds)
 

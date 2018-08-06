@@ -12,11 +12,15 @@ object RealSimulator {
 case class RealSimulator(loggerFactory: LoggerFactory) extends Simulator {
   private val log                                     = loggerFactory.getLogger
   private val zmqContext: ZMQ.Context                 = ZMQ.context(1)
-  private val pushSocket: ZMQ.Socket                  = zmqContext.socket(ZMQ.PUSH)
-  private val pullSocket: ZMQ.Socket                  = zmqContext.socket(ZMQ.PULL)
-  private val subscribeSocket: ZMQ.Socket             = zmqContext.socket(ZMQ.SUB)
+  private val pushSocket: ZMQ.Socket                  = zmqContext.socket(ZMQ.PUSH) //55579
+  private val pullSocket: ZMQ.Socket                  = zmqContext.socket(ZMQ.PULL) //55578
+  private val subscribeSocket: ZMQ.Socket             = zmqContext.socket(ZMQ.SUB) //55580
   private val addr: String                            = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer = ProtoBuffMsgTransformer.create(loggerFactory)
+  private var azPos: Double                           = 0.0
+  private var elPos: Double                           = 0.0
+  private var azPosError: Double                      = 0.0
+  private var elPosError: Double                      = 0.0
 
   override def initializeSimulator(config: Config): Unit = {
     val zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
@@ -36,17 +40,20 @@ case class RealSimulator(loggerFactory: LoggerFactory) extends Simulator {
     if (eventName.equalsIgnoreCase("CurrentPosition")) {
       val subscribedEvent: SubscribedEvent = messageTransformer.decodeEvent("", subscribeSocket.recv(ZMQ.DONTWAIT))
       val mcsCurrPosition                  = subscribedEvent.mcsCurrentPosition
+      azPos = mcsCurrPosition.getAzPos
+      elPos = mcsCurrPosition.getElPos
+      azPosError = mcsCurrPosition.getAzPosError
+      elPosError = mcsCurrPosition.getElPosError
       CurrentPosition(mcsCurrPosition.getAzPos,
                       mcsCurrPosition.getElPos,
                       mcsCurrPosition.getAzPosError,
                       mcsCurrPosition.getElPosError)
     }
-    CurrentPosition(0, 0, 0, 0)
+    CurrentPosition(azPos, elPos, azPosError, elPosError)
   }
   override def submitCommand(controlCommand: ControlCommand): Option[Boolean] = {
     val commandName: String = controlCommand.commandName.name
     log.info(msg = s"In Real simulator processing command : ${controlCommand.runId} and name : ${commandName}")
-
     val sendStatus: Boolean = pushSocket.sendMore(commandName)
     if (sendStatus) {
       pushSocket.send(messageTransformer.encodeMessage(controlCommand), ZMQ.NOBLOCK)
@@ -56,7 +63,7 @@ case class RealSimulator(loggerFactory: LoggerFactory) extends Simulator {
   }
 
   override def readCommandResponse(commandName: String): Option[SubystemResponse] = {
-    val responseCommandName: String = pullSocket.recvStr(ZMQ.DONTWAIT)
+    val responseCommandName: String = pullSocket.recvStr()
     var responsePacket: Array[Byte] = null
     if (commandName == responseCommandName) {
       log.info(s"Response for command :${commandName} is received and processing it")

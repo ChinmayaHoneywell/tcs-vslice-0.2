@@ -12,7 +12,7 @@ import csw.messages.params.generics.Parameter
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage.{publishCurrentPosition, HCDOperationalStateChangeMsg, StateChangeMsg}
-import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
+import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{ShutdownMsg}
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
@@ -83,7 +83,7 @@ class McsHcdHandlers(
 
     val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
       LifeCycleMessage.InitializeMsg(ref)
-    }, 3.seconds)
+    }, 20.seconds)
 
     var config: Config = null
     lifecycleMsg match {
