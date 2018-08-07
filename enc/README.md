@@ -135,9 +135,13 @@ This template shows working examples of:
 	
 ### Assembly Handler
 
-	1. Given assembly is in ready state,
-     	when HCD connection is lost and move command is submitted
-     	then command should fail and invalid state command response should be returned.
+	1. State Validation(Move command) - Given assembly is in idle state,
+       when move command is submitted
+       then command should fail and invalid state command response should be returned.
+
+    2. Faulted State (HCD Connection issue) Test - Given Assembly is in ready state,
+            when connection to hcd become unavailable,
+           then submitted command should fail due to faulted state issue.
 	
 ## HCD Junit Test Cases
 
