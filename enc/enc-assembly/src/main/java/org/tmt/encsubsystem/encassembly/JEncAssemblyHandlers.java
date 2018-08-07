@@ -92,7 +92,6 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
         configClientApi = JConfigClientFactory.clientApi(Adapter.toUntyped(actorContext.getSystem()), locationService);
 
-
         // Load the configuration from the configuration service
         // Config assemblyConfig = getAssemblyConfig();
         log.debug(() -> "Spawning Handler Actors in assembly");
@@ -128,7 +127,8 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
         log.debug(() -> "assembly getting notified - location changed ");
         if (trackingEvent instanceof LocationUpdated) {
             AkkaLocation hcdAkkaLocation = (AkkaLocation) ((LocationUpdated) trackingEvent).location();
-            hcdCommandService = Optional.of(new JCommandService(hcdAkkaLocation, actorContext.getSystem()));
+            JCommandService jCommandService= new JCommandService(hcdAkkaLocation, actorContext.getSystem());
+            hcdCommandService = Optional.of(jCommandService);
             // set up Hcd CurrentState subscription to be handled by the monitor actor
             subscription = Optional.of(hcdCommandService.get().subscribeCurrentState(currentState -> {
                         monitorActor.tell(new JMonitorActor.CurrentStateMessage(currentState));
@@ -139,6 +139,7 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
         } else if (trackingEvent instanceof LocationRemoved) {
             // do something for the tracked location when it is no longer available
+
             hcdCommandService = Optional.empty();
             // FIXME: not sure if this is necessary
             subscription.ifPresent(subscription -> subscription.unsubscribe());
@@ -279,8 +280,6 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             return assemblyStates.assemblyOperationalState;
         } catch (Exception e) {
             e.printStackTrace();
-            //   CommandResponse invalid = new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.OtherIssue("Exception while querying assembly state"));
-            //   return invalid;
             return null;
         }
 
