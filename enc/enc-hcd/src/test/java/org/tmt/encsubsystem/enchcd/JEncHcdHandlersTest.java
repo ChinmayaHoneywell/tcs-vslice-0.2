@@ -19,9 +19,5 @@ public class JEncHcdHandlersTest {
     @Test
     public void validateCommandTest() {
         JEncHcdBehaviorFactory factory = new JEncHcdBehaviorFactory();
-
-
-        //TODO how to inject actor context
-        //     factory.jHandlers()
     }
 }
