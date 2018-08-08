@@ -3,13 +3,14 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
-import csw.framework.javadsl.JComponentHandlers;
 import csw.framework.scaladsl.CurrentStatePublisher;
 import csw.messages.commands.CommandIssue;
+import csw.messages.commands.CommandName;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.Setup;
 import csw.messages.framework.ComponentInfo;
 import csw.messages.location.*;
+import csw.messages.params.models.Prefix;
 import csw.messages.params.states.CurrentState;
 import csw.messages.scaladsl.TopLevelActorMessage;
 import csw.services.command.javadsl.JCommandService;
@@ -35,6 +36,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import javax.swing.text.html.Option;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
@@ -45,7 +47,7 @@ import static org.mockito.Mockito.*;
  * Tests in this class are Asynchronous. All Actor are created using akka test kit.
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({JConfigClientFactory.class, AkkaLocation.class})
+@PrepareForTest({JConfigClientFactory.class, AkkaLocation.class, Optional.class})
 public class JEncAssemblyHandlersTest {
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -72,8 +74,8 @@ public class JEncAssemblyHandlersTest {
     ILocationService locationService;
 
     @Mock
-    JCommandService enclowCommandService;
-    Optional<JCommandService> enclowCommandOpt;
+    JCommandService hcdService;
+  //  Optional<JCommandService> enclowCommandOpt;
 
     @Mock
     IEventService eventService;
@@ -88,13 +90,12 @@ public class JEncAssemblyHandlersTest {
 
     JLoggerFactory jLoggerFactory;
 
-    JComponentHandlers assemblyHandlers;
+    JEncAssemblyHandlers assemblyHandlers;
 
 
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        enclowCommandOpt = Optional.of(enclowCommandService);
         location = PowerMockito.mock(AkkaLocation.class);
         PowerMockito.mockStatic(JConfigClientFactory.class);
         when(JConfigClientFactory.clientApi(any(), any())).thenReturn(configClientApi);
@@ -103,7 +104,7 @@ public class JEncAssemblyHandlersTest {
             return testKit.spawn(i.getArgument(0));
         });
         JEncAssemblyBehaviorFactory factory = new JEncAssemblyBehaviorFactory();
-        assemblyHandlers = factory.jHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, jLoggerFactory);
+        assemblyHandlers = (JEncAssemblyHandlers)factory.jHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, jLoggerFactory);
     }
 
     @After
@@ -150,4 +151,41 @@ public class JEncAssemblyHandlersTest {
         CommandResponse commandResponse=assemblyHandlers.validateCommand(moveCommand);
         assertEquals(commandResponse, new CommandResponse.Invalid(moveCommand.runId(), new CommandIssue.WrongInternalStateIssue("Assembly is not in valid operational state")));
     }
+
+    /**
+     * Validation Accepted(Move Command) - Given assembly is in ready state,
+     * when move command is submitted
+     * then validation should be successfull and accepted response should be returned.
+     */
+    @Test
+    public void moveCommandTest(){
+      //  PowerMockito.mockStatic(Optional.class);
+       // when(Optional.of(any(JCommandService.class))).thenReturn(enclowCommandOpt);
+       // assemblyHandlers.onLocationTrackingEvent(new LocationUpdated(location));
+        assemblyHandlers.getMonitorActor().tell(new JMonitorActor.CurrentStateMessage(TestConstants.getReadyState()));
+        Setup moveCommand = TestConstants.moveCommand();
+        CommandResponse commandResponse=assemblyHandlers.validateCommand(moveCommand);
+    }
+
+    /**
+     * Immediate Command(follow Command) - Given assembly is in ready state,
+     * when follow command is submitted
+     * then validation should be successful and completed response should be returned.
+     */
+    @Test
+    public void followCommandTest() throws InterruptedException {
+        //  PowerMockito.mockStatic(Optional.class);
+        // when(Optional.of(any(JCommandService.class))).thenReturn(enclowCommandOpt);
+        // assemblyHandlers.onLocationTrackingEvent(new LocationUpdated(location));
+        Setup followCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
+        when(hcdService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
+        //assemblyHandlers.getMonitorActor().tell(new JMonitorActor.LocationEventMessage(Optional.of(hcdService)));
+        assemblyHandlers.getCommandHandlerActor().tell(new JCommandHandlerActor.UpdateTemplateHcdMessage(Optional.of(hcdService)));
+        assemblyHandlers.getMonitorActor().tell(new JMonitorActor.CurrentStateMessage(TestConstants.getReadyState()));
+        Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
+        CommandResponse commandResponse=assemblyHandlers.validateCommand(followCommand);
+        assertEquals(commandResponse, new CommandResponse.Completed(followCommand.runId()));
+    }
+
+
 }

@@ -285,4 +285,12 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     }
 
+    public ActorRef<JMonitorActor.MonitorMessage> getMonitorActor(){
+        return monitorActor;
+    }
+
+    public ActorRef<JCommandHandlerActor.CommandMessage> getCommandHandlerActor(){
+        return commandHandlerActor;
+    }
+
 }
