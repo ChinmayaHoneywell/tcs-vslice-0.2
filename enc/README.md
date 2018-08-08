@@ -139,9 +139,21 @@ This template shows working examples of:
        when move command is submitted
        then command should fail and invalid state command response should be returned.
 
-    2. Faulted State (HCD Connection issue) Test - Given Assembly is in ready state,
+    2.  Parameter Validation Test(Move Command ) - Given assembly is in ready to accept commands,
+               when invalid move command is submitted
+               then command should be rejected.
+
+    3. Faulted State (HCD Connection issue) Test - Given Assembly is in ready state,
             when connection to hcd become unavailable,
-           then submitted command should fail due to faulted state issue.
+            then submitted command should fail due to faulted state issue.
+
+    4. Validation Accepted(Move Command) - Given assembly is in ready state,
+            * when move command is submitted
+            * then validation should be successfull and accepted response should be returned.
+
+    5. Immediate Command(follow Command) - Given assembly is in ready state,
+            * when follow command is submitted
+            * then validation should be successful and completed response should be returned.
 	
 ## HCD Junit Test Cases
 
