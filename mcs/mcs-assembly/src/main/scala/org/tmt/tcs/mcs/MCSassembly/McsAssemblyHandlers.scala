@@ -94,7 +94,7 @@ class McsAssemblyHandlers(
       case LocationUpdated(location) => {
         hcdLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
         hcdStateSubscriber = Some(hcdLocation.get.subscribeCurrentState(monitorActor ! currentStateChangeMsg(_)))
-        log.info(msg = s"Received HCD location: ${trackingEvent}")
+        log.info(msg = s"Updating hcdLocation : ${hcdLocation} and sending the same to commandHandlerActor and MonitorActor")
       }
       case LocationRemoved(_) => {
         hcdLocation = None
