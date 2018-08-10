@@ -4,7 +4,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import akka.util.Timeout
 import csw.messages.commands.ControlCommand
-import csw.services.command.CommandResponseManager
+
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import org.tmt.tcs.mcs.MCShcd.workers.{
@@ -19,6 +19,7 @@ import org.tmt.tcs.mcs.MCShcd.workers.{
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
+import csw.services.command.scaladsl.CommandResponseManager
 
 import scala.concurrent.duration._
 object CommandHandlerActor {

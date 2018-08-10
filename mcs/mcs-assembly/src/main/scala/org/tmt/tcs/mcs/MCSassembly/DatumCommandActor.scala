@@ -6,13 +6,12 @@ import csw.messages.commands.CommandResponse.Error
 import csw.messages.commands.ControlCommand
 import csw.messages.params.generics.Parameter
 import csw.messages.params.models.{Id, Prefix, Subsystem}
-import csw.services.command.scaladsl.CommandService
+import csw.services.command.scaladsl.{CommandResponseManager, CommandService}
 import csw.services.logging.scaladsl.LoggerFactory
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 import akka.util.Timeout
-import csw.services.command.CommandResponseManager
 
 object DatumCommandActor {
   def createObject(commandResponseManager: CommandResponseManager,

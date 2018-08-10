@@ -2,11 +2,11 @@ package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
-import csw.framework.scaladsl.ComponentHandlers
+import csw.framework.scaladsl.{ComponentHandlers, CurrentStatePublisher}
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.framework.ComponentInfo
 import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, TrackingEvent}
-import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
+import csw.services.command.scaladsl.{CommandResponseManager, CommandService, CurrentStateSubscription}
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import csw.messages.commands.CommandIssue.{UnsupportedCommandInStateIssue, UnsupportedCommandIssue, WrongNumberOfParametersIssue}
@@ -21,9 +21,7 @@ import akka.util.Timeout
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import akka.actor.typed.scaladsl.AskPattern._
-import csw.framework.CurrentStatePublisher
-import csw.messages.TopLevelActorMessage
-import csw.services.command.CommandResponseManager
+import csw.messages.scaladsl.TopLevelActorMessage
 import csw.services.event.scaladsl.EventService
 
 /**

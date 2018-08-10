@@ -5,10 +5,10 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import com.typesafe.config.Config
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.params.generics.Parameter
-import csw.services.command.CommandResponseManager
+
+import csw.services.command.scaladsl.CommandResponseManager
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.SubsystemManager
-
 import org.tmt.tcs.mcs.MCShcd.simulator.{RealSimulator, SimpleSimulator, Simulator}
 
 object StartupCmdActor {

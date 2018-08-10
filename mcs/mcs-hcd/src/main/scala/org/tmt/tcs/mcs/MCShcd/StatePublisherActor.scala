@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{Behaviors, MutableBehavior, TimerScheduler}
-import csw.framework.CurrentStatePublisher
+import csw.framework.scaladsl.CurrentStatePublisher
 import csw.messages.params.generics.{KeyType, Parameter}
 import csw.messages.params.models.Units.degree
 import csw.messages.params.models.{Prefix, Subsystem}

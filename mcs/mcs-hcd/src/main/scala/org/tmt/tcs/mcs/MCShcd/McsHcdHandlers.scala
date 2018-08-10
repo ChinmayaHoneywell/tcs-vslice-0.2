@@ -3,7 +3,7 @@ package org.tmt.tcs.mcs.MCShcd
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
-import csw.framework.scaladsl.ComponentHandlers
+import csw.framework.scaladsl.{ComponentHandlers, CurrentStatePublisher}
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.commands.CommandIssue.{UnsupportedCommandIssue, WrongInternalStateIssue, WrongNumberOfParametersIssue}
 import csw.messages.framework.ComponentInfo
@@ -12,13 +12,12 @@ import csw.messages.params.generics.Parameter
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage.{publishCurrentPosition, HCDOperationalStateChangeMsg, StateChangeMsg}
-import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{ShutdownMsg}
+import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
-import csw.framework.CurrentStatePublisher
-import csw.messages.TopLevelActorMessage
-import csw.services.command.CommandResponseManager
+import csw.messages.scaladsl.TopLevelActorMessage
+import csw.services.command.scaladsl.CommandResponseManager
 import org.tmt.tcs.mcs.MCShcd.simulator.{SimpleSimulator, Simulator}
 
 import scala.concurrent.Await

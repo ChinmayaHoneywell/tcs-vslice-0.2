@@ -5,14 +5,14 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.CommandResponse.Error
 import csw.messages.commands.{CommandName, ControlCommand, Setup}
 import csw.messages.params.models.{Id, Prefix, Subsystem}
-import csw.services.command.scaladsl.CommandService
+import csw.services.command.scaladsl.{CommandResponseManager, CommandService}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import akka.util.Timeout
-import csw.services.command.CommandResponseManager
+
 object MoveCommandActor {
   def createObject(commandResponseManager: CommandResponseManager,
                    hcdLocation: Option[CommandService],
