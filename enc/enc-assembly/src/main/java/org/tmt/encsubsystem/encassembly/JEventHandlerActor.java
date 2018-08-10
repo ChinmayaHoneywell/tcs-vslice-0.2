@@ -8,7 +8,10 @@ import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
-
+/*** EventHandlerActor handles event processing.
+ * it takes data from other actors like monitor actor and publish it using event service.
+ * it also subscribes to events from other assemblies and provide events to other actors.
+ */
 public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.EventMessage> {
 
 
@@ -50,7 +53,11 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         });
     }
 
-
+    /**
+     * This method receives messages send to actor
+     * and handle them based on their type.
+     * @return
+     */
     @Override
     public Behaviors.Receive<EventMessage> createReceive() {
 
@@ -70,11 +77,21 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         return builder.build();
     }
 
+    /**
+     * This method publish received event object to csw event service
+     * This functionality will be written once event service is released by csw team.
+     * @param message
+     */
     private void publishEvent(EventPublishMessage message) {
 
         log.debug(() -> "Publish Event Received ");
     }
 
+    /**
+     * This method publish received event object to csw event service
+     *  This functionality will be written once event service is released by csw team.
+     * @param message
+     */
     private void publishAssemblyStates(AssemblyStateChangeMessage message) {
 
         log.info(() -> "Event Handler Actor , Lifecycle state - " + message.assemblyLifecycleState + ", Operation state - " + message.assemblyOperationalState);

@@ -39,7 +39,11 @@ public class JTrackOffCmdActor extends MutableBehavior<ControlCommand> {
         });
     }
 
-
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
     @Override
     public Behaviors.Receive<ControlCommand> createReceive() {
 

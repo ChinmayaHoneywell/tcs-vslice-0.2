@@ -12,6 +12,8 @@ import csw.messages.params.generics.Parameter;
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.FastMoveCommand;
+import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.util.Optional;
 
@@ -38,7 +40,11 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
         });
     }
 
-
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
     @Override
     public Behaviors.Receive<ControlCommand> createReceive() {
 
@@ -60,22 +66,18 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
      */
     private void handleSubmitCommand(ControlCommand message) {
         System.out.println("worker actor handling command fast move");
-        Parameter operation = message.paramSet().find(x -> x.keyName().equals("operation")).get();
         Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
         Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
-        Parameter mode = message.paramSet().find(x -> x.keyName().equals("mode")).get();
-        try {
             log.debug(() -> "Submitting fastMove command to ENC Subsystem");
-            Thread.sleep(500);
-            //Serialize command data, submit to subsystem using ethernet ip connection
-            statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.InPosition)));
-            commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-
+           FastMoveCommand.Response response = IMessageCommunicatorSimpleImpl.getInstance().sendCommand(new FastMoveCommand((double)azParam.value(0), (double)elParam.value(0)));
+           switch (response.getStatus()){
+               case OK:
+                   commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
+                   statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.InPosition)));
+                   break;
+               case ERROR:
+                   commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Error(message.runId(), response.getDesc()));
+           }
     }
 
 

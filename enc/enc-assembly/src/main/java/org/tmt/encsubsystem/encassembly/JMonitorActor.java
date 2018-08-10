@@ -6,6 +6,8 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
+import csw.messages.params.generics.JKeyTypes;
+import csw.messages.params.generics.Key;
 import csw.messages.params.generics.Parameter;
 import csw.messages.params.states.CurrentState;
 import csw.services.command.javadsl.JCommandService;
@@ -14,7 +16,10 @@ import csw.services.logging.javadsl.JLoggerFactory;
 
 import java.util.Optional;
 
-
+/**
+ * Monitor actor track hcd connection, events coming from hcd.
+ * based on provided data it determined assembly state and health
+ */
 public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage> {
 
 
@@ -90,6 +95,9 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
     private JEncAssemblyHandlers.LifecycleState assemblyLifecycleState;
     private JEncAssemblyHandlers.OperationalState assemblyOperationalState;
 
+    Key<Double> azPosKey = JKeyTypes.DoubleKey().make("azPosKey");
+    Key<Double> elPosKey = JKeyTypes.DoubleKey().make("elPosKey");
+
 
     private JMonitorActor(ActorContext<MonitorMessage> actorContext, JEncAssemblyHandlers.LifecycleState assemblyLifecycleState, JEncAssemblyHandlers.OperationalState assemblyOperationalState, JLoggerFactory loggerFactory, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor) {
         this.actorContext = actorContext;
@@ -108,7 +116,11 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
         });
     }
 
-
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
     @Override
     public Behaviors.Receive<MonitorMessage> createReceive() {
 
@@ -194,6 +206,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
                 return JMonitorActor.behavior(assemblyLifecycleState, assemblyOperationalState, loggerFactory, eventHandlerActor, commandHandlerActor);
             case "currentPosition":
                 log.debug(() -> "Current position received - " + currentState);
+                //.get(azPosKey).get().value(0)
                 // by comparing demandPosition and current position here we can derive assembly state as slewing . tracking or in-position
                 // As of now keeping state as is.
                 publishStateChange(assemblyLifecycleState, assemblyOperationalState);

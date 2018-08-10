@@ -16,7 +16,11 @@ import csw.services.logging.javadsl.JLoggerFactory;
 
 import java.util.Optional;
 
-
+/**
+ * This is a typed mutable actor class
+ * This class acts as a router for commands it routes each command to individual
+ * command worker actor, it uses commandResponseManager to save and update command responses
+ */
 public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.CommandMessage> {
 
 
@@ -112,7 +116,10 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
         });
     }
 
-
+    /**
+      * This function creates individual command worker actor when command is received and delegates
+      * working to it
+     **/
     @Override
     public Behaviors.Receive<CommandMessage> createReceive() {
 
@@ -159,6 +166,10 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
         return builder.build();
     }
 
+    /**
+     * This method create worker actor and submit command to it.
+     * @param controlCommand
+     */
     private void handleSetTargetWavelengthCommand(ControlCommand controlCommand) {
 
         log.debug(() -> "handleSetTargetWavelengthCommand = " + controlCommand);
@@ -169,13 +180,13 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
                     actorContext.spawnAnonymous(SetTargetWavelengthCmdActor.behavior(commandResponseManager, loggerFactory));
 
             setTargetWavelengthCmdActor.tell(controlCommand);
-
-            // TODO: when the command is complete, kill the actor
-            // ctx.stop(setTargetWavelengthCmdActor)
         }
     }
 
-
+    /**
+     * This method create worker actor and submit command to it.
+     * @param controlCommand
+     */
     private void handleMoveCommand(ControlCommand controlCommand) {
 
         log.debug(() -> "handleMoveCommand = " + controlCommand);
@@ -189,7 +200,10 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
 
         }
     }
-
+    /**
+     * This method create worker actor and submit command to it.
+     * @param message
+     */
     private void handleFollowCommand(ImmediateCommandMessage message) {
         log.debug(() -> "handleFollowCommand = " + message.controlCommand);
         if (online) {

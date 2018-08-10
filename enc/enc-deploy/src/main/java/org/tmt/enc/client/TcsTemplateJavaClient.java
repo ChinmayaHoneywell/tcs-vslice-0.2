@@ -131,6 +131,7 @@ public class TcsTemplateJavaClient {
                     .add(mode.set(modeValue))
                     .add(timeDuration.set(timeDurationValue, JUnits.second));
             log.debug("Submitting move command to assembly...");
+
             return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
 
         } else {

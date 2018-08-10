@@ -94,6 +94,8 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
 
     /**
      * This method handle follow command.
+     * It forwards the command to hcd using hcd command service, receive response and
+     * update the response back to 'replyTo' actor
      *
      * @param followCommandMessage
      */

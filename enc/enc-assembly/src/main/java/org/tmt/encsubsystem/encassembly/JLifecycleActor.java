@@ -23,6 +23,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
+/**
+ * Lifecycle Actor receive lifecycle messages and perform initialization, config loading, shutdown operations.
+ */
 public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMessage> {
 
 
@@ -88,7 +91,11 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         });
     }
 
-
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
     @Override
     public Behaviors.Receive<LifecycleMessage> createReceive() {
 
@@ -128,6 +135,11 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         return builder.build();
     }
 
+    /**
+     * This is called as part of csw component initialization
+     * lifecycle actor will perform initialization activities like config loading inside it.
+     * @param message
+     */
     private void onInitialize(InitializeMessage message) {
         log.debug(() -> "Initialize Message Received ");
         Config assemblyConfig = getAssemblyConfig();
@@ -140,11 +152,21 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
 
     }
 
+    /**
+     * This is called as part of csw component shutdown.
+     * Lifecycle actor will perform shutdown activities like releasing occupied resources if any.
+     * @param message
+     */
     private void onShutdown(ShutdownMessage message) {
 
         log.debug(() -> "Shutdown Message Received ");
     }
 
+    /**
+     * This method will received startup command and create worker actor to handle it.
+     * command will be forwarded to worker actor.
+     * @param controlCommand
+     */
     private void handleStartupCommand(ControlCommand controlCommand) {
 
         log.debug(() -> "handle Startup Command = " + controlCommand);
@@ -153,7 +175,11 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
 
         startupCmdActor.tell(controlCommand);
     }
-
+    /**
+     * This method will received shutdown command and create worker actor to handle it.
+     * command will be forwarded to worker actor.
+     * @param controlCommand
+     */
     private void handleShutdownCommand(ControlCommand controlCommand) {
 
         log.debug(() -> "handle shutdown Command = " + controlCommand);

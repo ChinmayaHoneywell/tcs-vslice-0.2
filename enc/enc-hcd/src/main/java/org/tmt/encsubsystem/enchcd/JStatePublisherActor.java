@@ -13,6 +13,8 @@ import csw.messages.params.states.CurrentState;
 import csw.messages.params.states.StateName;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.CurrentPosition;
+import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -108,12 +110,12 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
     //keys for creating current position parameters
     Key timestampKey = JKeyTypes.TimestampKey().make("timestampKey");
 
-    Key azPosKey = JKeyTypes.DoubleKey().make("azPosKey");
-    Key azPosErrorKey = JKeyTypes.DoubleKey().make("azPosErrorKey");
-    Key elPosKey = JKeyTypes.DoubleKey().make("elPosKey");
-    Key elPosErrorKey = JKeyTypes.DoubleKey().make("elPosErrorKey");
-    Key azInPositionKey = JKeyTypes.BooleanKey().make("azInPositionKey");
-    Key elInPositionKey = JKeyTypes.BooleanKey().make("elInPositionKey");
+    Key<Double> azPosKey = JKeyTypes.DoubleKey().make("azPosKey");
+    Key<Double> azPosErrorKey = JKeyTypes.DoubleKey().make("azPosErrorKey");
+    Key<Double> elPosKey = JKeyTypes.DoubleKey().make("elPosKey");
+    Key<Double> elPosErrorKey = JKeyTypes.DoubleKey().make("elPosErrorKey");
+    Key<Boolean> azInPositionKey = JKeyTypes.BooleanKey().make("azInPositionKey");
+    Key<Boolean> elInPositionKey = JKeyTypes.BooleanKey().make("elInPositionKey");
 
     private static final Object TIMER_KEY = new Object();
 
@@ -134,7 +136,11 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         });
     }
 
-
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
     @Override
     public Behaviors.Receive<StatePublisherMessage> createReceive() {
 
@@ -170,7 +176,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
 
         log.debug(() -> "Start Message Received ");
 
-        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.ofSeconds(60));
+        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.ofMillis(1000));
 
         log.debug(() -> "start message completed");
 
@@ -199,15 +205,20 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         currentStatePublisher.publish(currentState);
     }
 
+    /**
+     * This method receives current event from subsystem and
+     * publish it using current state publisher as per timer frequency.
+     * @param message
+     */
     private void onPublishMessage(PublishMessage message) {
 
         log.debug(() -> "Publish Message Received ");
 
         // example parameters for a current state
-
-        Parameter azPosParam = azPosKey.set(35.34).withUnits(degree);
+        CurrentPosition currentPosition = IMessageCommunicatorSimpleImpl.getInstance().receiveEventCurrentPosition();
+        Parameter azPosParam = azPosKey.set(currentPosition.getAz()).withUnits(degree);
         Parameter azPosErrorParam = azPosErrorKey.set(0.34).withUnits(degree);
-        Parameter elPosParam = elPosKey.set(46.7).withUnits(degree);
+        Parameter elPosParam = elPosKey.set(currentPosition.getEl()).withUnits(degree);
         Parameter elPosErrorParam = elPosErrorKey.set(0.03).withUnits(degree);
         Parameter azInPositionParam = azInPositionKey.set(false);
         Parameter elInPositionParam = elInPositionKey.set(true);
@@ -215,7 +226,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         Parameter timestamp = timestampKey.set(Instant.now());
 
         //create CurrentState and use sequential add
-        CurrentState currentPosition = new CurrentState(currentStatePrefix, new StateName(currentPositionStateName))
+        CurrentState currentStatePosition = new CurrentState(currentStatePrefix, new StateName(currentPositionStateName))
                 .add(azPosParam)
                 .add(elPosParam)
                 .add(azPosErrorParam)
@@ -224,7 +235,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
                 .add(elInPositionParam)
                 .add(timestamp);
 
-        currentStatePublisher.publish(currentPosition);
+        currentStatePublisher.publish(currentStatePosition);
 
 
     }

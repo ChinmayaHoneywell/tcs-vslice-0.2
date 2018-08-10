@@ -68,7 +68,11 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
         });
     }
 
-
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
     @Override
     public Behaviors.Receive<FollowMessage> createReceive() {
 

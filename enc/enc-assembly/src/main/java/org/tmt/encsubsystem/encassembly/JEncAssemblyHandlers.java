@@ -105,6 +105,11 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     }
 
+    /**
+     * This is a CSW Hook to initialize assembly.
+     * This will get executed as part of assembly initialization after deployment.
+     * @return
+     */
     @Override
     public CompletableFuture<Void> jInitialize() {
 
@@ -113,7 +118,11 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
         lifecycleActor.tell(new JLifecycleActor.InitializeMessage(cf));
         return cf;
     }
-
+    /**
+     * This is a CSW Hook to shutdown assembly.
+     * This will get executed as part of assembly shutdown.
+     * @return
+     */
     @Override
     public CompletableFuture<Void> jOnShutdown() {
         return CompletableFuture.runAsync(() -> {
@@ -122,6 +131,12 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
         });
     }
 
+    /**
+     * This is a callback method
+     * When CSW detect HCD, HCD connection is obtained by assembly in this method.
+     * CSW will notify assembly in case hcd connection is lost throught this method.
+     * @param trackingEvent
+     */
     @Override
     public void onLocationTrackingEvent(TrackingEvent trackingEvent) {
         log.debug(() -> "assembly getting notified - location changed ");
@@ -151,6 +166,12 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
         monitorActor.tell(new JMonitorActor.LocationEventMessage(hcdCommandService));
     }
 
+    /**
+     * This is a CSW Validation hook. When command is submitted to this component
+     * then first validation hook is called to validate command like parameter, value range operational state etc
+     * @param controlCommand
+     * @return
+     */
     @Override
     public CommandResponse validateCommand(ControlCommand controlCommand) {
         log.debug(() -> "validating command enc assembly " + controlCommand.commandName().name());
@@ -191,6 +212,11 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     }
 
+    /**
+     * This CSW hook is called after command is validated in validate hook.
+     * Command is forwarded to Command Handler Actor or Lifecycle Actor for processing.
+     * @param controlCommand
+     */
     @Override
     public void onSubmit(ControlCommand controlCommand) {
         log.info(() -> "Assembly received command - " + controlCommand);

@@ -337,11 +337,11 @@ cd csw-prod/target/universal/stage/bin
 ### Populate the configuration
 
 #### Create assembly configuration
-cd /enc-deploy/src/main/resources/
+cd enc-deploy/src/main/resources/
 curl -X  POST --data '@enc_assembly.conf' http://192.168.122.1:4000/config/org/tmt/tcs/enc/enc_assembly.conf
 
 #### Create HCD configuration
-cd /enc-hcd/src/main/resources/
+cd enc-hcd/src/main/resources/
 curl -X  POST --data '@enc_hcd.conf' http://192.168.122.1:4000/config/org/tmt/tcs/enc/enc_hcd.conf
 
 ### Start the enc Assembly

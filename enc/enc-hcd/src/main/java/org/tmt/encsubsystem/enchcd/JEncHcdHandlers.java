@@ -20,6 +20,7 @@ import csw.services.event.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -78,8 +79,15 @@ public class JEncHcdHandlers extends JComponentHandlers {
 
         commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
         lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, statePublisherActor, configClientApi, loggerFactory));
-    }
 
+        //initializing subsystem communicator/ may move it to initialize hook
+        IMessageCommunicatorSimpleImpl.getInstance();
+    }
+    /**
+     * This is a CSW Hook to initialize assembly.
+     * This will get executed as part of hcd initialization after deployment.
+     * @return
+     */
     @Override
     public CompletableFuture<Void> jInitialize() {
         CompletableFuture<Void> cf = new CompletableFuture<>();
@@ -87,7 +95,11 @@ public class JEncHcdHandlers extends JComponentHandlers {
         lifecycleActor.tell(new JLifecycleActor.InitializeMessage(cf));
         return cf;
     }
-
+    /**
+     * This is a CSW Hook to shutdown assembly.
+     * This will get executed as part of hcd shutdown.
+     * @return
+     */
     @Override
     public CompletableFuture<Void> jOnShutdown() {
         return CompletableFuture.runAsync(() -> {
@@ -100,7 +112,12 @@ public class JEncHcdHandlers extends JComponentHandlers {
     public void onLocationTrackingEvent(TrackingEvent trackingEvent) {
         log.debug(() -> "location changed " + trackingEvent);
     }
-
+    /**
+     * This is a CSW Validation hook. When command is submitted to this component
+     * then first validation hook is called to validate command like parameter, value range.
+     * @param controlCommand
+     * @return
+     */
     @Override
     public CommandResponse validateCommand(ControlCommand controlCommand) {
         log.debug(() -> "validating command in enc hcd");
@@ -113,7 +130,11 @@ public class JEncHcdHandlers extends JComponentHandlers {
                 return new CommandResponse.Accepted(controlCommand.runId());
         }
     }
-
+    /**
+     * This CSW hook is called after command is validated in validate hook.
+     * Command is forwarded to Command Handler Actor or Lifecycle Actor for processing.
+     * @param controlCommand
+     */
     @Override
     public void onSubmit(ControlCommand controlCommand) {
         log.info(() -> "HCD , Command received - " + controlCommand);
