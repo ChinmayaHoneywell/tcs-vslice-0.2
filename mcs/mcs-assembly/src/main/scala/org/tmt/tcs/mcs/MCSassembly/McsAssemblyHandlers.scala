@@ -15,14 +15,17 @@ import org.tmt.tcs.mcs.MCSassembly.CommandMessage.{submitCommandMsg, updateHCDLo
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 import org.tmt.tcs.mcs.MCSassembly.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
-
+import akka.actor.typed.scaladsl.adapter.UntypedActorSystemOps
 import scala.concurrent.duration._
 import akka.util.Timeout
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import akka.actor.typed.scaladsl.AskPattern._
 import csw.messages.scaladsl.TopLevelActorMessage
+import csw.services.config.api.scaladsl.ConfigClientService
+import csw.services.config.client.scaladsl.ConfigClientFactory
 import csw.services.event.scaladsl.EventService
+import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -48,11 +51,11 @@ class McsAssemblyHandlers(
                               eventService,
                               loggerFactory) {
 
-  implicit val ec: ExecutionContextExecutor = ctx.executionContext
-  private val log                           = loggerFactory.getLogger
-
+  implicit val ec: ExecutionContextExecutor     = ctx.executionContext
+  private val log                               = loggerFactory.getLogger
+  private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
   val lifeCycleActor: ActorRef[LifeCycleMessage] =
-    ctx.spawn(LifeCycleActor.createObject(commandResponseManager, locationService, loggerFactory), "LifeCycleActor")
+    ctx.spawn(LifeCycleActor.createObject(commandResponseManager, configClient, loggerFactory), "LifeCycleActor")
   val monitorActor: ActorRef[MonitorMessage] =
     ctx.spawn(MonitorActor.createObject(AssemblyLifeCycleState.Initalized, AssemblyOperationalState.Ready, loggerFactory),
               name = "MonitorActor")
