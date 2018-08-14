@@ -8,8 +8,8 @@ import akka.actor.testkit.typed.TestKitSettings
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.{ActorSystem, typed}
-import akka.util.Timeout
+import akka.actor.{typed, ActorSystem}
+
 import csw.services.config.api.models.ConfigData
 import csw.services.config.api.scaladsl.ConfigClientService
 import csw.services.location.commons.ActorSystemFactory
@@ -18,29 +18,28 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 import org.tmt.tcs.mcs.MCSassembly.LifeCycleMessage.InitializeMsg
-import akka.actor.typed.scaladsl.AskPattern._
-import com.typesafe.config.Config
 
+import scala.concurrent.{Future}
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-class LifeCycleActorTest extends FunSuite with Matchers with BeforeAndAfterAll{
+class LifeCycleActorTest extends FunSuite with Matchers with BeforeAndAfterAll {
   implicit val untypedSystem: ActorSystem       = ActorSystemFactory.remote()
   implicit val system: typed.ActorSystem[_]     = untypedSystem.toTyped
   implicit val testKitSettings: TestKitSettings = TestKitSettings(system)
 
-  private val mocks                             = new FrameworkTestMocks1()
-  val loggerFactory = mocks.loggerFactory
-  val log = mocks.logger
-  val configClient : ConfigClientService = mocks.configClient
-  val fileName : String = "mcs_assembly.conf"
+  private val mocks                     = new FrameworkTestMocks1()
+  val loggerFactory                     = mocks.loggerFactory
+  val log                               = mocks.logger
+  val configClient: ConfigClientService = mocks.configClient
+  val fileName: String                  = "mcs_assembly.conf"
 
-   val testKit =   new TestKitJunitResource()
-   val lifecyleActorTest : ActorRef[LifeCycleMessage] = testKit.spawn(LifeCycleActor.createObject(
-     mocks.commandResponseManager, configClient , mocks.loggerFactory),"LifeCycleActorTest")
+  val testKit = new TestKitJunitResource()
+  val lifecyleActorTest: ActorRef[LifeCycleMessage] = testKit.spawn(
+    LifeCycleActor.createObject(mocks.commandResponseManager, configClient, mocks.loggerFactory),
+    "LifeCycleActorTest"
+  )
 
-  test("Lifecycle actor should Initialize successfully"){
-    val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")
+  test("Lifecycle actor should Initialize successfully") {
+    val filePath = Paths.get("org/tmt/tcs/mcs_assembly.conf")
     when(configClient.getActive(filePath)).thenReturn(getConfigData)
     lifecyleActorTest ! InitializeMsg()
     println("sent message for initialization")
@@ -69,21 +68,19 @@ class LifeCycleActorTest extends FunSuite with Matchers with BeforeAndAfterAll{
          assume(false)
        }
      }
-*/
+   */
   }
 
-  def getConfigData: Future[Option[ConfigData]] ={
+  def getConfigData: Future[Option[ConfigData]] = {
     println("In test actors getConfig method")
-    val url = classOf[LifeCycleActorTest].getClassLoader.getResource(fileName)
-    val filePath = Paths.get(url.toURI)
-    val configData : ConfigData = ConfigData.fromPath(filePath)
+    val url                    = classOf[LifeCycleActorTest].getClassLoader.getResource(fileName)
+    val filePath               = Paths.get(url.toURI)
+    val configData: ConfigData = ConfigData.fromPath(filePath)
     println("Successfully loaded config in test actor")
     Future.successful(Some(configData))
   }
   when(loggerFactory.getLogger).thenReturn(log)
   when(loggerFactory.getLogger(any[actor.ActorContext])).thenReturn(log)
   when(loggerFactory.getLogger(any[ActorContext[_]])).thenReturn(log)
-
-
 
 }

@@ -15,7 +15,7 @@ case class SimpleSimulator(loggerFactory: LoggerFactory) extends Simulator {
 
   private val log                               = loggerFactory.getLogger
   private var isPublishCurrentPosition: Boolean = false
-  private var positionIncr: Double              = 1.0
+  private val positionIncr: Double              = 1.0
 
   private var azCurrent: Double  = 0.0
   private var elCurrent: Double  = 0.0

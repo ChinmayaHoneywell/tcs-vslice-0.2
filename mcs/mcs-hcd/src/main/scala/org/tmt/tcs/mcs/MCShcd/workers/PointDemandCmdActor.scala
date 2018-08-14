@@ -2,8 +2,7 @@ package org.tmt.tcs.mcs.MCShcd.workers
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandResponse, ControlCommand}
-
-import csw.services.command.scaladsl.CommandResponseManager
+import csw.services.command.CommandResponseManager
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.SubsystemManager
 

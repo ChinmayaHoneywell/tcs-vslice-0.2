@@ -13,8 +13,7 @@ import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
 import com.typesafe.config._
 import csw.framework.exceptions.FailureStop
-
-import csw.services.command.scaladsl.CommandResponseManager
+import csw.services.command.CommandResponseManager
 import csw.services.config.api.models.ConfigData
 import csw.services.config.api.scaladsl.ConfigClientService
 import csw.services.config.client.scaladsl.ConfigClientFactory
@@ -74,7 +73,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(message: LifeCycleMessage): Config = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
-    val config: Config = getHCDConfig()
+    //TODO : Temporary commenting config call
+    /*val config: Config = getHCDConfig()
 
     val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
 
@@ -88,7 +88,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
 
     log.info(msg = s"Successfully initialized hcd configuration")
     hcdConfig = Some(config)
-    config
+    config*/
+    null
   }
   /*
    This functions shuts down assembly
@@ -103,7 +104,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     log.info(msg = s" Loading config file : ${fileName} from config server")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    val configData: ConfigData                   = Await.result(getConfigData(filePath), 7.seconds)
+    val configData: ConfigData                   = Await.result(getConfigData(filePath), 20.seconds)
     log.info(msg = s" Successfully loaded config file : ${fileName} from config server")
     Await.result(configData.toConfigObject, 3.seconds)
 

@@ -2,11 +2,11 @@ package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
-import csw.framework.scaladsl.{ComponentHandlers, CurrentStatePublisher}
+import csw.framework.scaladsl.ComponentHandlers
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.framework.ComponentInfo
 import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, TrackingEvent}
-import csw.services.command.scaladsl.{CommandResponseManager, CommandService, CurrentStateSubscription}
+import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import csw.messages.commands.CommandIssue.{UnsupportedCommandInStateIssue, UnsupportedCommandIssue, WrongNumberOfParametersIssue}
@@ -16,16 +16,19 @@ import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 import org.tmt.tcs.mcs.MCSassembly.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
 import akka.actor.typed.scaladsl.adapter.UntypedActorSystemOps
+
 import scala.concurrent.duration._
 import akka.util.Timeout
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import akka.actor.typed.scaladsl.AskPattern._
-import csw.messages.scaladsl.TopLevelActorMessage
 import csw.services.config.api.scaladsl.ConfigClientService
 import csw.services.config.client.scaladsl.ConfigClientFactory
-import csw.services.event.scaladsl.EventService
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
+import csw.framework.CurrentStatePublisher
+import csw.messages.TopLevelActorMessage
+import csw.services.command.CommandResponseManager
+import csw.services.event.api.scaladsl.EventService
 
 /**
  * Domain specific logic should be written in below handlers.

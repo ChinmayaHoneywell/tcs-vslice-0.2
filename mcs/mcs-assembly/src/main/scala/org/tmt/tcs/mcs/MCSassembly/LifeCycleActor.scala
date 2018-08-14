@@ -5,18 +5,17 @@ import java.nio.file.{Path, Paths}
 import akka.actor.ActorRefFactory
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import csw.framework.exceptions.FailureStop
-import csw.services.command.scaladsl.CommandResponseManager
 import csw.services.config.api.models.ConfigData
 import csw.services.config.api.scaladsl.ConfigClientService
-
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.LifeCycleMessage.{AssemblyConfig, GetAssemblyConfig, InitializeMsg, ShutdownMsg}
 import akka.actor.typed.scaladsl.adapter.UntypedActorSystemOps
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
+import csw.services.command.CommandResponseManager
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
@@ -71,14 +70,15 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
   private def doInitialize(): Behavior[LifeCycleMessage] = {
     println("Starting initialization")
     log.info(msg = " Initializing MCS Assembly actor with the help of LifecycleActor")
-    val assemblyConfig: Config = getAssemblyConfig()
+    //TODO : TEmporary commenting config call in assembly
+    /* val assemblyConfig: Config = getAssemblyConfig()
     val commandTimeout         = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
     log.info(msg = s"command timeout duration is seconds ${commandTimeout}")
     val numberOfRetries = assemblyConfig.getInt("tmt.tcs.mcs.retries")
     log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${numberOfRetries}")
     val velAccLimit = assemblyConfig.getInt("tmt.tcs.mcs.limit")
     log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${velAccLimit}")
-    config = Some(assemblyConfig)
+    config = Some(assemblyConfig)*/
     log.info(msg = s"Successfully initialized assembly configuration")
     println("Initialization successfully completed")
     Behavior.same
@@ -93,8 +93,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    val configData: ConfigData                   = Await.result(getConfigData(filePath), 10.seconds)
-    Await.result(configData.toConfigObject, 3.seconds)
+    val configData: ConfigData                   = Await.result(getConfigData(filePath), 30.seconds)
+    Await.result(configData.toConfigObject, 20.seconds)
 
   }
 

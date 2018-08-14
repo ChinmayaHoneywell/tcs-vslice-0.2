@@ -3,7 +3,7 @@ package org.tmt.tcs.mcs.MCSassembly
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandName, ControlCommand, Setup}
-import csw.services.command.scaladsl.{CommandResponseManager, CommandService}
+import csw.services.command.scaladsl.CommandService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.CommandMessage.{submitCommandMsg, updateHCDLocation, GoOfflineMsg, GoOnlineMsg}
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
@@ -12,6 +12,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
 import csw.messages.params.models.{Prefix, Subsystem}
+import csw.services.command.CommandResponseManager
 
 sealed trait CommandMessage
 object CommandMessage {

@@ -3,7 +3,7 @@ package org.tmt.tcs.mcs.MCSassembly
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.params.generics.{KeyType, Parameter}
-import csw.messages.params.states.{CurrentState, StateName}
+import csw.messages.params.states.CurrentState
 import csw.services.command.scaladsl.CommandService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
@@ -153,7 +153,7 @@ This function updates assembly,lifecycle state as per hcd's lifecycle state
 
   }
   //TODO : here add logic for updating states from slewing --> tracking and vice-versa
-  private def updateOperationalState(hcdOperationStateParam: Parameter[String]) = {
+  /* private def updateOperationalState(hcdOperationStateParam: Parameter[String]) = {
     val hcdOperationalState = hcdOperationStateParam.head
     if (hcdOperationalState == "ServoOffDatumed" || hcdOperationalState == "ServoOffDrivePowerOn") {
       log.info(
@@ -181,7 +181,7 @@ This function updates assembly,lifecycle state as per hcd's lifecycle state
 
     }
 
-  }
+  }*/
 
   /*
       TODO : Ask what to do on finding hcd location

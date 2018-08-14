@@ -27,7 +27,7 @@ This object acts as a client object to test execution of commands
 object MCSMainApp extends App {
   private val system: ActorSystem = ClusterAwareSettings.system
   private val locationService     = LocationServiceFactory.withSystem(system)
-  //private val tcsTemplateClient   = TcsTemplateClient(Prefix("tcs.tcs-template"), system, locationService)
+
   private val maybeObsId = None
   private val host       = InetAddress.getLocalHost.getHostName
 
@@ -39,7 +39,7 @@ object MCSMainApp extends App {
   implicit val scheduler: Scheduler             = system.scheduler
   implicit def actorRefFactory: ActorRefFactory = system
   implicit val mat: ActorMaterializer           = ActorMaterializer()
-  //implicit val ec: ExecutionContextExecutor     = system.dispatcher
+  // implicit val ec: ExecutionContextExecutor     = system.dispatcher
   private val connection = AkkaConnection(ComponentId("McsAssembly", Assembly))
 
   private val axesKey: Key[String] = KeyType.StringKey.make("axes")

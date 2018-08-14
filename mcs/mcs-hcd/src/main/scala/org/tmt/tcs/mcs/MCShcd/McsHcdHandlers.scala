@@ -3,7 +3,7 @@ package org.tmt.tcs.mcs.MCShcd
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
-import csw.framework.scaladsl.{ComponentHandlers, CurrentStatePublisher}
+import csw.framework.scaladsl.ComponentHandlers
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.commands.CommandIssue.{UnsupportedCommandIssue, WrongInternalStateIssue, WrongNumberOfParametersIssue}
 import csw.messages.framework.ComponentInfo
@@ -16,15 +16,16 @@ import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
-import csw.messages.scaladsl.TopLevelActorMessage
-import csw.services.command.scaladsl.CommandResponseManager
+import csw.framework.CurrentStatePublisher
+import csw.messages.TopLevelActorMessage
+import csw.services.command.CommandResponseManager
+import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCShcd.simulator.{SimpleSimulator, Simulator}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 //import akka.pattern.ask
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import csw.services.event.scaladsl.EventService
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -76,20 +77,20 @@ class McsHcdHandlers(
    */
   override def initialize(): Future[Unit] = Future {
     log.info(msg = "Initializing MCS HCD")
-
-    implicit val duration: Timeout = 20 seconds
+    //Todo : Temporarily commenting call to config and lifecycle actor
+    /*  implicit val duration: Timeout = 45 seconds
     implicit val scheduler         = ctx.system.scheduler
 
     val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
       LifeCycleMessage.InitializeMsg(ref)
-    }, 20.seconds)
+    }, 40.seconds)*/
 
     var config: Config = null
-    lifecycleMsg match {
+    /*  lifecycleMsg match {
       case x: LifeCycleMessage.HCDConfig => {
         config = x.config
       }
-    }
+    }*/
     subSystemManager.initialize(config)
     statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
   }
