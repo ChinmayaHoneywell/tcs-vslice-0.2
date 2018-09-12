@@ -2,10 +2,10 @@ package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-import csw.messages.commands.{CommandName, ControlCommand, Setup}
+import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
 import csw.services.command.scaladsl.CommandService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCSassembly.CommandMessage.{submitCommandMsg, updateHCDLocation, GoOfflineMsg, GoOnlineMsg}
+import org.tmt.tcs.mcs.MCSassembly.CommandMessage._
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 
 import scala.concurrent.Await
@@ -16,10 +16,12 @@ import csw.services.command.CommandResponseManager
 
 sealed trait CommandMessage
 object CommandMessage {
-  case class GoOnlineMsg()                                          extends CommandMessage
-  case class GoOfflineMsg()                                         extends CommandMessage
-  case class submitCommandMsg(controlCommand: ControlCommand)       extends CommandMessage
-  case class updateHCDLocation(hcdLocation: Option[CommandService]) extends CommandMessage
+  case class GoOnlineMsg()                                                                      extends CommandMessage
+  case class GoOfflineMsg()                                                                     extends CommandMessage
+  case class submitCommandMsg(controlCommand: ControlCommand)                                   extends CommandMessage
+  case class updateHCDLocation(hcdLocation: Option[CommandService])                             extends CommandMessage
+  case class ImmediateCommand(sender: ActorRef[CommandMessage], controlCommand: ControlCommand) extends CommandMessage
+  case class ImmediateCommandResponse(commandResponse: CommandResponse)                         extends CommandMessage
 
 }
 object CommandHandlerActor {
@@ -62,6 +64,11 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
         handleSubmitCommand(x)
         Behavior.same
       }
+      case x: ImmediateCommand => {
+        log.info(msg = s"In commandHandler actor processing immediate command : ${x}")
+        handleImmediateCommand(x)
+        Behavior.same
+      }
       case x: updateHCDLocation => {
         log.info(
           msg = s"Updated location of hcd in command handlerActor is:  ${x.hcdLocation} " +
@@ -76,6 +83,13 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     }
 
   }
+  def handleImmediateCommand(msg: ImmediateCommand): Unit = {
+    msg.controlCommand.commandName.name match {
+      case Commands.FOLLOW => {
+        handleFollowCommand(msg)
+      }
+    }
+  }
   /*
     This function creates individual actor for each command and delegates
     working to it
@@ -89,10 +103,8 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       case Commands.STARTUP  => handleStartupCommand(msg)
       case Commands.SHUTDOWN => handleShutDownCommand(msg)
 
-      case Commands.DATUM  => handleDatumCommand(msg)
-      case Commands.MOVE   => handleMoveCommand(msg)
-      case Commands.FOLLOW => handleFollowCommand(msg)
-
+      case Commands.DATUM => handleDatumCommand(msg)
+      case Commands.MOVE  => handleMoveCommand(msg)
       case _ => {
         log.error(msg = s"Incorrect command : ${msg} is sent to MCS Assembly CommandHandlerActor")
       }
@@ -144,11 +156,12 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       ctx.spawn(MoveCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "MoveCommandActor")
     moveCommandActor ! msg.controlCommand
   }
-  def handleFollowCommand(msg: submitCommandMsg) = {
+
+  def handleFollowCommand(msg: ImmediateCommand): Unit = {
     log.info(msg = "Sending  Follow command to FollowCommandActor")
-    val followCommandActor: ActorRef[ControlCommand] =
-      ctx.spawn(FollowCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "FollowCommandActor")
-    followCommandActor ! msg.controlCommand
+    val followCommandActor: ActorRef[ImmediateCommand] =
+      ctx.spawn(FollowCommandActor.createObject(hcdLocation, loggerFactory), "FollowCommandActor")
+    followCommandActor ! msg
   }
 
 }

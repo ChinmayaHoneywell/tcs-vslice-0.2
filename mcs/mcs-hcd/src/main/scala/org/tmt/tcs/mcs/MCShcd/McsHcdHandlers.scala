@@ -5,22 +5,30 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
 import csw.framework.scaladsl.ComponentHandlers
 import csw.messages.commands.{CommandResponse, ControlCommand}
-import csw.messages.commands.CommandIssue.{UnsupportedCommandIssue, WrongInternalStateIssue, WrongNumberOfParametersIssue}
+import csw.messages.commands.CommandIssue.{
+  UnsupportedCommandInStateIssue,
+  UnsupportedCommandIssue,
+  WrongInternalStateIssue,
+  WrongNumberOfParametersIssue
+}
 import csw.messages.framework.ComponentInfo
 import csw.messages.location.TrackingEvent
 import csw.messages.params.generics.Parameter
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.EventMessage.{publishCurrentPosition, HCDOperationalStateChangeMsg, StateChangeMsg}
+import org.tmt.tcs.mcs.MCShcd.EventMessage.{HCDOperationalStateChangeMsg, StartEventSubscription, StateChangeMsg}
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
-import csw.messages.TopLevelActorMessage
+import csw.messages.{TopLevelActorMessage}
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
-import org.tmt.tcs.mcs.MCShcd.simulator.{SimpleSimulator, Simulator}
+import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
+import org.tmt.tcs.mcs.MCShcd.Protocol.{ZeroMQMessage, ZeroMQProtocolActor}
+import org.tmt.tcs.mcs.MCShcd.simulator.SimpleSimulator
+import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -57,22 +65,26 @@ class McsHcdHandlers(
   private val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, locationService, loggerFactory), "LifeCycleActor")
 
-  private val simulator: Simulator               = SimpleSimulator.create(loggerFactory)
-  private val subSystemManager: SubsystemManager = SubsystemManager.create(simulator, loggerFactory)
-  private val commandHandlerActor: ActorRef[ControlCommand] =
-    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, subSystemManager, loggerFactory),
-              "CommandHandlerActor")
-
+  private val simulator: SimpleSimulator = SimpleSimulator.create(loggerFactory)
   private val statePublisherActor: ActorRef[EventMessage] = ctx.spawn(
     StatePublisherActor.createObject(currentStatePublisher,
                                      HCDLifeCycleState.Off,
                                      HCDOperationalState.DrivePowerOff,
-                                     subSystemManager,
+                                     eventService,
                                      loggerFactory),
     "StatePublisherActor"
   )
+  //private val subSystemManager: SubsystemManager = SubsystemManager.create(simulator, loggerFactory)
+  private val zeroMQProtoActor: ActorRef[ZeroMQMessage] =
+    ctx.spawn(ZeroMQProtocolActor.create(statePublisherActor, loggerFactory), "ZeroMQActor")
+  private val commandHandlerActor: ActorRef[HCDCommandMessage] =
+    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, zeroMQProtoActor, loggerFactory),
+              "CommandHandlerActor")
+
+  private val positionDemandActor: ActorRef[ControlCommand] =
+    ctx.spawn(PositionDemandActor.create(loggerFactory), "PositionDemandEventActor")
   /*
-  This function initializes HCD, uses configuration object to initialize simulator and
+  This function initializes HCD, uses configuration object to initialize Protocol and
   sends updated states tp state publisher actor for publishing
    */
   override def initialize(): Future[Unit] = Future {
@@ -91,7 +103,9 @@ class McsHcdHandlers(
         config = x.config
       }
     }*/
-    subSystemManager.initialize(config)
+    // subSystemManager.initialize(config)
+
+    statePublisherActor ! StartEventSubscription(zeroMQProtoActor)
     statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
   }
 
@@ -123,10 +137,14 @@ class McsHcdHandlers(
         log.info(msg = s"validating shutdown command in HCD")
         CommandResponse.Accepted(controlCommand.runId)
       }
+      case Commands.POSITION_DEMANDS => {
+        CommandResponse.Accepted(controlCommand.runId)
+      }
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
+
   /*
      This functions validates point demand command based upon paramters and hcd state
    */
@@ -315,8 +333,24 @@ class McsHcdHandlers(
     }
 
   }
+
+  private def getHCDCurrentState(): EventMessage = {
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+
+    Await.result(statePublisherActor ? { ref: ActorRef[EventMessage] =>
+      EventMessage.GetCurrentState(ref)
+    }, 3.seconds)
+  }
   /*
-       This functions validates folow  command based upon paramters and hcd state
+       This functions validates follow  command based upon parameters and hcd state
+       It has 2 internal functions 1 is for validating parameterSet and 1 is for
+       validating HCDCurrentState.
+       If both functions returns positive response then only it processes command else rejects
+       command execution.
+       If validation function response is successful then it executes follow command and sends follow commamnd
+       execution response to the caller.
+
    */
   private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
     log.info("Validating follow command in HCD")
@@ -324,12 +358,7 @@ class McsHcdHandlers(
       return controlCommand.paramSet.isEmpty
     }
     def validateHCDState: Boolean = {
-      implicit val duration: Timeout = 20 seconds
-      implicit val scheduler         = ctx.system.scheduler
-
-      val hcdCurrentState = Await.result(statePublisherActor ? { ref: ActorRef[EventMessage] =>
-        EventMessage.GetCurrentState(ref)
-      }, 3.seconds)
+      val hcdCurrentState = getHCDCurrentState()
       hcdCurrentState match {
         case x: EventMessage.HcdCurrentState => {
           x.lifeCycleState match {
@@ -354,7 +383,7 @@ class McsHcdHandlers(
     }
     if (validateParamset) {
       if (validateHCDState) {
-        CommandResponse.Accepted(controlCommand.runId)
+        executeFollowCommandAndSendResponse(controlCommand)
       } else {
         CommandResponse.Invalid(
           controlCommand.runId,
@@ -364,17 +393,45 @@ class McsHcdHandlers(
           )
         )
       }
-    } else {
-      CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue("Follow command should not have any parameters"))
+    }
+    CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue("Follow command should not have any parameters"))
+  }
+
+  /*
+  This function executes follow command and sends follow command execution
+  response to caller, if follow command execution response is successful
+  then it changes state of statePublisherActor to Following
+
+   */
+  private def executeFollowCommandAndSendResponse(controlCommand: ControlCommand): CommandResponse = {
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+    val immediateResponse: HCDCommandMessage = Await.result(commandHandlerActor ? { ref: ActorRef[HCDCommandMessage] =>
+      HCDCommandMessage.ImmediateCommand(ref, controlCommand)
+    }, 10.seconds)
+    immediateResponse match {
+      case msg: ImmediateCommandResponse => {
+        if (msg.commandResponse.toString.equals("Completed")) {
+          statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.Following)
+          //statePublisherActor ! publishCurrentPosition()
+        }
+        msg.commandResponse
+      }
+      case _ => {
+        CommandResponse.NotAllowed(
+          controlCommand.runId,
+          UnsupportedCommandInStateIssue(s" Follow command is not allowed if HCD is not in Running state")
+        )
+      }
     }
   }
   /*
        This functions routes all commands to commandhandler actor and bsed upon command execution updates states of HCD by sending it
-       to statepublisher actor
+       to StatePublisher actor
    */
   override def onSubmit(controlCommand: ControlCommand): Unit = {
 
-    commandHandlerActor ! controlCommand
+    commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
     controlCommand.commandName.name match {
       case Commands.STARTUP => {
         log.info("On receipt of startup command changing MCS HCD state to Running")
@@ -390,24 +447,17 @@ class McsHcdHandlers(
         log.info("changing HCD's operational state to ServoOffDatumed")
         statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.ServoOffDatumed)
       }
-      case Commands.FOLLOW => {
-        //TODO : how to decide whether it is slewing or tracking in following state business logic for the same..?
-        log.info("changing HCD's operational state to following")
-        statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.Following)
-        statePublisherActor ! publishCurrentPosition()
-      }
       case Commands.POINT | Commands.POINT_DEMAND => {
         log.info("changing HCD's operational state to pointing")
         statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.PointingDatumed)
-        statePublisherActor ! publishCurrentPosition()
-
+        //statePublisherActor ! publishCurrentPosition()
       }
-
     }
   }
 
   override def onOneway(controlCommand: ControlCommand): Unit = {
-    log.info(msg = "Command submmited to HCD in onOneway wrapper")
+    log.info(msg = "Sending position demands to MCS Simulator in HCDHandler oneway loop")
+    positionDemandActor ! controlCommand
   }
 
   override def onShutdown(): Future[Unit] = Future {

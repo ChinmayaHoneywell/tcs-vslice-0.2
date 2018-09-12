@@ -15,7 +15,7 @@ object Commands {
   val ELEVATION_STOW_LOCK     = "ElevationStowLock"
   val ELEVATION_STOW_POSITION = "ElevationStowPosition"
 
-  val STARTUP  = "Startup"
-  val SHUTDOWN = "Shutdown"
-
+  val STARTUP          = "Startup"
+  val SHUTDOWN         = "Shutdown"
+  val POSITION_DEMANDS = "MountPositionDemands"
 }

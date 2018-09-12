@@ -11,7 +11,7 @@ import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import csw.messages.commands.CommandIssue.{UnsupportedCommandInStateIssue, UnsupportedCommandIssue, WrongNumberOfParametersIssue}
 import csw.messages.params.generics.Parameter
-import org.tmt.tcs.mcs.MCSassembly.CommandMessage.{submitCommandMsg, updateHCDLocation, GoOfflineMsg, GoOnlineMsg}
+import org.tmt.tcs.mcs.MCSassembly.CommandMessage._
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 import org.tmt.tcs.mcs.MCSassembly.LifeCycleMessage.{InitializeMsg, ShutdownMsg}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
@@ -29,6 +29,7 @@ import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
+import org.tmt.tcs.mcs.MCSassembly.EventMessage.{hcdLocationChanged, StartEventSubscription}
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -59,25 +60,31 @@ class McsAssemblyHandlers(
   private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
   val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, configClient, loggerFactory), "LifeCycleActor")
+
   val monitorActor: ActorRef[MonitorMessage] =
-    ctx.spawn(MonitorActor.createObject(AssemblyLifeCycleState.Initalized, AssemblyOperationalState.Ready, loggerFactory),
+    ctx.spawn(MonitorActor.createObject(AssemblyLifeCycleState.Initalized, AssemblyOperationalState.Ready,eventHandlerActor, loggerFactory),
               name = "MonitorActor")
-  val eventHandlerActor: ActorRef[EventMessage] =
-    ctx.spawn(EventHandlerActor.createObject(loggerFactory), name = "EventHandlerActor")
+
   var hcdStateSubscriber: Option[CurrentStateSubscription] = None
   var hcdLocation: Option[CommandService]                  = None
+
+  val eventHandlerActor: ActorRef[EventMessage] =
+    ctx.spawn(EventHandlerActor.createObject(loggerFactory,hcdLocation,eventService), name = "EventHandlerActor")
   val commandHandlerActor: ActorRef[CommandMessage] = ctx.spawn(
     CommandHandlerActor.createObject(commandResponseManager, isOnline = true, hcdLocation, loggerFactory),
     "CommandHandlerActor"
   )
 
   /*
-  This function sends initializes lifecycle actor ans updates Monitor actor status to Initialized
-
+  This function is CSW in built initalization function
+  1. It sends initializeMsg() to  LifecycleActor
+  2. sends Initalized state msg to MonitorActor
+  3. sends  StartPublishingEvents  and StartEventSubscription msg to EventHandlerActor
    */
   override def initialize(): Future[Unit] = Future {
     log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
+    eventHandlerActor ! StartEventSubscription()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
   /*
@@ -108,6 +115,7 @@ class McsAssemblyHandlers(
 
     monitorActor ! LocationEventMsg(hcdLocation)
     commandHandlerActor ! updateHCDLocation(hcdLocation)
+    eventHandlerActor ! hcdLocationChanged(hcdLocation)
   }
 
   override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
@@ -138,27 +146,59 @@ class McsAssemblyHandlers(
     }
   }
   /*
-  This function validates follow command for assembly state
+  This function validates follow command based on  assembly state received from MonitorActor
+  if validation successful then returns command execution response else invalid command response
+  is sent to caller
+
    */
   private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
-    log.info("Validating Follow Command and calling monitorActor for status")
-    implicit val duration: Timeout = 20 seconds
-    implicit val scheduler         = ctx.system.scheduler
-    val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
-      MonitorMessage.GetCurrentState(ref)
-    }, 3.seconds)
-    log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
-    if (validateAssemblyState(assemblyCurrentState)) {
-      //commandHandlerActor ! controlCommand
-      monitorActor ! AssemblyOperationalStateChangeMsg(AssemblyOperationalState.Slewing)
-      CommandResponse.Accepted(controlCommand.runId)
+    log.info("Validating Follow Command")
 
+    val assemblyCurrentState = getCurrentAssemblyState
+    log.info(msg = s"Monitor Actor's current state while executing Follow command is  : ${assemblyCurrentState}")
+    if (validateAssemblyState(assemblyCurrentState)) {
+      executeFollowCommandAndSendResponse(controlCommand)
     } else {
       CommandResponse.NotAllowed(
         controlCommand.runId,
         UnsupportedCommandInStateIssue(s" Follow command is not allowed if assembly is not in Running state")
       )
     }
+  }
+  /*
+    This function executes follow command by sending msg to commandhandler and sends response of commandhandler to
+    the caller
+   */
+  private def executeFollowCommandAndSendResponse(controlCommand: ControlCommand): CommandResponse = {
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+    val immediateResponse: CommandMessage = Await.result(commandHandlerActor ? { ref: ActorRef[CommandMessage] =>
+      CommandMessage.ImmediateCommand(ref, controlCommand)
+    }, 10.seconds)
+    immediateResponse match {
+      case msg: ImmediateCommandResponse => {
+        if (msg.commandResponse.toString.equals("Completed")) {
+          monitorActor ! AssemblyOperationalStateChangeMsg(AssemblyOperationalState.Slewing)
+        }
+        msg.commandResponse
+      }
+      case _ => {
+        CommandResponse.NotAllowed(
+          controlCommand.runId,
+          UnsupportedCommandInStateIssue(s" Follow command is not allowed if assembly is not in Running state")
+        )
+      }
+    }
+  }
+  /*
+    This function fetches current state of Monitor Actor using akka ask pattern
+   */
+  private def getCurrentAssemblyState(): MonitorMessage = {
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+    Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
+      MonitorMessage.GetCurrentState(ref)
+    }, 3.seconds)
   }
   /*
     This function checks whether assembly state is running or not

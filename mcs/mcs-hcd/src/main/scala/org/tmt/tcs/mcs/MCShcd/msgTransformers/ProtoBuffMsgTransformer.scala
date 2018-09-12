@@ -2,20 +2,23 @@ package org.tmt.tcs.mcs.MCShcd.msgTransformers
 import com.google.protobuf.GeneratedMessage
 import csw.messages.commands.ControlCommand
 import csw.messages.params.generics.Parameter
+import csw.messages.params.states.CurrentState
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.constants.Commands
+import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsCommandProtos._
-import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.McsCurrentPositionEvent
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos._
 
 object ProtoBuffMsgTransformer {
   def create(loggerFactory: LoggerFactory): ProtoBuffMsgTransformer = ProtoBuffMsgTransformer(loggerFactory)
 }
 
 case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessageTransformer {
-  private val log = loggerFactory.getLogger
+  private val log                                      = loggerFactory.getLogger
+  private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
+
   import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsCommandProtos.CommandResponse
 
-  override def decode(responsePacket: Array[Byte]): SubystemResponse = {
+  override def decodeCommandResponse(responsePacket: Array[Byte]): SubystemResponse = {
 
     log.info(msg = s"Decoding command Response")
 
@@ -26,9 +29,14 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     }
     SubystemResponse(false, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
   }
-  override def decodeEvent(eventName: String, encodedEventData: Array[Byte]): SubscribedEvent = {
-    val mcsCurrentPosEvent: McsCurrentPositionEvent = McsCurrentPositionEvent.parseFrom(encodedEventData)
-    SubscribedEvent(mcsCurrentPosEvent)
+  override def decodeEvent(eventName: String, encodedEventData: Array[Byte]): CurrentState = {
+    eventName match {
+      case EventConstants.CURRENT_POSITION => {
+        val mcsCurrentPosEvent: McsCurrentPositionEvent = McsCurrentPositionEvent.parseFrom(encodedEventData)
+        paramSetTransformer.getMountCurrentPosition(mcsCurrentPosEvent)
+      }
+    }
+
   }
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
     log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")
@@ -53,6 +61,12 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       }
     }
   }
+  override def encodeEvent(mcsPositionDemands: MCSPositionDemand): Unit = {
+    val event: GeneratedMessage =
+      TcsPositionDemandEvent.newBuilder().setAzimuth(mcsPositionDemands.azdPos).setElevation(mcsPositionDemands.elPos).build()
+    event.toByteArray
+  }
+
   def getFollowCommandBytes: Array[Byte] = {
     val command: GeneratedMessage = FollowCommand.newBuilder().build()
     command.toByteArray

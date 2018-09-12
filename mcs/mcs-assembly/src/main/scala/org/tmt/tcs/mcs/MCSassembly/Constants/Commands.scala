@@ -15,4 +15,5 @@ object Commands {
   val POINTDEMAND       = "PointDemand"
   val STARTUP           = "Startup"
   val SHUTDOWN          = "ShutDown"
+  val POSITION_DEMANDS  = "MountPositionDemands"
 }

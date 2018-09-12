@@ -4,21 +4,26 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{Behaviors, MutableBehavior, TimerScheduler}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior, TimerScheduler}
 import csw.framework.CurrentStatePublisher
+import csw.messages.events.{Event, SystemEvent}
 import csw.messages.params.generics.{KeyType, Parameter}
 import csw.messages.params.models.Units.degree
 import csw.messages.params.models.{Prefix, Subsystem}
 import csw.messages.params.states.{CurrentState, StateName}
+import csw.services.event.api.scaladsl.{EventService, EventSubscriber}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
-import org.tmt.tcs.mcs.MCShcd.simulator.CurrentPosition
+import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
+import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
+import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.{MCSPositionDemand, ParamSetTransformer}
+import scala.concurrent.{Await, Future,ExecutionContext}
 
 import scala.concurrent.duration.Duration
 
 sealed trait EventMessage
 object EventMessage {
-  case class publishCurrentPosition()                                                             extends EventMessage
   case class HCDOperationalStateChangeMsg(operationalState: HCDOperationalState.operationalState) extends EventMessage
 
   case class StateChangeMsg(lifeCycleState: HCDLifeCycleState.lifeCycleState,
@@ -26,11 +31,12 @@ object EventMessage {
       extends EventMessage
 
   case class GetCurrentState(sender: ActorRef[EventMessage]) extends EventMessage
-
   case class HcdCurrentState(lifeCycleState: HCDLifeCycleState.lifeCycleState,
                              operationalState: HCDOperationalState.operationalState)
       extends EventMessage
-  case class StartPublishing() extends EventMessage
+  // case class StartPublishing() extends EventMessage
+  case class StartEventSubscription(zeroMQProtoActor: ActorRef[ZeroMQMessage]) extends EventMessage
+  case class PublishState(currentState: CurrentState)                          extends EventMessage
 
 }
 
@@ -47,101 +53,101 @@ object StatePublisherActor {
   def createObject(currentStatePublisher: CurrentStatePublisher,
                    lifeCycleState: HCDLifeCycleState.lifeCycleState,
                    operationalState: HCDOperationalState.operationalState,
-                   subsystemManager: SubsystemManager,
+                   eventService: EventService,
                    loggerFactory: LoggerFactory): Behavior[EventMessage] =
-    Behaviors.withTimers(
-      timers =>
-        StatePublisherActor(timers, currentStatePublisher, lifeCycleState, operationalState, subsystemManager, loggerFactory)
+    Behaviors.setup(
+      ctx => StatePublisherActor(ctx, currentStatePublisher, lifeCycleState, operationalState, eventService, loggerFactory)
     )
 
 }
-private case object TimerKey
+//private case object TimerKey
 /*
 This actor is responsible for publishing state, events for MCS to assembly it dervies HCD states from
 MCS state and  events received
  */
-case class StatePublisherActor(timer: TimerScheduler[EventMessage],
+case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                currentStatePublisher: CurrentStatePublisher,
                                lifeCycleState: HCDLifeCycleState.lifeCycleState,
                                operationalState: HCDOperationalState.operationalState,
-                               subsystemManager: SubsystemManager,
+                               eventService: EventService,
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[EventMessage] {
-  private val log               = loggerFactory.getLogger
-  private val prefix            = Prefix(Subsystem.MCS.toString)
-  private val lifecycleStateKey = KeyType.StringKey.make("hcdLifeCycleState")
+  private val log    = loggerFactory.getLogger
+  private val prefix = Prefix(Subsystem.MCS.toString)
 
-  private val timeStampKey = KeyType.TimestampKey.make(name = "timeStamp")
+  private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
+  // private val protocolImpl : IProtocol = ZeroMQProtocolImpl.create(loggerFactory)
+  private var zeroMQActor: ActorRef[ZeroMQMessage] = null
+
   /*
-         This functions updates operational state of MCS HCD
-   */
-  def onOperationalStateChange(msg: HCDOperationalStateChangeMsg): Behavior[EventMessage] = {
-    log.info(msg = s"Handling ${msg} in hcd")
-    val currOperationalState = msg.operationalState
 
-    log.info(msg = s"current operational state of MCS HCD is: ${currOperationalState} ")
-    StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, subsystemManager, loggerFactory)
+   */
+  private def processEvent(event: Event): Future[_] = {
+    event match {
+      case systemEvent: SystemEvent => {
+        val mcsDemandPositions: MCSPositionDemand = paramSetTransformer.getMountDemandPositions(systemEvent)
+        zeroMQActor ! PublishEvent(mcsDemandPositions)
+        Future.successful("Successfully sent Assembly position demands to MCS ZeroMQActor")
+      }
+    }
   }
   /*
-       This functions publishes HCD current lifecycle state, current position to assembly by using statePublisher actor
+       This function performs following tasks:
+       - On receipt of StartEventSubscription message this function starts subscribing to positionDemand event
+        from MCS Assembly using CSW EventService's default EventSubscriber.
+       - On receipt of StateChangeMsg message this function publishes HCD's Lifecycle state to Assembly using
+          CSW CurrentStatePublisher
+       - On receipt of HCDOperationalStateChangeMsg it simply changes Actor's behavior to changed operational state
+       and does not publish anything
+       - On receipt of GetCurrentState msg it returns current lifecycle and operational state of HCD to caller
+
    */
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     log.info(msg = s"Received event : $msg ")
     msg match {
-
+      case msg: StartEventSubscription => {
+        val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
+        zeroMQActor = msg.zeroMQProtoActor
+        log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
+        eventSubscriber.onComplete() {
+          case subscriber: EventSubscriber => {
+            subscriber.subscribeAsync(EventConstants.PositionDemandKey, processEvent(event))
+          }
+          case _ => {
+            log.error("Unable to get subscriber instance from EventService.")
+            Future.failed(new Exception("Unable to get event subscriber instance from EventService "))
+          }
+        }
+        Behavior.same
+      }
       case msg: StateChangeMsg => {
         val currLifeCycleState = msg.lifeCycleState
         val state              = currLifeCycleState.toString
         log.info(msg = s"Changed lifecycle state of MCS HCD is : ${state} and publishing the same to the MCS Assembly")
-        val lifeCycleParam: Parameter[String] = lifecycleStateKey.set(state)
-        val timestamp                         = timeStampKey.set(Instant.now)
-
-        val currentState = CurrentState(prefix, StateName("lifecycleState")).add(lifeCycleParam).add(timestamp)
-        log.info(s"Publishing state : ${currentState} to assembly with currentStatePublishier : ${currentStatePublisher}")
+        val currentState: CurrentState = paramSetTransformer.getHCDState(state)
         currentStatePublisher.publish(currentState)
-        log.info(msg = s"Successfully published state to ASSEMBLY")
+        log.info(msg = s"Successfully published state :${currentState} to ASSEMBLY")
         StatePublisherActor.createObject(currentStatePublisher,
                                          currLifeCycleState,
                                          msg.oerationalState,
-                                         subsystemManager,
+                                         eventService,
                                          loggerFactory)
       }
-
-      case msg: HCDOperationalStateChangeMsg => onOperationalStateChange(msg)
-      case msg: StartPublishing => {
+      case msg: PublishState => {
+        currentStatePublisher.publish(msg.currentState)
+        Behavior.same
+      }
+      case msg: HCDOperationalStateChangeMsg => {
+        val currOperationalState = msg.operationalState
+        log.info(msg = s"Changing current operational state of MCS HCD to: ${currOperationalState}")
+        StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, eventService, loggerFactory)
+      }
+      //TODO : In case later decesion changed to use this message then rewrite publishCurrentPosition case
+      /*case msg: StartPublishing => {
         timer.startPeriodicTimer(TimerKey, publishCurrentPosition(), Duration.create(10, TimeUnit.SECONDS))
         Behavior.same
-      }
-      case msg: publishCurrentPosition => {
-        val azPosKey                         = KeyType.DoubleKey.make("azPosKey")
-        val azPosErrorKey                    = KeyType.DoubleKey.make("azPosErrorKey")
-        val elPosKey                         = KeyType.DoubleKey.make("elPosKey")
-        val elPosErrorKey                    = KeyType.DoubleKey.make("elPosErrorKey")
-        val azInPositionKey                  = KeyType.BooleanKey.make("azInPositionKey")
-        val elInPositionKey                  = KeyType.BooleanKey.make("elInPositionKey")
-        val currentPosition: CurrentPosition = subsystemManager.receiveCurrentPosition()
+      }*/
 
-        val azPosParam        = azPosKey.set(currentPosition.azPos).withUnits(degree)
-        val azPosErrorParam   = azPosErrorKey.set(currentPosition.asPosError).withUnits(degree)
-        val elPosParam        = elPosKey.set(currentPosition.elPos).withUnits(degree)
-        val elPosErrorParam   = elPosErrorKey.set(currentPosition.elPosError).withUnits(degree)
-        val azInPositionParam = azInPositionKey.set(false)
-        val elInPositionParam = elInPositionKey.set(true)
-
-        val timestamp = timeStampKey.set(Instant.now)
-
-        val currentState = CurrentState(prefix, StateName("currentPosition"))
-          .add(azPosParam)
-          .add(elPosParam)
-          .add(azPosErrorParam)
-          .add(elPosErrorParam)
-          .add(azInPositionParam)
-          .add(elInPositionParam)
-          .add(timestamp)
-        log.info(s"publishing current position ${currentState} to assembly")
-        currentStatePublisher.publish(currentState)
-        Behavior.same
-      }
       case msg: GetCurrentState => {
         log.info(
           msg =
