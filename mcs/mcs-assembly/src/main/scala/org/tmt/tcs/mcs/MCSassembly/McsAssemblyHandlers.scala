@@ -62,14 +62,17 @@ class McsAssemblyHandlers(
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, configClient, loggerFactory), "LifeCycleActor")
 
   val monitorActor: ActorRef[MonitorMessage] =
-    ctx.spawn(MonitorActor.createObject(AssemblyLifeCycleState.Initalized, AssemblyOperationalState.Ready,eventHandlerActor, loggerFactory),
+    ctx.spawn(MonitorActor.createObject(AssemblyLifeCycleState.Initalized,
+                                        AssemblyOperationalState.Ready,
+                                        eventHandlerActor,
+                                        loggerFactory),
               name = "MonitorActor")
 
   var hcdStateSubscriber: Option[CurrentStateSubscription] = None
   var hcdLocation: Option[CommandService]                  = None
 
   val eventHandlerActor: ActorRef[EventMessage] =
-    ctx.spawn(EventHandlerActor.createObject(loggerFactory,hcdLocation,eventService), name = "EventHandlerActor")
+    ctx.spawn(EventHandlerActor.createObject(loggerFactory, hcdLocation, eventService), name = "EventHandlerActor")
   val commandHandlerActor: ActorRef[CommandMessage] = ctx.spawn(
     CommandHandlerActor.createObject(commandResponseManager, isOnline = true, hcdLocation, loggerFactory),
     "CommandHandlerActor"

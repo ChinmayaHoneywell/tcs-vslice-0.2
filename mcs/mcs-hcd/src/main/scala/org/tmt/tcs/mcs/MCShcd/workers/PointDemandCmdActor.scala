@@ -30,7 +30,7 @@ case class PointDemandCmdActor(ctx: ActorContext[ControlCommand],
     implicit val duration: Timeout = 20 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
-      ZeroMQMessage.SubmitCommand(ref, msg)
+      ZeroMQMessage.PublishEvent(ref, msg)
     }, 10.seconds)
     response match {
       case x: ZeroMQMessage.MCSResponse => {

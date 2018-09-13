@@ -5,12 +5,7 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
 import csw.framework.scaladsl.ComponentHandlers
 import csw.messages.commands.{CommandResponse, ControlCommand}
-import csw.messages.commands.CommandIssue.{
-  UnsupportedCommandInStateIssue,
-  UnsupportedCommandIssue,
-  WrongInternalStateIssue,
-  WrongNumberOfParametersIssue
-}
+import csw.messages.commands.CommandIssue.{UnsupportedCommandInStateIssue, UnsupportedCommandIssue, WrongInternalStateIssue, WrongNumberOfParametersIssue}
 import csw.messages.framework.ComponentInfo
 import csw.messages.location.TrackingEvent
 import csw.messages.params.generics.Parameter
@@ -22,12 +17,12 @@ import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
-import csw.messages.{TopLevelActorMessage}
+import csw.messages.TopLevelActorMessage
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
 import org.tmt.tcs.mcs.MCShcd.Protocol.{ZeroMQMessage, ZeroMQProtocolActor}
-import org.tmt.tcs.mcs.MCShcd.simulator.SimpleSimulator
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.ParamSetTransformer
 import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
 
 import scala.concurrent.Await
@@ -65,7 +60,7 @@ class McsHcdHandlers(
   private val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, locationService, loggerFactory), "LifeCycleActor")
 
-  private val simulator: SimpleSimulator = SimpleSimulator.create(loggerFactory)
+ // private val simulator: SimpleSimulator = SimpleSimulator.create(loggerFactory)
   private val statePublisherActor: ActorRef[EventMessage] = ctx.spawn(
     StatePublisherActor.createObject(currentStatePublisher,
                                      HCDLifeCycleState.Off,
@@ -80,9 +75,9 @@ class McsHcdHandlers(
   private val commandHandlerActor: ActorRef[HCDCommandMessage] =
     ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, zeroMQProtoActor, loggerFactory),
               "CommandHandlerActor")
-
+  private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   private val positionDemandActor: ActorRef[ControlCommand] =
-    ctx.spawn(PositionDemandActor.create(loggerFactory), "PositionDemandEventActor")
+    ctx.spawn(PositionDemandActor.create(loggerFactory,zeroMQProtoActor,paramSetTransformer), "PositionDemandEventActor")
   /*
   This function initializes HCD, uses configuration object to initialize Protocol and
   sends updated states tp state publisher actor for publishing

@@ -18,8 +18,8 @@ import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
 import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.{MCSPositionDemand, ParamSetTransformer}
-import scala.concurrent.{Await, Future,ExecutionContext}
 
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
 
 sealed trait EventMessage
@@ -74,7 +74,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
     extends MutableBehavior[EventMessage] {
   private val log    = loggerFactory.getLogger
   private val prefix = Prefix(Subsystem.MCS.toString)
-
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   // private val protocolImpl : IProtocol = ZeroMQProtocolImpl.create(loggerFactory)
   private var zeroMQActor: ActorRef[ZeroMQMessage] = null
@@ -111,7 +111,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
         log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
         eventSubscriber.onComplete() {
           case subscriber: EventSubscriber => {
-            subscriber.subscribeAsync(EventConstants.PositionDemandKey, processEvent(event))
+            subscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
           }
           case _ => {
             log.error("Unable to get subscriber instance from EventService.")

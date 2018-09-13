@@ -61,8 +61,8 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
                         loggerFactory: LoggerFactory)
     extends MutableBehavior[MonitorMessage] {
 
-  private val log = loggerFactory.getLogger
-  private val eventTransformer : EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
+  private val log                                      = loggerFactory.getLogger
+  private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
   /*
   This function updates states as per messages received and publishes current states as per
   request recevied
@@ -123,12 +123,12 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
         eventHandlerActor ! PublishEvent(eventTransformer.getDiagnosisEvent(currentState))
         Behavior.same
       }
-      case HEALTH_STATE =>{
+      case HEALTH_STATE => {
         eventHandlerActor ! PublishEvent(eventTransformer.getHealthEvent(currentState))
         Behavior.same
       }
       case DRIVE_STATE => {
-        eventHandlerActor ! PublishEvent(eventTransformer.getD)
+        eventHandlerActor ! PublishEvent(eventTransformer.getDriveState(currentState))
         Behavior.same
       }
     }
@@ -157,7 +157,10 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
         log.info(
           msg = s"Received life cycle state of HCD is : ${hcdLifeCycleState} so changing lifecycle state of Assembly to Running "
         )
-        eventHandlerActor ! PublishEvent(eventTransformer.getAssemblyEvent(AssemblyCurrentState(AssemblyLifeCycleState.Running, AssemblyOperationalState.Running)))
+        eventHandlerActor ! PublishEvent(
+          eventTransformer
+            .getAssemblyEvent(AssemblyCurrentState(AssemblyLifeCycleState.Running, AssemblyOperationalState.Running))
+        )
         MonitorActor.createObject(AssemblyLifeCycleState.Running,
                                   AssemblyOperationalState.Running,
                                   eventHandlerActor,
@@ -175,7 +178,10 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
           msg = s"Received life cycle state of HCD is : ${hcdLifeCycleState} so changing lifecycle state of Assembly to shutdown " +
           s"and operational state to : disconnected "
         )
-        eventHandlerActor ! PublishEvent(eventTransformer.getAssemblyEvent(AssemblyCurrentState(AssemblyLifeCycleState.Shutdown, AssemblyOperationalState.Disconnected)))
+        eventHandlerActor ! PublishEvent(
+          eventTransformer
+            .getAssemblyEvent(AssemblyCurrentState(AssemblyLifeCycleState.Shutdown, AssemblyOperationalState.Disconnected))
+        )
         MonitorActor.createObject(AssemblyLifeCycleState.Shutdown,
                                   AssemblyOperationalState.Disconnected,
                                   eventHandlerActor,
@@ -226,14 +232,14 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
       case Some(_) => {
         log.info(msg = s"Found HCD location at ${hcdLocation}")
         if (assemblyState == AssemblyLifeCycleState.RunningOffline) {
-          MonitorActor.createObject(AssemblyLifeCycleState.Running, assemblyMotionState,eventHandlerActor, loggerFactory)
+          MonitorActor.createObject(AssemblyLifeCycleState.Running, assemblyMotionState, eventHandlerActor, loggerFactory)
         } else {
           Behavior.same
         }
       }
       case None => {
         log.error("Assembly got disconnected from HCD")
-        MonitorActor.createObject(AssemblyLifeCycleState.RunningOffline, assemblyMotionState,eventHandlerActor, loggerFactory)
+        MonitorActor.createObject(AssemblyLifeCycleState.RunningOffline, assemblyMotionState, eventHandlerActor, loggerFactory)
       }
     }
   }

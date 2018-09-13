@@ -34,29 +34,70 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
   /*
     This function converts currentPosition from HCD wrapped in  currentState to systemEvent
    */
-  def getCurrentPositionEvent(currentState : CurrentState) : Event ={
-     val azPosParam : Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AzPosKey)
-     val elPosParam : Option[Parameter[Double]] = currentState.get(EventHandlerConstants.ElPosKey)
-     val azPosErrorParam : Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
-     val elPosErrorParam : Option[Parameter[Double]] = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
-     val azInPosKey : Option[Parameter[Boolean]] = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
-     val elInPosKey : Option[Parameter[Boolean]] = currentState.get(EventHandlerConstants.EL_InPosition_Key)
-     val timeStampKey : Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.TimeStampKey)
+  def getCurrentPositionEvent(currentState: CurrentState): Event = {
+    val azPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.AzPosKey)
+    val elPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.ElPosKey)
+    val azPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
+    val elPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
+    val azInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
+    val elInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.EL_InPosition_Key)
+    val timeStampKey: Option[Parameter[Instant]]   = currentState.get(EventHandlerConstants.TimeStampKey)
 
-     SystemEvent(EventHandlerConstants.CURRENT_POSITION_PREFIX,EventHandlerConstants.CURRENT_POSITION_STATE,
-       Set(azPosParam.get,elPosParam.get,azPosErrorParam.get,elPosErrorParam.get,azInPosKey.get,elInPosKey.get,timeStampKey.get))
+    SystemEvent(
+      EventHandlerConstants.CURRENT_POSITION_PREFIX,
+      EventHandlerConstants.CURRENT_POSITION_STATE,
+      Set(azPosParam.get,
+          elPosParam.get,
+          azPosErrorParam.get,
+          elPosErrorParam.get,
+          azInPosKey.get,
+          elInPosKey.get,
+          timeStampKey.get)
+    )
   }
-  def getDiagnosisEvent(currentState : CurrentState) : Event = {
-    SystemEvent(EventHandlerConstants.DIAGNOSIS_PREFIX,EventHandlerConstants.DIAGNOSIS_STATE,
-      Set())
-  }
-  def getHealthEvent(currentState : CurrentState) : Event = {
+  def getDiagnosisEvent(currentState: CurrentState): Event = {
+    val azPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.AzPosKey)
+    val elPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.ElPosKey)
+    val azPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
+    val elPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
+    val azInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
+    val elInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.EL_InPosition_Key)
+    val timeStampKey: Option[Parameter[Instant]]   = currentState.get(EventHandlerConstants.TimeStampKey)
 
+    SystemEvent(
+      EventHandlerConstants.DIAGNOSIS_PREFIX,
+      EventHandlerConstants.DIAGNOSIS_STATE,
+      Set(azPosParam.get,
+          elPosParam.get,
+          azPosErrorParam.get,
+          elPosErrorParam.get,
+          azInPosKey.get,
+          elInPosKey.get,
+          timeStampKey.get)
+    )
   }
-  def getDriveState(currentState : CurrentState) : Event ={
+  def getHealthEvent(currentState: CurrentState): Event = {
+    val health: Option[Parameter[String]]        = currentState.get(EventHandlerConstants.HEALTH_KEY)
+    val healthReason: Option[Parameter[String]]  = currentState.get(EventHandlerConstants.HEALTH_REASON_KEY)
+    val timeStampKey: Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.TimeStampKey)
 
+    SystemEvent(EventHandlerConstants.HEALTH_PREFIX,
+                EventHandlerConstants.HEALTH_STATE,
+                Set(health.get, healthReason.get, timeStampKey.get))
   }
+  def getDriveState(currentState: CurrentState): Event = {
+    val processing: Option[Parameter[Boolean]]    = currentState.get(EventHandlerConstants.PROCESSING_PARAM_KEY)
+    val lifecycleState: Option[Parameter[String]] = currentState.get(EventHandlerConstants.MCS_LIFECYCLE_STATTE_KEY)
+    val azState: Option[Parameter[String]]        = currentState.get(EventHandlerConstants.MCS_AZ_STATE)
+    val elState: Option[Parameter[String]]        = currentState.get(EventHandlerConstants.MCS_EL_STATE)
+    val timeStampKey: Option[Parameter[Instant]]  = currentState.get(EventHandlerConstants.TimeStampKey)
 
+    SystemEvent(
+      EventHandlerConstants.HEALTH_PREFIX,
+      EventHandlerConstants.HEALTH_STATE,
+      Set(processing.get, lifecycleState.get, azState.get, elState.get, timeStampKey.get)
+    )
+  }
 
   /*
   This function takes system event as input and from systemEvent it builds  controlCommand object

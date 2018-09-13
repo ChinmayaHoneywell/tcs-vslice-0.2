@@ -35,9 +35,21 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
         val mcsCurrentPosEvent: McsCurrentPositionEvent = McsCurrentPositionEvent.parseFrom(encodedEventData)
         paramSetTransformer.getMountCurrentPosition(mcsCurrentPosEvent)
       }
+      case EventConstants.DIAGNOSIS_STATE => {
+        val diagnosis: MountControlDiags = MountControlDiags.parseFrom(encodedEventData)
+        paramSetTransformer.getMountControlDignosis(diagnosis)
+      }
+      case EventConstants.DRIVE_STATE => {
+        val driveState: McsDriveStatus = McsDriveStatus.parseFrom(encodedEventData)
+        paramSetTransformer.getMCSDriveStatus(driveState)
+      }
+      case EventConstants.HEALTH_STATE => {
+        val healthState: McsHealth = McsHealth.parseFrom(encodedEventData)
+        paramSetTransformer.getMCSHealth(healthState)
+      }
     }
-
   }
+
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
     log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")
     controlCommand.commandName.name match {
@@ -61,7 +73,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       }
     }
   }
-  override def encodeEvent(mcsPositionDemands: MCSPositionDemand): Unit = {
+  override def encodeEvent(mcsPositionDemands: MCSPositionDemand): Array[Byte] = {
     val event: GeneratedMessage =
       TcsPositionDemandEvent.newBuilder().setAzimuth(mcsPositionDemands.azdPos).setElevation(mcsPositionDemands.elPos).build()
     event.toByteArray

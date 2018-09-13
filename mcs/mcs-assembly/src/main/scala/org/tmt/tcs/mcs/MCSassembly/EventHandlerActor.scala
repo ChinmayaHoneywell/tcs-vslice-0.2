@@ -2,6 +2,7 @@ package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.util.Timeout
 import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
 import csw.messages.events.{Event, SystemEvent}
 import csw.services.command.scaladsl.CommandService
@@ -13,7 +14,7 @@ import org.tmt.tcs.mcs.MCSassembly.EventMessage._
 import scala.concurrent.duration._
 import org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper
 
-import scala.concurrent.{Await, Future,ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 
 sealed trait EventMessage
@@ -21,8 +22,8 @@ sealed trait EventMessage
 object EventMessage {
   case class StartEventSubscription()                                extends EventMessage
   case class hcdLocationChanged(hcdLocation: Option[CommandService]) extends EventMessage
-  case class PublishEvent(event: Event)               extends EventMessage
- }
+  case class PublishEvent(event: Event)                              extends EventMessage
+}
 
 object EventHandlerActor {
   def createObject(loggerFactory: LoggerFactory,
@@ -47,20 +48,21 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     extends MutableBehavior[EventMessage] {
 
   private val log = loggerFactory.getLogger
-
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  implicit val duration: Timeout            = 20 seconds
   private val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
   private val eventPublisher: Future[EventPublisher]   = eventService.defaultPublisher
   private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
 
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     msg match {
-      case x: StartEventSubscription    => subscribeEventMsg()
-      case x: hcdLocationChanged        => EventHandlerActor.createObject(loggerFactory, x.hcdLocation, eventService)
-      case x: PublishEvent => publishEvent(x)
+      case x: StartEventSubscription => subscribeEventMsg()
+      case x: hcdLocationChanged     => EventHandlerActor.createObject(loggerFactory, x.hcdLocation, eventService)
+      case x: PublishEvent           => publishEvent(x)
     }
   }
 
-  def publishEvent(event: Event) : Behavior[EventMessage] ={
+  def publishEvent(event: Event): Behavior[EventMessage] = {
     log.info(msg = s"Received msg : ${event} for publishing")
     eventPublisher.map(publisher => publisher.publish(event))
     Behavior.same
@@ -73,7 +75,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     //log.info(msg = s"Received message : $x")
     eventSubscriber.onComplete() {
       case subscriber: EventSubscriber => {
-        subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, sendEventByOneWayCommand)
+        subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
       }
       case _ => {
         log.error("Unable to get subscriber instance from EventService.")
@@ -81,6 +83,9 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     }
     Behavior.same
   }
+  /*
+  This function publishes event by using EventPublisher to the HCD
+   */
   private def sendEventByEventPublisher(msg: Event): Future[_] = {
     msg match {
       case systemEvent: SystemEvent => {
