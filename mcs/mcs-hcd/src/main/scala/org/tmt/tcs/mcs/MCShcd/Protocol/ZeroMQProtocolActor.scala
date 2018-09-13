@@ -94,7 +94,6 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
   }
   private def initMCSConnection(config: Config) = {
-    val config: Config      = config
     val zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
     pushSocket.bind(zeroMQPushSocketStr)
     log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and pull socket is : ${zeroMQPushSocketStr}")

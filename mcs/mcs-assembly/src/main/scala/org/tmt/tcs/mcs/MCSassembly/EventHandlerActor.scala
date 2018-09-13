@@ -13,8 +13,8 @@ import org.tmt.tcs.mcs.MCSassembly.EventMessage._
 
 import scala.concurrent.duration._
 import org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper
-
-import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 
 sealed trait EventMessage
@@ -47,9 +47,9 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
                              eventService: EventService)
     extends MutableBehavior[EventMessage] {
 
-  private val log = loggerFactory.getLogger
-  implicit val ec: ExecutionContextExecutor = ctx.executionContext
-  implicit val duration: Timeout            = 20 seconds
+  private val log                                      = loggerFactory.getLogger
+  implicit val ec: ExecutionContextExecutor            = ctx.executionContext
+  implicit val duration: Timeout                       = 20 seconds
   private val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
   private val eventPublisher: Future[EventPublisher]   = eventService.defaultPublisher
   private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
@@ -58,7 +58,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     msg match {
       case x: StartEventSubscription => subscribeEventMsg()
       case x: hcdLocationChanged     => EventHandlerActor.createObject(loggerFactory, x.hcdLocation, eventService)
-      case x: PublishEvent           => publishEvent(x)
+      case x: PublishEvent           => publishEvent(x.event)
     }
   }
 
@@ -73,7 +73,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    */
   def subscribeEventMsg(): Behavior[EventMessage] = {
     //log.info(msg = s"Received message : $x")
-    eventSubscriber.onComplete() {
+
+    eventSubscriber.onComplete {
       case subscriber: EventSubscriber => {
         subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
       }

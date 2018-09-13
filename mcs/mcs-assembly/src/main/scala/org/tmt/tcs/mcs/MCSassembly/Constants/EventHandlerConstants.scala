@@ -7,7 +7,6 @@ import csw.messages.params.generics.{Key, KeyType, Parameter}
 import csw.messages.params.models.Units.degree
 import csw.messages.params.models.{Prefix, Subsystem}
 
-
 object EventHandlerConstants {
   //These parameters are needed by Position Demand Event
   val PositionDemandKey: Set[EventKey] = Set(

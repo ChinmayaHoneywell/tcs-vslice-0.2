@@ -18,7 +18,7 @@ import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
 import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.{MCSPositionDemand, ParamSetTransformer}
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
 
@@ -72,12 +72,11 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                eventService: EventService,
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[EventMessage] {
-  private val log    = loggerFactory.getLogger
-  private val prefix = Prefix(Subsystem.MCS.toString)
-  implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  private val log                                      = loggerFactory.getLogger
+  private val prefix                                   = Prefix(Subsystem.MCS.toString)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
-  // private val protocolImpl : IProtocol = ZeroMQProtocolImpl.create(loggerFactory)
-  private var zeroMQActor: ActorRef[ZeroMQMessage] = null
+  private var zeroMQActor: ActorRef[ZeroMQMessage]     = null
+  implicit val ec: ExecutionContextExecutor            = ctx.executionContext
 
   /*
 
@@ -104,12 +103,14 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
    */
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     log.info(msg = s"Received event : $msg ")
+
     msg match {
       case msg: StartEventSubscription => {
         val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
         zeroMQActor = msg.zeroMQProtoActor
         log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
-        eventSubscriber.onComplete() {
+        // eventSubscriber.map(subsc => subsc.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event)))
+        eventSubscriber.onComplete {
           case subscriber: EventSubscriber => {
             subscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
           }
