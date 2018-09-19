@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCShcd.msgTransformers
 
+
 import java.time.Instant
 
 import csw.messages.commands.CommandIssue.WrongInternalStateIssue
@@ -11,12 +12,7 @@ import csw.messages.params.models.Units.degree
 import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
-import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.{
-  McsCurrentPositionEvent,
-  McsDriveStatus,
-  McsHealth,
-  MountControlDiags
-}
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.{McsCurrentPositionEvent, McsDriveStatus, McsHealth, MountControlDiags}
 
 object ParamSetTransformer {
   def create(loggerFactory: LoggerFactory): ParamSetTransformer = ParamSetTransformer(loggerFactory)
@@ -69,7 +65,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
 
     val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(mcsCurrentPosEvent.getAzInPosition)
     val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(mcsCurrentPosEvent.getElInPosition)
-    val timestamp                             = timeStampKey.set(Instant.now)
+    val timestamp                             = timeStampKey.set(Instant.ofEpochMilli(mcsCurrentPosEvent.getTime))
 
     CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
       .add(azPosParam)
@@ -93,9 +89,9 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
 
     val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(diagnosis.getAzInPosition)
     val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(diagnosis.getElInPosition)
-    val timestamp                             = timeStampKey.set(Instant.now)
+    val timestamp                             = timeStampKey.set(Instant.ofEpochMilli(diagnosis.getTime))
 
-    CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
+    CurrentState(prefix, StateName(EventConstants.DIAGNOSIS_STATE))
       .add(azPosParam)
       .add(elPosParam)
       .add(azPosErrorParam)
@@ -114,7 +110,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
     val mcdLifecycleStateParam: Parameter[String] = EventConstants.LifeCycleStateKey.set(driveStatus.getLifecycle.toString)
     val mcsAzState: Parameter[String]             = EventConstants.MCS_AZ_STATE.set(driveStatus.getAzstate.name())
     val mcsElState: Parameter[String]             = EventConstants.MCS_EL_STATE.set(driveStatus.getElstate.name())
-    val timestamp                                 = timeStampKey.set(Instant.now)
+    val timestamp                                 = timeStampKey.set(Instant.ofEpochMilli(driveStatus.getTime))
 
     CurrentState(prefix, StateName(EventConstants.DRIVE_STATE))
       .add(processingCmdParam)
@@ -126,7 +122,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
   def getMCSHealth(health: McsHealth): CurrentState = {
     val healthParam: Parameter[String]       = EventConstants.HEALTH_KEY.set(health.getHealth.name())
     val healthReasonParam: Parameter[String] = EventConstants.HEALTH_REASON_KEY.set(health.getReason)
-    val timestamp                            = timeStampKey.set(Instant.now)
+    val timestamp                            = timeStampKey.set(Instant.ofEpochMilli(health.getTime))
 
     CurrentState(prefix, StateName(EventConstants.HEALTH_STATE))
       .add(healthParam)
