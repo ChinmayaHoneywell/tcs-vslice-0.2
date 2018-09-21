@@ -67,6 +67,35 @@ object MCSMainApp extends App {
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
   //println(s"Move command response is : $resp4")
 
+  val resp5 = Await.result(sendDummyImmediateCommand, 200.seconds)
+  println(s"Dummy immediate command Response is : ${resp5}")
+
+  val resp6 = Await.result(sendDummyLongCommand, 200.seconds)
+  println(s"Dummy Long Command Response is : ${resp6}")
+
+  def sendDummyImmediateCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
+    getAssembly.flatMap {
+      case Some(commandService) => {
+        val dummyImmediate = Setup(prefix, CommandName("DummyImmediate"), None)
+        commandService.submit(dummyImmediate)
+      }
+      case None => {
+        Future.failed[CommandResponse](new Exception("Can't locate MCSAssembly"))
+      }
+    }
+  }
+  def sendDummyLongCommand()(implicit ex: ExecutionContext): Future[CommandResponse] = {
+    getAssembly.flatMap {
+      case Some(commandService) => {
+        val dummyLong = Setup(prefix, CommandName("DummyLong"), None)
+        commandService.submitAndSubscribe(dummyLong)
+      }
+      case None => {
+        Future.failed[CommandResponse](new Exception("Can't locate MCSAssembly"))
+      }
+    }
+  }
+
   def sendStartupCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
     getAssembly.flatMap {
       case Some(commandService) => {
