@@ -1,6 +1,5 @@
 package org.tmt.tcs.mcs.MCShcd.msgTransformers
 
-
 import java.time.Instant
 
 import csw.messages.commands.CommandIssue.WrongInternalStateIssue
@@ -12,7 +11,12 @@ import csw.messages.params.models.Units.degree
 import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
-import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.{McsCurrentPositionEvent, McsDriveStatus, McsHealth, MountControlDiags}
+import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.{
+  McsCurrentPositionEvent,
+  McsDriveStatus,
+  McsHealth,
+  MountControlDiags
+}
 
 object ParamSetTransformer {
   def create(loggerFactory: LoggerFactory): ParamSetTransformer = ParamSetTransformer(loggerFactory)
