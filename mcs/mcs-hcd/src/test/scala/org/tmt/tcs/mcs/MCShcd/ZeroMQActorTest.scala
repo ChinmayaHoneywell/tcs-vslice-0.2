@@ -22,6 +22,7 @@ class ZeroMQActorTest extends FunSuite with Matchers with BeforeAndAfterAll {
   private val mocks = new ZeroMQActorMocks()
   val loggerFactory = mocks.loggerFactory
   val log           = mocks.log
+  test("Test submitCommandToMCS") {}
 
   when(loggerFactory.getLogger).thenReturn(log)
   when(loggerFactory.getLogger(any[actor.ActorContext])).thenReturn(log)
