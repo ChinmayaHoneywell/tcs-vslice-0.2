@@ -15,6 +15,9 @@ object EventTransformerHelper {
 }
 case class EventTransformerHelper(loggerFactory: LoggerFactory) {
 
+  //This parameter is needed for dummyEvent
+  var i: Int = 10
+
   /*
   This function takes assemblyCurrentState as input and returns
   AssemblyState system event
@@ -112,6 +115,19 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
     setup.add(azParam.get).add(elParamOption.get).add(trackIDOption.get)
     setup
 
+  }
+  /*
+    This is dummy event which assembly publishes every 10 seconds
+    It has only one parameter int i which is incremented every time this event
+    we publish.
+   */
+  def getDummyAssemblyEvent(): SystemEvent = {
+
+    val dummyEventKey = EventHandlerConstants.DummyEventKey
+    i = i + 1
+    val intParam: Parameter[Int] = dummyEventKey.set(i)
+
+    SystemEvent(EventHandlerConstants.DUMMY_STATE_PREFIX, EventHandlerConstants.DUMMY_STATE).add(intParam)
   }
 
 }

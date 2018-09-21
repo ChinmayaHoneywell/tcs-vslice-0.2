@@ -27,9 +27,9 @@ class CommandHandlerActorTest extends FunSuite with Matchers with BeforeAndAfter
   val loggerFactory                                  = mock[LoggerFactory]
   val log: Logger                                    = mock[Logger]
 
-  val commandService                       = mock[CommandService]
-  val hcdLocation: Option[CommandService]  = Some(commandService)
-  val testInbox: TestInbox[ControlCommand] = TestInbox[ControlCommand]()
+  val commandService                      = mock[CommandService]
+  val hcdLocation: Option[CommandService] = Some(commandService)
+  //val testInbox: TestInbox[ControlCommand] = TestInbox[ControlCommand]()
   /*
     This test case tests behavior of CommandHandlerActor for follow command,
     on response to follow control command, CommandHandlerActor

@@ -44,4 +44,9 @@ object EventConstants {
   val MCS_AZ_STATE            = "mcsAZState"
   val MCS_EL_STATE            = "mcsELState"
 
+  //MCS Dummy event
+  val DUMMY_STATE        = "DummyEventState"
+  val DUMMY_STATE_PREFIX = "tmt.tcs.mcs.dummyEvent"
+  val DUMMY_STATE_KEY    = "DummyStateKey"
+
 }

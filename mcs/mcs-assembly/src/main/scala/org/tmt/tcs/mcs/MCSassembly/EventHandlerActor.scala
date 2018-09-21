@@ -73,7 +73,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    */
   def subscribeEventMsg(): Behavior[EventMessage] = {
     //log.info(msg = s"Received message : $x")
-
+    publishDummyEventFromAssembly()
     eventSubscriber.onComplete {
       case subscriber: EventSubscriber => {
         subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
@@ -138,6 +138,14 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     }
 
+  }
+  private def publishDummyEventFromAssembly(): Unit = {
+    while (true) {
+      Thread.sleep(10000)
+      println(s"Publishing Dummy event from assembly current time is : ${}")
+      val event: SystemEvent = eventTransformer.getDummyAssemblyEvent()
+      eventPublisher.map(publisher => publisher.publish(event, 10.seconds))
+    }
   }
 
 }

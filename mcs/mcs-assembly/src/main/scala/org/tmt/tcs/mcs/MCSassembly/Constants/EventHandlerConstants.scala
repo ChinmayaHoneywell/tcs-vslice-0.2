@@ -53,4 +53,9 @@ object EventHandlerConstants {
   val MCS_AZ_STATE: Key[String]             = KeyType.StringKey.make(EventConstants.MCS_AZ_STATE)
   val MCS_EL_STATE: Key[String]             = KeyType.StringKey.make(EventConstants.MCS_EL_STATE)
 
+  //These are parameters needed for dummy events
+  val DUMMY_STATE             = EventName(EventConstants.DUMMY_STATE)
+  val DUMMY_STATE_PREFIX      = Prefix(EventConstants.DUMMY_STATE_PREFIX)
+  val DummyEventKey: Key[Int] = KeyType.IntKey.make(EventConstants.DUMMY_STATE_KEY)
+
 }

@@ -129,15 +129,17 @@ class McsAssemblyHandlers(
         validateFollowCommand(controlCommand)
       }
       case Commands.MOVE => {
-
         validateMoveCommand(controlCommand)
       }
       case Commands.DATUM => {
-
         validateDatumCommand(controlCommand)
-
       }
-
+      case Commands.DUMMY_IMMEDIATE => {
+        executeDummyImmediateCommand(controlCommand)
+      }
+      case Commands.DUMMY_LONG => {
+        CommandResponse.Accepted(controlCommand.runId)
+      }
       case Commands.STARTUP => {
         CommandResponse.Accepted(controlCommand.runId)
       }
@@ -147,6 +149,10 @@ class McsAssemblyHandlers(
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
+  }
+  def executeDummyImmediateCommand(controlCommand: ControlCommand): CommandResponse = {
+    log.info(msg = s"Executing Dummy Immediate command  : ${controlCommand}")
+    CommandResponse.Completed(controlCommand.runId)
   }
   /*
   This function validates follow command based on  assembly state received from MonitorActor

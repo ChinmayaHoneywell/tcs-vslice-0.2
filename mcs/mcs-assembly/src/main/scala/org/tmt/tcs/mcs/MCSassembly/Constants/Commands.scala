@@ -16,4 +16,6 @@ object Commands {
   val STARTUP           = "Startup"
   val SHUTDOWN          = "ShutDown"
   val POSITION_DEMANDS  = "MountPositionDemands"
+  val DUMMY_IMMEDIATE   = "DummyImmediate"
+  val DUMMY_LONG        = "DummyLong"
 }

@@ -105,6 +105,9 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
 
       case Commands.DATUM => handleDatumCommand(msg)
       case Commands.MOVE  => handleMoveCommand(msg)
+      case Commands.DUMMY_LONG => {
+        commandResponseManager.addOrUpdateCommand(msg.controlCommand.runId, CommandResponse.Completed(msg.controlCommand.runId))
+      }
       case _ => {
         log.error(msg = s"Incorrect command : ${msg} is sent to MCS Assembly CommandHandlerActor")
       }
