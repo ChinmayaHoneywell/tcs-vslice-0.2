@@ -103,6 +103,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
   This function receives hcd lifecycle state, current position and other current states
    amd accordingly derives assembly operational state and publishes HCD current states to eventHandler Actor
    for publishing to other TCS Assemblies
+   Also this actor sends current states received from HCD to EventHandlerActor for publishing
    */
   def onCurrentStateChange(x: MonitorMessage with currentStateChangeMsg): Behavior[MonitorMessage] = {
 
