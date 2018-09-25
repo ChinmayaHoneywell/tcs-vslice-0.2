@@ -35,6 +35,7 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
   override def onMessage(controlCommand: ControlCommand): Behavior[ControlCommand] = {
     log.info(msg = s"Executing Datum command:  ${controlCommand.runId}")
     val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
+
     log.info(msg = s"In Datum command actor param is : ${axes} /*and hcdLocation is : ${hcdLocation}*/")
 
     hcdLocation match {
@@ -45,10 +46,7 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
         val response = Await.result(commandService.submitAndSubscribe(controlCommand), 10.seconds)
         log.info(msg = s" updating datum command : ${controlCommand.runId} with response : ${response} ")
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
-        /*log.info(
-          msg =
-            s"completed datum command execution for command id : ${controlCommand.runId} and updated its status in commandResponseManager : ${response}"
-        )*/
+
         Behavior.stopped
       }
       case None => {

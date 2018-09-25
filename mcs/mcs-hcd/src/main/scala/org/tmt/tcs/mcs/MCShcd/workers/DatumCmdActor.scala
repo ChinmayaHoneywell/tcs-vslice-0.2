@@ -25,9 +25,8 @@ case class DatumCmdActor(ctx: ActorContext[ControlCommand],
     extends MutableBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
+
     log.info(s"Submitting datum command with id : ${msg.runId} to Simulator")
-    /* val commandResponse: CommandResponse = subsystemManager.sendCommand(msg)
-    log.info(s"Response from Protocol for command runID : ${msg.runId} is : ${commandResponse}")*/
     implicit val duration: Timeout = 20 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>

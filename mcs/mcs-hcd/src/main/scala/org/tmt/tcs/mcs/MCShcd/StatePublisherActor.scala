@@ -82,7 +82,9 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
 
    */
   private def processEvent(event: Event): Future[_] = {
+
     log.info(msg = s"Received event : ${event} from Assembly.")
+
     event match {
       case systemEvent: SystemEvent => {
         val mcsDemandPositions: MCSPositionDemand = paramSetTransformer.getMountDemandPositions(systemEvent)
@@ -103,15 +105,22 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
 
    */
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
+
     log.info(msg = s"Received message : $msg ")
+
 
     msg match {
       case msg: StartEventSubscription => {
         val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
         zeroMQActor = msg.zeroMQProtoActor
         log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
+
         eventSubscriber.map(subsc => subsc.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event)))
         /*eventSubscriber.onComplete {
+
+        // eventSubscriber.map(subsc => subsc.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event)))
+        eventSubscriber.onComplete {
+
           case subscriber: EventSubscriber => {
             subscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
           }
@@ -119,7 +128,11 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
             log.error("Unable to get subscriber instance from EventService.")
             Future.failed(new Exception("Unable to get event subscriber instance from EventService "))
           }
+
         }*/
+
+        }
+
         Behavior.same
       }
       case msg: StateChangeMsg => {

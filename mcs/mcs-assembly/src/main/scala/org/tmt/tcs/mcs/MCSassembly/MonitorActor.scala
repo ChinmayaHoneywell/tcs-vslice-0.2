@@ -149,12 +149,13 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
 
    */
   private def updateAssemblyState(currentState: CurrentState): Behavior[MonitorMessage] = {
-    //log.info(s"EventTransformer value is : ${eventTransformer}")
+
     val optHcdLifeCycleStateParam: Option[Parameter[String]] =
       currentState.get(EventConstants.HCDLifecycleState, KeyType.StringKey)
     val hcdLifeCycleState = optHcdLifeCycleStateParam.get.head
     hcdLifeCycleState match {
       case HCDState_Running => {
+
         log.info(msg = s"Received life cycle state of HCD is : ${hcdLifeCycleState}")
         val assemblyCurrentState: AssemblyCurrentState =
           AssemblyCurrentState(AssemblyLifeCycleState.Running, AssemblyOperationalState.Running)
@@ -163,9 +164,8 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
         eventHandlerActor ! PublishEvent(assemblyStateEvent)
         log.info(
           "Successfully sent evnt : ${assemblyStateEvent} to " +
-          "eventHandlerActor for publishing "
-        )
-        MonitorActor.createObject(AssemblyLifeCycleState.Running,
+          "eventHandlerActor for publishing ")
+            MonitorActor.createObject(AssemblyLifeCycleState.Running,
                                   AssemblyOperationalState.Running,
                                   eventHandlerActor,
                                   loggerFactory)
@@ -228,11 +228,11 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
 
   }*/
 
+
   def onLocationEvent(hcdLocation: Option[CommandService]): Behavior[MonitorMessage] = {
     hcdLocation match {
       case Some(_) => {
-        //log.info(msg = s"Found HCD location at ${hcdLocation}")
-        if (assemblyState == AssemblyLifeCycleState.RunningOffline) {
+          if (assemblyState == AssemblyLifeCycleState.RunningOffline) {
           MonitorActor.createObject(AssemblyLifeCycleState.Running, assemblyMotionState, eventHandlerActor, loggerFactory)
         } else {
           Behavior.same

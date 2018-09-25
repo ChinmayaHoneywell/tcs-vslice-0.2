@@ -73,18 +73,14 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(message: LifeCycleMessage): Config = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
-
     val config: Config        = getHCDConfig()
     val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
     log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}")
-    /*
-    val zeroMQPullSocket = config.getInt("tmt.tcs.mcs.zeroMQPull")
-    log.info(msg = s"zeroMQPullSocket from config file : mcs_hcd.conf is ${zeroMQPullSocket}")
-    val zeroMQPubSocket = config.getInt("tmt.tcs.mcs.zeroMQPub")
-    log.info(msg = s"zeroMQPubSocket from config file : mcs_hcd.conf is ${zeroMQPubSocket}")
-    val zeroMQSubSocket = config.getInt("tmt.tcs.mcs.zeroMQSub")
-    log.info(msg = s"zeroMQSubSocket from config file : mcs_hcd.conf is ${zeroMQSubSocket}")
-     */
+    val config: Config = getHCDConfig()
+
+    val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
+    log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}
+
     log.info(msg = s"Successfully initialized hcd configuration")
     hcdConfig = Some(config)
     config

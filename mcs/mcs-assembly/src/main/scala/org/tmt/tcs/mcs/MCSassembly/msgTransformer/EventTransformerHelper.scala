@@ -14,7 +14,9 @@ object EventTransformerHelper {
   def create(loggerFactory: LoggerFactory): EventTransformerHelper = EventTransformerHelper(loggerFactory)
 }
 case class EventTransformerHelper(loggerFactory: LoggerFactory) {
+
   private val log = loggerFactory.getLogger
+
 
   //This parameter is needed for dummyEvent
   var i: Int = 10
@@ -24,7 +26,9 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
   AssemblyState system event
    */
   def getAssemblyEvent(assemblyState: AssemblyCurrentState): Event = {
+
     log.info("Transforming state : ${assemblyState}  to systemEvent")
+
     val lifeCycleKey        = EventHandlerConstants.LifecycleStateKey
     val operationalStateKey = EventHandlerConstants.OperationalStateKey
 
@@ -36,6 +40,7 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
                                   Set(lifecycleParam, operationalParam))
     //log.info(s"Transformed assemblyState is : ${systemEvent}")
     systemEvent
+
   }
 
   /*

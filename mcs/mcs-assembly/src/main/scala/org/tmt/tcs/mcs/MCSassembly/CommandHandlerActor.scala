@@ -70,10 +70,6 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
         Behavior.same
       }
       case x: updateHCDLocation => {
-        /*log.info(
-          msg = s"Updated location of hcd in command handlerActor is:  ${x.hcdLocation} " +
-          s"and previous hcdLocation is : ${hcdLocation}"
-        )*/
         createObject(commandResponseManager, isOnline, x.hcdLocation, loggerFactory)
       }
       case _ => {
@@ -84,6 +80,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
 
   }
   def handleImmediateCommand(msg: ImmediateCommand): Unit = {
+
     log.info(s"In CommandHandlerActor processing immediate command : ${msg}")
     msg.controlCommand.commandName.name match {
       case Commands.FOLLOW => {
@@ -96,6 +93,10 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     working to it
    */
   def handleSubmitCommand(msg: submitCommandMsg): Unit = {
+    log.info(
+      msg = s"In commandHandlerActor handleSubmitCommand()" +
+      s" function value of hcdLocation is : ${hcdLocation}"
+    )
     msg.controlCommand.commandName.name match {
       case Commands.STARTUP  => handleStartupCommand(msg)
       case Commands.SHUTDOWN => handleShutDownCommand(msg)
@@ -144,7 +145,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
 
   def handleDatumCommand(msg: submitCommandMsg) = {
     log.info(msg = "Sending  Datum command to DatumCommandActor")
-    //log.info(msg = s" In handleDatumCommand hcdLocation is ${hcdLocation}")
+
     val datumCommandActor: ActorRef[ControlCommand] =
       ctx.spawn(DatumCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "DatumCommandActor")
     datumCommandActor ! msg.controlCommand

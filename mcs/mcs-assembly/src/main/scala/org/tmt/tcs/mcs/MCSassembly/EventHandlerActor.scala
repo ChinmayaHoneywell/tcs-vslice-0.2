@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCSassembly
 
+
 import java.util.Calendar
 
 import akka.actor.typed.Behavior
@@ -27,6 +28,7 @@ object EventMessage {
   case class hcdLocationChanged(hcdLocation: Option[CommandService]) extends EventMessage
   case class PublishEvent(event: Event)                              extends EventMessage
   case class StartPublishingDummyEvent()                             extends EventMessage
+
 }
 
 object EventHandlerActor {
@@ -63,10 +65,12 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
       case x: StartEventSubscription => subscribeEventMsg()
       case x: hcdLocationChanged     => EventHandlerActor.createObject(loggerFactory, x.hcdLocation, eventService)
       case x: PublishEvent           => publishEvent(x.event)
+
       case x: StartPublishingDummyEvent => {
         publishDummyEventFromAssembly()
         Behavior.same
       }
+
     }
   }
 
@@ -80,25 +84,20 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    * using CSW EventService
    */
   def subscribeEventMsg(): Behavior[EventMessage] = {
+
     log.info(msg = s"Started subscribring events Received from Pointing Kernel.")
     eventSubscriber.map(
-      subscriber => subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
-    )
-    /*eventSubscriber.onComplete {
-      case subscriber: EventSubscriber => {
-        subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
-      }
-      case _ => {
-        log.error("Unable to get subscriber instance from EventService.")
-      }
-    }*/
+      subscriber => subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey,
+        event => sendEventByOneWayCommand(event)))
     Behavior.same
   }
   /*
   This function publishes event by using EventPublisher to the HCD
    */
   private def sendEventByEventPublisher(msg: Event): Future[_] = {
+
     log.info(s"Sending event : ${msg} to HCD by evntPublisher")
+
     msg match {
       case systemEvent: SystemEvent => {
         //eventPublisher.map(pub => pub.publish(systemEvent))
@@ -126,6 +125,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     as a oneWayCommand.
    */
   private def sendEventByOneWayCommand(msg: Event): Future[_] = {
+
     log.info(s"Sending event : ${msg} to HCD by oneWayCommand")
     msg match {
       case systemEvent: SystemEvent => {
@@ -152,6 +152,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   }
   private def publishDummyEventFromAssembly(): Unit = {
+
     log.info(msg = "Started publishing dummy Events from Assembly per 30 seconds")
     while (true) {
       Thread.sleep(30000)

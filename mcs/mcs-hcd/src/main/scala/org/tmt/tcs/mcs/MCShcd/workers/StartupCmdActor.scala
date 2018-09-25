@@ -25,9 +25,10 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
   private val log: Logger = loggerFactory.getLogger
 
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
-    log.info(s"Submitting startup  command with id : ${msg.runId} to Protocol")
+    log.info(s"Submitting startup  command with id : ${msg.runId} to simulator")
 
-    implicit val duration: Timeout = 20 seconds
+
+    implicit val duration: Timeout = 10 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
       ZeroMQMessage.SubmitCommand(ref, msg)

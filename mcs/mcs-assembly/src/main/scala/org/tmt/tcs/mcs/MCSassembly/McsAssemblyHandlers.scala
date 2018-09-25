@@ -55,6 +55,7 @@ class McsAssemblyHandlers(
                               eventService,
                               loggerFactory) {
 
+
   implicit val ec: ExecutionContextExecutor                = ctx.executionContext
   private val log                                          = loggerFactory.getLogger
   private val configClient: ConfigClientService            = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
@@ -86,6 +87,7 @@ class McsAssemblyHandlers(
     log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
     eventHandlerActor ! StartEventSubscription()
+
     eventHandlerActor ! StartPublishingDummyEvent()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
@@ -102,12 +104,10 @@ class McsAssemblyHandlers(
     command handler actor and monitor actor
    */
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    //log.info(msg = s"Received HCD location: ${trackingEvent}")
     trackingEvent match {
       case LocationUpdated(location) => {
         hcdLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
         hcdStateSubscriber = Some(hcdLocation.get.subscribeCurrentState(monitorActor ! currentStateChangeMsg(_)))
-        //log.info(msg = s"Updating hcdLocation : ${hcdLocation} and sending the same to commandHandlerActor and MonitorActor")
       }
       case LocationRemoved(_) => {
         hcdLocation = None

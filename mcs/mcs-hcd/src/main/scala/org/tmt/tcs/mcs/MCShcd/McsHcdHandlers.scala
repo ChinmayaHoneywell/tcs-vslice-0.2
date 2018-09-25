@@ -91,7 +91,9 @@ class McsHcdHandlers(
   override def initialize(): Future[Unit] = Future {
     log.info(msg = "Initializing MCS HCD")
 
+
     implicit val duration: Timeout = 20 seconds
+
     implicit val scheduler         = ctx.system.scheduler
 
     val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
