@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/mcs.iml" filepath="$PROJECT_DIR$/.idea/mcs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-assembly.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-assembly.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-assembly-build.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-assembly-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-build.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-deploy.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-deploy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-deploy-build.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-deploy-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-hcd.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-hcd.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mcs-hcd-build.iml" filepath="$PROJECT_DIR$/.idea/modules/mcs-hcd-build.iml" />
+    </modules>
+  </component>
+</project>

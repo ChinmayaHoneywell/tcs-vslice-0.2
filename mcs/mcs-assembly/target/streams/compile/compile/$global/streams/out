@@ -1,0 +1,44 @@
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/CommandHandlerActor.scala:47:39: postfix operator seconds should be enabled[0m
+[0m[[0m[33mwarn[0m] [0m[0mby making the implicit value scala.language.postfixOps visible.[0m
+[0m[[0m[33mwarn[0m] [0m[0mThis can be achieved by adding the import clause 'import scala.language.postfixOps'[0m
+[0m[[0m[33mwarn[0m] [0m[0mor by setting the compiler option -language:postfixOps.[0m
+[0m[[0m[33mwarn[0m] [0m[0mSee the Scaladoc for value scala.language.postfixOps for a discussion[0m
+[0m[[0m[33mwarn[0m] [0m[0mwhy the feature should be explicitly enabled.[0m
+[0m[[0m[33mwarn[0m] [0m[0m  implicit val duration: Timeout = 20 seconds[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                      ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/DatumCommandActor.scala:34:50: postfix operator seconds should be enabled[0m
+[0m[[0m[33mwarn[0m] [0m[0mby making the implicit value scala.language.postfixOps visible.[0m
+[0m[[0m[33mwarn[0m] [0m[0m  implicit val duration: Timeout            = 20 seconds[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                                 ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/DatumCommandActor.scala:32:15: private val mcsHCDPrefix in class DatumCommandActor is never used[0m
+[0m[[0m[33mwarn[0m] [0m[0m  private val mcsHCDPrefix                  = Prefix(Subsystem.MCS.toString)[0m
+[0m[[0m[33mwarn[0m] [0m[0m              ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/McsAssemblyHandlers.scala:181:41: postfix operator seconds should be enabled[0m
+[0m[[0m[33mwarn[0m] [0m[0mby making the implicit value scala.language.postfixOps visible.[0m
+[0m[[0m[33mwarn[0m] [0m[0m    implicit val duration: Timeout = 20 seconds[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                        ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/McsAssemblyHandlers.scala:205:41: postfix operator seconds should be enabled[0m
+[0m[[0m[33mwarn[0m] [0m[0mby making the implicit value scala.language.postfixOps visible.[0m
+[0m[[0m[33mwarn[0m] [0m[0m    implicit val duration: Timeout = 20 seconds[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                        ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/McsAssemblyHandlers.scala:251:43: postfix operator seconds should be enabled[0m
+[0m[[0m[33mwarn[0m] [0m[0mby making the implicit value scala.language.postfixOps visible.[0m
+[0m[[0m[33mwarn[0m] [0m[0m      implicit val duration: Timeout = 20 seconds[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                          ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/McsAssemblyHandlers.scala:277:43: postfix operator seconds should be enabled[0m
+[0m[[0m[33mwarn[0m] [0m[0mby making the implicit value scala.language.postfixOps visible.[0m
+[0m[[0m[33mwarn[0m] [0m[0m      implicit val duration: Timeout = 20 seconds[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                          ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/McsAssemblyHandlers.scala:18:42: Unused import[0m
+[0m[[0m[33mwarn[0m] [0m[0mimport akka.actor.typed.scaladsl.adapter.UntypedActorSystemOps[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                         ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/MonitorActor.scala:165:11: possible missing interpolator: detected an interpolated expression[0m
+[0m[[0m[33mwarn[0m] [0m[0m          "Successfully sent evnt : ${assemblyStateEvent} to " +[0m
+[0m[[0m[33mwarn[0m] [0m[0m          ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/msgTransformer/EventTransformerHelper.scala:27:14: possible missing interpolator: detected an interpolated expression[0m
+[0m[[0m[33mwarn[0m] [0m[0m    log.info("Transforming state : ${assemblyState}  to systemEvent")[0m
+[0m[[0m[33mwarn[0m] [0m[0m             ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-assembly/src/main/scala/org/tmt/tcs/mcs/MCSassembly/msgTransformer/EventTransformerHelper.scala:10:57: Unused import[0m
+[0m[[0m[33mwarn[0m] [0m[0mimport org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventConstants, EventHandlerConstants}[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                                        ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m11 warnings found[0m

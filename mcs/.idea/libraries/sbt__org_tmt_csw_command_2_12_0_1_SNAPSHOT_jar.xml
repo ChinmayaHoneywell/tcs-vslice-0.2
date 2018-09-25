@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="sbt: org.tmt:csw-command_2.12:0.1-SNAPSHOT:jar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.ivy2/local/org.tmt/csw-command_2.12/0.1-SNAPSHOT/jars/csw-command_2.12.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.ivy2/local/org.tmt/csw-command_2.12/0.1-SNAPSHOT/srcs/csw-command_2.12-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

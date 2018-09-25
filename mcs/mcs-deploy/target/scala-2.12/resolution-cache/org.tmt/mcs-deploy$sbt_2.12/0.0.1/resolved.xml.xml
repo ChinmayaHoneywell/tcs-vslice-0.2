@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:e="http://ant.apache.org/ivy/extra">
+	<info organisation="org.tmt"
+		module="mcs-deploy$sbt_2.12"
+		revision="0.0.1"
+		status="integration"
+		publication="20180924161217"
+	/>
+	<configurations>
+		<conf name="compile" visibility="public" description=""/>
+		<conf name="runtime" visibility="public" description="" extends="compile"/>
+		<conf name="test" visibility="public" description="" extends="runtime"/>
+		<conf name="provided" visibility="public" description=""/>
+		<conf name="optional" visibility="public" description=""/>
+	</configurations>
+	<publications>
+	</publications>
+	<dependencies>
+		<dependency org="org.scala-sbt" name="sbt" rev="1.1.4" conf="compile->default(compile)"/>
+		<dependency org="org.jetbrains" name="sbt-structure-extractor" rev="2018.2" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0"/>
+		<dependency org="org.jetbrains" name="sbt-idea-shell" rev="2017.2" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0"/>
+		<dependency org="org.scalastyle" name="scalastyle-sbt-plugin" rev="1.0.0" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0"/>
+		<dependency org="org.scalastyle" name="scalastyle_2.12" rev="1.0.0" conf="compile->default(compile)"/>
+		<dependency org="org.scala-lang" name="scala-library" rev="2.12.4" conf="compile->default(compile)" info.apiURL="http://www.scala-lang.org/api/2.12.4/"/>
+		<dependency org="org.scalariform" name="scalariform_2.12" rev="0.2.0" conf="compile->default(compile)"/>
+		<dependency org="org.scala-lang.modules" name="scala-xml_2.12" rev="1.0.6" conf="compile->default(compile)"/>
+		<dependency org="org.scala-lang.modules" name="scala-parser-combinators_2.12" rev="1.0.6" conf="compile->default(compile)"/>
+		<dependency org="com.geirsson" name="sbt-scalafmt" rev="1.4.0" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0" info.apiURL="https://olafurpg.github.io/scalafmt/docs/"/>
+		<dependency org="com.geirsson" name="scalafmt-core_2.12" rev="1.4.0" conf="compile->default(compile)" info.apiURL="https://olafurpg.github.io/scalafmt/docs/"/>
+		<dependency org="org.scalameta" name="scalameta_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="common_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="com.lihaoyi" name="sourcecode_2.12" rev="0.1.3" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="dialects_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="parsers_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="inputs_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="io_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="tokens_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="tokenizers_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="com.lihaoyi" name="scalaparse_2.12" rev="0.4.2" conf="compile->default(compile)"/>
+		<dependency org="com.lihaoyi" name="fastparse_2.12" rev="0.4.2" conf="compile->default(compile)"/>
+		<dependency org="com.lihaoyi" name="fastparse-utils_2.12" rev="0.4.2" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="trees_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="quasiquotes_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="transversers_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="inline_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="org.scalameta" name="semantic_2.12" rev="1.7.0" conf="compile->default(compile)"/>
+		<dependency org="com.trueaccord.scalapb" name="scalapb-runtime_2.12" rev="0.6.0-pre2" conf="compile->default(compile)"/>
+		<dependency org="com.trueaccord.lenses" name="lenses_2.12" rev="0.4.10" conf="compile->default(compile)"/>
+		<dependency org="com.google.protobuf" name="protobuf-java" rev="3.2.0" conf="compile->default(compile)"/>
+		<dependency org="com.geirsson" name="metaconfig-core_2.12" rev="0.4.0" conf="compile->default(compile)" info.apiURL="https://github.com/olafurpg/metaconfig"/>
+		<dependency org="com.geirsson" name="metaconfig-typesafe-config_2.12" rev="0.4.0" conf="compile->default(compile)" info.apiURL="https://github.com/olafurpg/metaconfig"/>
+		<dependency org="com.typesafe" name="config" rev="1.2.1" conf="compile->default(compile)"/>
+		<dependency org="org.scoverage" name="sbt-scoverage" rev="1.5.1" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0"/>
+		<dependency org="org.scoverage" name="scalac-scoverage-plugin_2.12" rev="1.3.1" conf="compile->default(compile)"/>
+		<dependency org="com.typesafe.sbt" name="sbt-native-packager" rev="1.3.3" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0"/>
+		<dependency org="org.apache.commons" name="commons-compress" rev="1.14" conf="compile->default(compile)"/>
+		<dependency org="org.apache.ant" name="ant" rev="1.10.1" conf="compile->default(compile)"/>
+		<dependency org="org.apache.ant" name="ant-launcher" rev="1.10.1" conf="compile->default(compile)"/>
+		<dependency org="org.scala-sbt" name="io_2.12" rev="1.0.0" conf="compile->default(compile)"/>
+		<dependency org="com.spotify" name="docker-client" rev="8.9.0" conf="compile->default(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.22" conf="compile->default(compile)"/>
+		<dependency org="com.google.guava" name="guava" rev="20.0" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.jaxrs" name="jackson-jaxrs-json-provider" rev="2.8.8" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.jaxrs" name="jackson-jaxrs-base" rev="2.8.8" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-core" rev="2.8.8" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-databind" rev="2.8.8" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.core" name="jackson-annotations" rev="2.8.0" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.module" name="jackson-module-jaxb-annotations" rev="2.8.8" conf="compile->default(compile)"/>
+		<dependency org="com.fasterxml.jackson.datatype" name="jackson-datatype-guava" rev="2.8.8" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.jersey.core" name="jersey-client" rev="2.22.2" conf="compile->default(compile)"/>
+		<dependency org="javax.ws.rs" name="javax.ws.rs-api" rev="2.0.1" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.jersey.core" name="jersey-common" rev="2.22.2" conf="compile->default(compile)"/>
+		<dependency org="javax.annotation" name="javax.annotation-api" rev="1.2" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.jersey.bundles.repackaged" name="jersey-guava" rev="2.22.2" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.hk2" name="hk2-api" rev="2.4.0-b34" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.hk2" name="hk2-utils" rev="2.4.0-b34" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.hk2.external" name="aopalliance-repackaged" rev="2.4.0-b34" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.hk2.external" name="javax.inject" rev="2.4.0-b34" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.hk2" name="hk2-locator" rev="2.4.0-b34" conf="compile->default(compile)"/>
+		<dependency org="org.javassist" name="javassist" rev="3.18.1-GA" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.hk2" name="osgi-resource-locator" rev="1.0.1" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.jersey.connectors" name="jersey-apache-connector" rev="2.22.2" conf="compile->default(compile)"/>
+		<dependency org="org.apache.httpcomponents" name="httpclient" rev="4.5" conf="compile->default(compile)"/>
+		<dependency org="org.apache.httpcomponents" name="httpcore" rev="4.4.5" conf="compile->default(compile)"/>
+		<dependency org="commons-logging" name="commons-logging" rev="1.2" conf="compile->default(compile)"/>
+		<dependency org="commons-codec" name="commons-codec" rev="1.9" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.jersey.media" name="jersey-media-json-jackson" rev="2.22.2" conf="compile->default(compile)"/>
+		<dependency org="org.glassfish.jersey.ext" name="jersey-entity-filtering" rev="2.22.2" conf="compile->default(compile)"/>
+		<dependency org="commons-io" name="commons-io" rev="2.5" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jnr-unixsocket" rev="0.8" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jnr-ffi" rev="2.0.3" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jffi" rev="1.2.9" conf="compile->default(compile)"/>
+		<dependency org="org.ow2.asm" name="asm" rev="5.0.3" conf="compile->default(compile)"/>
+		<dependency org="org.ow2.asm" name="asm-commons" rev="5.0.3" conf="compile->default(compile)"/>
+		<dependency org="org.ow2.asm" name="asm-tree" rev="5.0.3" conf="compile->default(compile)"/>
+		<dependency org="org.ow2.asm" name="asm-analysis" rev="5.0.3" conf="compile->default(compile)"/>
+		<dependency org="org.ow2.asm" name="asm-util" rev="5.0.3" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jnr-x86asm" rev="1.0.2" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jnr-constants" rev="0.8.7" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jnr-enxio" rev="0.9" conf="compile->default(compile)"/>
+		<dependency org="com.github.jnr" name="jnr-posix" rev="3.0.12" conf="compile->default(compile)"/>
+		<dependency org="commons-lang" name="commons-lang" rev="2.6" conf="compile->default(compile)"/>
+		<dependency org="org.bouncycastle" name="bcpkix-jdk15on" rev="1.52" conf="compile->default(compile)"/>
+		<dependency org="org.bouncycastle" name="bcprov-jdk15on" rev="1.52" conf="compile->default(compile)"/>
+		<dependency org="ch.qos.logback" name="logback-classic" rev="1.2.1" conf="compile->default(compile)"/>
+		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.1" conf="compile->default(compile)"/>
+		<dependency org="javax.inject" name="javax.inject" rev="1" conf="compile->default(compile)"/>
+		<dependency org="org.vafer" name="jdeb" rev="1.3" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-core" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-model" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-utils" rev="3.0.17" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-settings" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-settings-builder" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-interpolation" rev="1.19" conf="compile->default(compile)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-component-annotations" rev="1.5.5" conf="compile->default(compile)"/>
+		<dependency org="org.sonatype.plexus" name="plexus-sec-dispatcher" rev="1.3" conf="compile->default(compile)"/>
+		<dependency org="org.sonatype.plexus" name="plexus-cipher" rev="1.4" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-repository-metadata" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-artifact" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-plugin-api" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.eclipse.sisu" name="org.eclipse.sisu.plexus" rev="0.0.0.M5" conf="compile->default(compile)"/>
+		<dependency org="javax.enterprise" name="cdi-api" rev="1.0" conf="compile->default(compile)"/>
+		<dependency org="javax.annotation" name="jsr250-api" rev="1.0" conf="compile->default(compile)"/>
+		<dependency org="org.sonatype.sisu" name="sisu-guice" rev="3.1.0" conf="compile->default(compile)"/>
+		<dependency org="aopalliance" name="aopalliance" rev="1.0" conf="compile->default(compile)"/>
+		<dependency org="org.eclipse.sisu" name="org.eclipse.sisu.inject" rev="0.0.0.M5" conf="compile->default(compile)"/>
+		<dependency org="org.codehaus.plexus" name="plexus-classworlds" rev="2.5.1" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-model-builder" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.apache.maven" name="maven-aether-provider" rev="3.2.2" conf="compile->default(compile)"/>
+		<dependency org="org.eclipse.aether" name="aether-api" rev="0.9.0.M2" conf="compile->default(compile)"/>
+		<dependency org="org.eclipse.aether" name="aether-spi" rev="0.9.0.M2" conf="compile->default(compile)"/>
+		<dependency org="org.eclipse.aether" name="aether-util" rev="0.9.0.M2" conf="compile->default(compile)"/>
+		<dependency org="org.eclipse.aether" name="aether-impl" rev="0.9.0.M2" conf="compile->default(compile)"/>
+		<dependency org="org.bouncycastle" name="bcpg-jdk15on" rev="1.51" conf="compile->default(compile)"/>
+		<dependency org="com.eed3si9n" name="sbt-buildinfo" rev="0.8.0" conf="compile->default(compile)" scalaVersion="2.12" sbtVersion="1.0"/>
+	</dependencies>
+</ivy-module>

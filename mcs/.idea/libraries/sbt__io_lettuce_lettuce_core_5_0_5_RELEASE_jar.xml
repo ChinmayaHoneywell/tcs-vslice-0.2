@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="sbt: io.lettuce:lettuce-core:5.0.5.RELEASE:jar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.ivy2/cache/io.lettuce/lettuce-core/jars/lettuce-core-5.0.5.RELEASE.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.ivy2/cache/io.lettuce/lettuce-core/srcs/lettuce-core-5.0.5.RELEASE-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

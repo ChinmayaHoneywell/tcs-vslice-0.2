@@ -1,0 +1,17 @@
+test all hooks in assembly handler  - real context injecting  .
+     given hcd is initialized when validate hook is callled with setup command then command should be accepted
+
+given the HCD follow command actor is initialized, subsystem is also running when valid follow message having follow command in it, is send then it should reply with command successfully completed
+
+given assembly state is faulted when invalid move command is submitted then command should fail
+
+given assembly state is not faulted when valid move command is submitted then One child command actor should be created and addOrUpdate on commandResponseManager should be called.
+
+given assembly state is not faulted when move command missing mode param is submitted to assembly then invalid command response should be returned.
+
+
+Other thoughts on tests -
+    command processing if hcd connection not available
+    validation tests
+    online offline command processing test
+    async akka tests for command. big tests not unit tests.

@@ -1,0 +1,5 @@
+[0m[[0m[0mdebug[0m] [0m[0mCopy resource mappings: [0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/src/main/resources/McsContainer.conf,/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/target/scala-2.12/classes/McsContainer.conf)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/src/main/resources/McsHcdStandalone.conf,/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/target/scala-2.12/classes/McsHcdStandalone.conf)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/src/main/resources/McsHostConfig.conf,/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/target/scala-2.12/classes/McsHostConfig.conf)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/src/main/resources/application.conf,/home/vncuser/Downloads/tcs-vslice-0.2-master/mcs/mcs-deploy/target/scala-2.12/classes/application.conf)[0m
