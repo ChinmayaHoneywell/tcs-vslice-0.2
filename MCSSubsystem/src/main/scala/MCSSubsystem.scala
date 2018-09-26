@@ -19,14 +19,33 @@ object MCSSubsystem extends App{
   val subSocketPort : Int = 55580
   eventProcessor.initialize(addr,pubSocketPort,subSocketPort)
 
-  eventProcessor.startPublishingCurrPos()
-  eventProcessor.startPublishingDiagnosis()
-  eventProcessor.startPublishingDriveState()
-  eventProcessor.startPublishingHealth()
+  new Thread(new Runnable {
+    override def run(): Unit =
+      commandProcessor.processCommand();
+  }).start()
+
+  new Thread(new Runnable {
+    override def run(): Unit =
+      eventProcessor.startPublishingCurrPos();
+  }).start()
+    //TODO : Temporarily commenting these events need to add more required fields facing
+    // mandatory fields missing issues.
+ /* new Thread(new Runnable{
+    override def run(): Unit = eventProcessor.startPublishingDiagnosis();
+  }).start()
+
+   new Thread(new Runnable {
+    override def run(): Unit =  eventProcessor.startPublishingDriveState()
+  }).start()*/
+
+   new Thread(new Runnable {
+    override def run(): Unit = eventProcessor.startPublishingHealth()
+  }).start();
+
+
+
+
   
-  while(true) {
-    commandProcessor.processCommand()
-    commandProcessor.publishCurrentPosition()
-  }
+
 
 }

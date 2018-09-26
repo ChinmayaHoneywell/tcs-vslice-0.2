@@ -34,30 +34,33 @@ case class CommandProcessor(zmqContext : ZMQ.Context) {
   }
 
   def processCommand(): Unit = {
-    val commandName: String = pullSocket.recvStr()
-    println(s"Received command is : ${commandName}")
-    if(commandName != null ){
-      println(s"Processing ${commandName} command ")
-      val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
-      if (pushSocket.sendMore(commandName)) {
-        println(s"Sending response for : ${commandName} command ")
-        val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder().setCmdError(CmdError.OK).setErrorInfo("No error")
-          .setProcessedTime(1234.50)
-          .setErrorState(MCSCommandResponse.ErrorState.NONE).build()
-        pushSocket.send(commandResponse.toByteArray,ZMQ.NOBLOCK)
-      }else{
-        println(s"Unable to send command response ")
-      }
-
-      if(commandName == "Follow" || commandName == "Point" || commandName == "PointDemand"){
-        if(commandName == "PointDemand"){
-          val pointDemand : PointDemandCommand = PointDemandCommand.parseFrom(commandData)
-          azDemanded = pointDemand.getAZ
-          elDemanded = pointDemand.getEL
+    println("Process Command Thread Started")
+    while(true){
+      val commandName: String = pullSocket.recvStr()
+      println(s"Received command is : ${commandName}")
+      if(commandName != null ){
+        println(s"Processing ${commandName} command ")
+        val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
+        if (pushSocket.sendMore(commandName)) {
+          println(s"Sending response for : ${commandName} command ")
+          val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder().setCmdError(CmdError.OK).setErrorInfo("No error")
+            .setProcessedTime(1234.50)
+            .setErrorState(MCSCommandResponse.ErrorState.NONE).build()
+          pushSocket.send(commandResponse.toByteArray,ZMQ.NOBLOCK)
+        }else{
+          println(s"Unable to send command response ")
         }
+
+        if(commandName == "Follow" || commandName == "Point" || commandName == "PointDemand"){
+          if(commandName == "PointDemand"){
+            val pointDemand : PointDemandCommand = PointDemandCommand.parseFrom(commandData)
+            azDemanded = pointDemand.getAZ
+            elDemanded = pointDemand.getEL
+          }
+        }
+      }else{
+        //println("Didn't get any command to process")
       }
-    }else{
-      //println("Didn't get any command to process")
     }
  }
 

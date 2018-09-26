@@ -78,8 +78,9 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private def submitCommandToMCS(msg: SubmitCommand) = {
     val controlCommand: ControlCommand = msg.controlCommand
     val commandName: String            = controlCommand.commandName.name
-    log.info(msg = s"sending command : ${controlCommand.runId}, name : ${commandName} to MCS simulator")
+    log.info(msg = s"Sending command  : ${commandName} to MCS simulator")
     if (pushSocket.sendMore(commandName)) {
+      log.info(s"Sent commandName : ${commandName}")
       if (pushSocket.send(messageTransformer.encodeMessage(controlCommand), ZMQ.NOBLOCK)) {
         msg.sender ! MCSResponse(readCommandResponse(commandName, controlCommand.runId))
       } else {

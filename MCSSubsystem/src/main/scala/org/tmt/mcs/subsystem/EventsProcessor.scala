@@ -37,6 +37,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   }
   def startPublishingCurrPos(): Unit ={
+    println("Publish Current position thread started")
     while(true){
       Thread.sleep(10)
       updateCurrentAzPos()
@@ -67,6 +68,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   }
   //TODO : Change the state as per the command executed
   def startPublishingDriveState() : Unit = {
+    println("Publish Drive State Thread started")
     while(true) {
       Thread.sleep(1000)
       val driveStatus : McsDriveStatus = TcsMcsEventsProtos.McsDriveStatus.newBuilder()
@@ -81,6 +83,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
   def startPublishingDiagnosis() : Unit = {
+    println("Publish Diagnosis Thread STarted")
     while(true) {
       Thread.sleep(10)
       val diagnosis : MountControlDiags = TcsMcsEventsProtos.MountControlDiags.newBuilder()
@@ -95,6 +98,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
   def startPublishingHealth() : Unit = {
+    println("Publish Health Thread Started")
     while(true){
       Thread.sleep(1000)
       val mcsHealth = TcsMcsEventsProtos.McsHealth.newBuilder()
@@ -131,6 +135,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   //Position Demands will be ignored if MCS is not in follow state
   def subscribePositionDemands : Unit = {
+    println("Subscribe position Demands thread started")
     while (true) {
       val eventName: String = subSocket.recvStr()
       if ("MountDemandPosition".equals(eventName)) {

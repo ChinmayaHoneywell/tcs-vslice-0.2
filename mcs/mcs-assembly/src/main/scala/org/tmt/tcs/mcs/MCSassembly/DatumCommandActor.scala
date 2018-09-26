@@ -31,7 +31,7 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
   private val log                           = loggerFactory.getLogger
   private val mcsHCDPrefix                  = Prefix(Subsystem.MCS.toString)
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
-  implicit val duration: Timeout            = 20 seconds
+  implicit val duration: Timeout            = 30 seconds
   override def onMessage(controlCommand: ControlCommand): Behavior[ControlCommand] = {
     log.info(msg = s"Executing Datum command:  ${controlCommand.runId}")
     val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
@@ -43,7 +43,7 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
         log.info(
           msg = s"DatumCommandActor sending datum command /*with parameters :  ${controlCommand}*/ to hcd /*: ${hcdLocation}*/"
         )
-        val response = Await.result(commandService.submitAndSubscribe(controlCommand), 10.seconds)
+        val response = Await.result(commandService.submitAndSubscribe(controlCommand), 20.seconds)
         log.info(msg = s" updating datum command : ${controlCommand.runId} with response : ${response} ")
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
 

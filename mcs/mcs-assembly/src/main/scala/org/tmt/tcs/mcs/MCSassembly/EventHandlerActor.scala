@@ -154,7 +154,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     log.info(msg = "Started publishing dummy Events from Assembly per 30 seconds")
     while (true) {
-      Thread.sleep(30000)
+      Thread.sleep(60000)
       println(
         s"Publishing Dummy event from assembly current time is" +
         s" : ${Calendar.getInstance.getTime}"
