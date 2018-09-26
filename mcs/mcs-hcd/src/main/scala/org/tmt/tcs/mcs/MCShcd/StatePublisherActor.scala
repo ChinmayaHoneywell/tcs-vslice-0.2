@@ -107,8 +107,6 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
 
     log.info(msg = s"Received message : $msg ")
-
-
     msg match {
       case msg: StartEventSubscription => {
         val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
@@ -130,9 +128,6 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
           }
 
         }*/
-
-        }
-
         Behavior.same
       }
       case msg: StateChangeMsg => {

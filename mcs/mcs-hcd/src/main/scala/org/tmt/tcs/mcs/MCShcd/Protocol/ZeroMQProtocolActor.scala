@@ -15,14 +15,14 @@ import org.zeromq.ZMQ
 sealed trait ZeroMQMessage
 object ZeroMQMessage {
 
-  case class InitializeSimulator(sender: ActorRef[ZeroMQMessage], config: Config)           extends ZeroMQMessage
+  case class InitializeSimulator(sender: ActorRef[ZeroMQMessage], config: Config) extends ZeroMQMessage
 
   case class SubmitCommand(sender: ActorRef[ZeroMQMessage], controlCommand: ControlCommand) extends ZeroMQMessage
   case class MCSResponse(commandResponse: CommandResponse)                                  extends ZeroMQMessage
   case class PublishEvent(mcsPositionDemands: MCSPositionDemand)                            extends ZeroMQMessage
   case class StartEventSubscription()                                                       extends ZeroMQMessage
 
-  case class SimulatorConnResponse(connected: Boolean)                                      extends ZeroMQMessage
+  case class SimulatorConnResponse(connected: Boolean) extends ZeroMQMessage
 
 }
 object ZeroMQProtocolActor {
@@ -54,10 +54,6 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
           log.error("UNABLE TO MAKE CONNECTION WITH MCS SIMULATOR")
           msg.sender ! SimulatorConnResponse(false)
         }
-
-      case msg: InitializeSubsystem => {
-        initMCSConnection(msg.config)
->>>>>>> 88ec3d3343901e13e8a085429214adf3049a5daf
         Behavior.same
       }
       case msg: SubmitCommand => {
@@ -113,26 +109,21 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     log.info(s"config object is :${config}")
     val zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
     val pushSocketConn      = pushSocket.bind(zeroMQPushSocketStr)
-    log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and pull socket is : ${zeroMQPushSocketStr}")
+    log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and connection : ${pushSocketConn}")
 
     val zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
     val pullSocketConn      = pullSocket.connect(zeroMQPullSocketStr)
+    log.info(msg = s"ZeroMQ pull socket is : ${zeroMQPullSocketStr} and connection : ${pullSocketConn}")
 
-  private def initMCSConnection(config: Config) = {
-    val zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
-    pushSocket.bind(zeroMQPushSocketStr)
-    log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and pull socket is : ${zeroMQPushSocketStr}")
-
-    val zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
-    pullSocket.connect(zeroMQPullSocketStr)
-
+    val zeroMQSubScribeSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQSub")
+    subscribeSocket.subscribe("Welcome to MCS Events".getBytes)
     val subSockConn = subscribeSocket.connect(zeroMQSubScribeSocketStr)
+    log.info(msg = s"ZeroMQ subscribe socket is : ${zeroMQSubScribeSocketStr} and connection is : ${subSockConn}")
 
     val zeroMQPubSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPub")
     val pubSockConn        = pubSocket.bind(zeroMQPubSocketStr)
+    log.info(msg = s"ZeroMQ pub socket is : ${zeroMQPubSocketStr} and connection is : ${pubSockConn}")
 
     pushSocketConn && pullSocketConn && subSockConn && pubSockConn
-
-
   }
 }

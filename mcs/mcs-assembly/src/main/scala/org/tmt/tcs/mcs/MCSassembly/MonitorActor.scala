@@ -164,8 +164,9 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
         eventHandlerActor ! PublishEvent(assemblyStateEvent)
         log.info(
           "Successfully sent evnt : ${assemblyStateEvent} to " +
-          "eventHandlerActor for publishing ")
-            MonitorActor.createObject(AssemblyLifeCycleState.Running,
+          "eventHandlerActor for publishing "
+        )
+        MonitorActor.createObject(AssemblyLifeCycleState.Running,
                                   AssemblyOperationalState.Running,
                                   eventHandlerActor,
                                   loggerFactory)
@@ -228,11 +229,10 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
 
   }*/
 
-
   def onLocationEvent(hcdLocation: Option[CommandService]): Behavior[MonitorMessage] = {
     hcdLocation match {
       case Some(_) => {
-          if (assemblyState == AssemblyLifeCycleState.RunningOffline) {
+        if (assemblyState == AssemblyLifeCycleState.RunningOffline) {
           MonitorActor.createObject(AssemblyLifeCycleState.Running, assemblyMotionState, eventHandlerActor, loggerFactory)
         } else {
           Behavior.same

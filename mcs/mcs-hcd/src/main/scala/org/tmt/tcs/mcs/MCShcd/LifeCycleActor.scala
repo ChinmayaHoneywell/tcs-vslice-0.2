@@ -76,15 +76,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     val config: Config        = getHCDConfig()
     val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
     log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}")
-    val config: Config = getHCDConfig()
-
-    val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
-    log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}
-
-    log.info(msg = s"Successfully initialized hcd configuration")
     hcdConfig = Some(config)
     config
-
   }
   /*
    This functions shuts down assembly

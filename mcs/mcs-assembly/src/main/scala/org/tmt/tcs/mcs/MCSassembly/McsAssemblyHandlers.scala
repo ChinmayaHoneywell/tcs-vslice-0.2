@@ -55,7 +55,6 @@ class McsAssemblyHandlers(
                               eventService,
                               loggerFactory) {
 
-
   implicit val ec: ExecutionContextExecutor                = ctx.executionContext
   private val log                                          = loggerFactory.getLogger
   private val configClient: ConfigClientService            = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)

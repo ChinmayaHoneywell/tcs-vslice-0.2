@@ -17,7 +17,6 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
 
   private val log = loggerFactory.getLogger
 
-
   //This parameter is needed for dummyEvent
   var i: Int = 10
 

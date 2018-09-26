@@ -1,6 +1,5 @@
 package org.tmt.tcs.mcs.MCSassembly
 
-
 import java.util.Calendar
 
 import akka.actor.typed.Behavior
@@ -87,8 +86,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     log.info(msg = s"Started subscribring events Received from Pointing Kernel.")
     eventSubscriber.map(
-      subscriber => subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey,
-        event => sendEventByOneWayCommand(event)))
+      subscriber => subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
+    )
     Behavior.same
   }
   /*
