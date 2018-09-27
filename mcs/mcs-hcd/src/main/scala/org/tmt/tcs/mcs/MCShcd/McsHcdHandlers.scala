@@ -23,10 +23,10 @@ import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
+import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
-
 import org.tmt.tcs.mcs.MCShcd.Protocol.{ZeroMQMessage, ZeroMQProtocolActor}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.ParamSetTransformer
 import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
@@ -51,6 +51,7 @@ class McsHcdHandlers(
     currentStatePublisher: CurrentStatePublisher,
     locationService: LocationService,
     eventService: EventService,
+    alarmService: AlarmService,
     loggerFactory: LoggerFactory
 ) extends ComponentHandlers(ctx,
                               componentInfo,
@@ -58,6 +59,7 @@ class McsHcdHandlers(
                               currentStatePublisher,
                               locationService,
                               eventService,
+                              alarmService,
                               loggerFactory) {
 
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
@@ -419,8 +421,9 @@ class McsHcdHandlers(
           )
         )
       }
+    } else {
+      CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue("Follow command should not have any parameters"))
     }
-    CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue("Follow command should not have any parameters"))
   }
 
   /*

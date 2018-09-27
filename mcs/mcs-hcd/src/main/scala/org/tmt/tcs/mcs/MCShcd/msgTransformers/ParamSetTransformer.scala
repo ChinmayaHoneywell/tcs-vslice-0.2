@@ -135,10 +135,12 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
   }
 
   def getCSWResponse(runID: Id, subsystemResponse: SubystemResponse): CommandResponse = {
-    subsystemResponse.commandResponse match {
-      case true  => CommandResponse.Completed(runID)
-      case false => decodeErrorState(runID, subsystemResponse)
+    if (subsystemResponse.commandResponse) {
+      CommandResponse.Completed(runID)
+    } else {
+      decodeErrorState(runID, subsystemResponse)
     }
+
   }
   def decodeErrorState(runID: Id, response: SubystemResponse): CommandResponse = {
     response.errorReason.get match {

@@ -86,17 +86,9 @@ object MCSMainApp extends App {
 
   def startSubscribingEvents(): Unit = {
     println("Started subscribing Events from Assembly")
-    val eventService                        = getEventService
-    val subscriber: Future[EventSubscriber] = eventService.defaultSubscriber
-
-    subscriber.onComplete {
-      case subsc: EventSubscriber => {
-        subsc.subscribeAsync(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
-      }
-      case _ => {
-        log.error("Unable to get subscriber instance from EventService.")
-      }
-    }
+    val eventService = getEventService
+    val subscriber   = eventService.defaultSubscriber
+    subscriber.subscribeAsync(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
   }
   def processCurrentPosition(event: Event): Future[_] = {
     val today = Calendar.getInstance().getTime()

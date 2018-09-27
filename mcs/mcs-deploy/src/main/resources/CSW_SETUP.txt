@@ -51,8 +51,8 @@ http://192.168.122.1:5552/config/org/tmt/tcs/mcs_assembly.conf
   curl -X POST --data 'tmt{tcs{mcs{cmdtimeout : 10, retries : 2, limit : 1}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
   curl -X POST --data 'tmt{tcs{mcs{zeroMQPush : 55579, zeroMQPull : 55578, zeroMQPub : 55580, zeroMQSub:55581}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf
   
-  curl -X DELETE http://192.168.122.1:39073/config/org/tmt/tcs/mcs_assembly.conf
-  curl -X GET http://192.168.122.1:39073/config/org/tmt/tcs/mcs_assembly.conf
+  curl -X DELETE http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
+  curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
   
   
   TO RUN ASSEMBLY AND HCD IN CONTAINER:-

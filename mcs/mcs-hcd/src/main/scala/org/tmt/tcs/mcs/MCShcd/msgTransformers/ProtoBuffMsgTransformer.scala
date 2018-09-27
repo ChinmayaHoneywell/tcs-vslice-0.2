@@ -16,18 +16,21 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   private val log                                      = loggerFactory.getLogger
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
 
-  import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsCommandProtos.CommandResponse
-
   override def decodeCommandResponse(responsePacket: Array[Byte]): SubystemResponse = {
 
     log.info(msg = s"Decoding command Response")
 
-    val commandResponse: CommandResponse = CommandResponse.parseFrom(responsePacket)
-    val errorState: String               = commandResponse.getErrorState
-    if ("OK".equals(errorState)) {
+    val commandResponse: MCSCommandResponse   = MCSCommandResponse.parseFrom(responsePacket)
+    val cmdError: MCSCommandResponse.CmdError = commandResponse.getCmdError
+    log.info(s"Command Response from Simulator is : ${commandResponse}")
+    if (MCSCommandResponse.CmdError.OK.equals(cmdError)) {
+      log.info("No Error from Simulator")
       SubystemResponse(true, None, None)
+    } else {
+      log.error(s"Error from simulator cmdError : ${cmdError} and expected : ${MCSCommandResponse.CmdError.OK}")
+      SubystemResponse(false, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
     }
-    SubystemResponse(false, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
+
   }
   override def decodeEvent(eventName: String, encodedEventData: Array[Byte]): CurrentState = {
     eventName match {

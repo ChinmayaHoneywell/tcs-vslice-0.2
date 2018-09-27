@@ -55,8 +55,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   private val log                                      = loggerFactory.getLogger
   implicit val ec: ExecutionContextExecutor            = ctx.executionContext
   implicit val duration: Timeout                       = 20 seconds
-  private val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
-  private val eventPublisher: Future[EventPublisher]   = eventService.defaultPublisher
+  private val eventSubscriber                          = eventService.defaultSubscriber
+  private val eventPublisher                           = eventService.defaultPublisher
   private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
 
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
@@ -75,7 +75,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   def publishEvent(event: Event): Behavior[EventMessage] = {
     log.info(msg = s"Received msg : ${event} for publishing")
-    eventPublisher.map(publisher => publisher.publish(event))
+    eventPublisher.publish(event)
     Behavior.same
   }
   /*
@@ -85,9 +85,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   def subscribeEventMsg(): Behavior[EventMessage] = {
 
     log.info(msg = s"Started subscribring events Received from Pointing Kernel.")
-    eventSubscriber.map(
-      subscriber => subscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
-    )
+    eventSubscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
     Behavior.same
   }
   /*
@@ -100,8 +98,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     msg match {
       case systemEvent: SystemEvent => {
         //eventPublisher.map(pub => pub.publish(systemEvent))
-
-        eventPublisher.onComplete {
+        eventPublisher.publish(systemEvent)
+        /* eventPublisher.onComplete {
           case Success(publisher: EventPublisher) => {
             log.info(
               s"Received Event : ${msg} in Assembly EventHandlerActor in sendEventByEventPublisher function publishing the same to HCD"
@@ -112,7 +110,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
             log.error(s"Unable to get EventPublisher instance : ${e.printStackTrace()}")
             Future.failed(e)
           }
-        }
+        }*/
       }
     }
     Future.successful("Successfully sent event by event publisher")
@@ -160,8 +158,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
         s" : ${Calendar.getInstance.getTime}"
       )
       val event: SystemEvent = eventTransformer.getDummyAssemblyEvent()
-      eventPublisher.map(publisher => publisher.publish(event, 30.seconds))
+      // eventPublisher.map(publisher => publisher.publish(event, 30.seconds))
+      eventPublisher.publish(event, 60.seconds)
     }
   }
-
 }

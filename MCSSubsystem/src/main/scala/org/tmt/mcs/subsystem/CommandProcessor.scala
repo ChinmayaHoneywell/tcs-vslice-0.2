@@ -43,9 +43,13 @@ case class CommandProcessor(zmqContext : ZMQ.Context) {
         val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
         if (pushSocket.sendMore(commandName)) {
           println(s"Sending response for : ${commandName} command ")
-          val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder().setCmdError(CmdError.OK).setErrorInfo("No error")
+          val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder()
+            .setCmdError(CmdError.OK)
+            .setErrorInfo("No error")
             .setProcessedTime(1234.50)
-            .setErrorState(MCSCommandResponse.ErrorState.NONE).build()
+            .setErrorState(MCSCommandResponse.ErrorState.FAILED)
+            .build()
+          println(s"${commandName} command response is : ${commandResponse}")
           pushSocket.send(commandResponse.toByteArray,ZMQ.NOBLOCK)
         }else{
           println(s"Unable to send command response ")

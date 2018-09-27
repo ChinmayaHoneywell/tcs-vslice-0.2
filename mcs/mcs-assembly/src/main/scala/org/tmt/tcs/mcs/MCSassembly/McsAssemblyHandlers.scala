@@ -27,6 +27,7 @@ import csw.services.config.client.scaladsl.ConfigClientFactory
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
+import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCSassembly.EventMessage.{hcdLocationChanged, StartEventSubscription, StartPublishingDummyEvent}
@@ -46,6 +47,7 @@ class McsAssemblyHandlers(
     currentStatePublisher: CurrentStatePublisher,
     locationService: LocationService,
     eventService: EventService,
+    alarmService: AlarmService,
     loggerFactory: LoggerFactory
 ) extends ComponentHandlers(ctx,
                               componentInfo,
@@ -53,6 +55,7 @@ class McsAssemblyHandlers(
                               currentStatePublisher,
                               locationService,
                               eventService,
+                              alarmService,
                               loggerFactory) {
 
   implicit val ec: ExecutionContextExecutor                = ctx.executionContext

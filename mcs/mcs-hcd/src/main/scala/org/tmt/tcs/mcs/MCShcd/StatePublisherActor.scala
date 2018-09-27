@@ -109,11 +109,11 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
     log.info(msg = s"Received message : $msg ")
     msg match {
       case msg: StartEventSubscription => {
-        val eventSubscriber: Future[EventSubscriber] = eventService.defaultSubscriber
+        val eventSubscriber = eventService.defaultSubscriber
         zeroMQActor = msg.zeroMQProtoActor
         log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
 
-        eventSubscriber.map(subsc => subsc.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event)))
+        eventSubscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
         /*eventSubscriber.onComplete {
 
         // eventSubscriber.map(subsc => subsc.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event)))

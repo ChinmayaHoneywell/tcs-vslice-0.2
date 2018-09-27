@@ -100,10 +100,17 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         log.info(s"Response for command :${commandName} is received and processing it")
         val responsePacket: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
         val response: SubystemResponse  = messageTransformer.decodeCommandResponse(responsePacket)
+        log.info(
+          s"Subsystem response is : ${response} and responseParam : ${response.commandResponse} converting it into CSWResponse"
+        )
         paramSetTransformer.getCSWResponse(runId, response)
+      } else {
+        CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
       }
+    } else {
+      CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
     }
-    CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
+
   }
 
   private def initMCSConnection(config: Config): Boolean = {
