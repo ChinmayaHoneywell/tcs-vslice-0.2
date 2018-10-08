@@ -59,8 +59,8 @@ object MCSMainApp extends App {
     locationService.resolve(connection, 3000.seconds).map(_.map(new CommandService(_)))
   }
   private def getEventService(): EventService = {
-    //implicit val sys: typed.ActorSystem[Nothing] = system.toTyped
-    lazy val eventService: EventService = new EventServiceFactory().make(locationService)(system)
+    locationService.resolve(connection, 3000.seconds)
+    val eventService: EventService = new EventServiceFactory().make(locationService)(system)
     eventService
   }
 
@@ -84,27 +84,62 @@ object MCSMainApp extends App {
   val resp6 = Await.result(sendDummyLongCommand, 200.seconds)
   println(s"Dummy Long Command Response is : ${resp6}")
 
+  new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
+   new Thread(new Runnable {
+    override def run(): Unit = startPublishPosDemands()
+  }).start()
+
+  def startPublishPosDemands(): Unit = {
+    println("Started publishing position demands")
+    val eventService = getEventService
+    val publisher    = eventService.defaultPublisher
+    var azpos        = 122
+    var elpos        = 57
+    while (true) {
+      Thread.sleep(10000)
+      val trackID     = DeployConstants.TrackIDKey.set(122)
+      val azPosDemand = DeployConstants.AzPosKey.set(azpos)
+      val elPosDemand = DeployConstants.ElPosKey.set(elpos)
+      val event = SystemEvent(DeployConstants.PositionDemandPref, DeployConstants.PositionDemandEventName)
+        .add(trackID)
+        .add(azPosDemand)
+        .add(elPosDemand)
+      println(s"*** Publishing event: ${event} from ClientApp at time : ${System.currentTimeMillis()} ***")
+      publisher.publish(event)
+      azpos += 1
+      elpos += 1
+    }
+  }
   def startSubscribingEvents(): Unit = {
-    println("Started subscribing Events from Assembly")
+    println(" ** Started subscribing Events from Assembly ** ")
     val eventService = getEventService
     val subscriber   = eventService.defaultSubscriber
-    subscriber.subscribeAsync(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
+    subscriber.subscribeCallback(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
+    subscriber.subscribeCallback(DeployConstants.healthSet, event => processHealth(event))
+    subscriber.subscribeCallback(DeployConstants.dummyEventKey, event => proecessDummyEvent(event))
+  }
+  def proecessDummyEvent(event: Event): Future[_] = {
+    println(s"** Received event : ${event} from Assembly. ** ")
+    Future.successful[String]("Successfully processed Dummy event from assembly")
+  }
+  def processHealth(event: Event): Future[_] = {
+    println(s"*** Received health event: ${event} from assembly at time : ${Calendar.getInstance().getTime} *** ")
+    Future.successful[String]("Successfully processed Health event from assembly")
   }
   def processCurrentPosition(event: Event): Future[_] = {
     val today = Calendar.getInstance().getTime()
-    log.info(s"Received current position Event : ${event} at client app receival time is : ${today}")
+    println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
     event match {
       case systemEvent: SystemEvent => {
         val params                               = systemEvent.paramSet
         val azPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
         val simulatorSentTimeParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
-        log.info(s"Received azPosParam is  : ${azPosParam.head}")
-        log.info(s"Current Position send by Simulator at : ${simulatorSentTimeParam.head}")
+        println(s"Received azPosParam is  : ${azPosParam.head}")
+        println(s"Current Position send by Simulator at : ${simulatorSentTimeParam.head}")
 
       }
-
     }
-    Future.successful[String]("Successfully processed Current position event from simulator")
+    Future.successful[String]("Successfully processed Current position event from assembly")
   }
   def sendDummyImmediateCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
     getAssembly.flatMap {

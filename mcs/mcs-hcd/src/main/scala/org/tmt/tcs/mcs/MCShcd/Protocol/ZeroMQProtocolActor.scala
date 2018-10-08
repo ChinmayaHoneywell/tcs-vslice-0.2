@@ -20,9 +20,10 @@ object ZeroMQMessage {
   case class SubmitCommand(sender: ActorRef[ZeroMQMessage], controlCommand: ControlCommand) extends ZeroMQMessage
   case class MCSResponse(commandResponse: CommandResponse)                                  extends ZeroMQMessage
   case class PublishEvent(mcsPositionDemands: MCSPositionDemand)                            extends ZeroMQMessage
-  case class StartEventSubscription()                                                       extends ZeroMQMessage
+  case class StartSimulEventSubscr()                                                        extends ZeroMQMessage
 
   case class SimulatorConnResponse(connected: Boolean) extends ZeroMQMessage
+  case class Disconnect()                              extends ZeroMQMessage
 
 }
 object ZeroMQProtocolActor {
@@ -42,6 +43,14 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private val addr: String                             = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer  = ProtoBuffMsgTransformer.create(loggerFactory)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
+  private var commandSendTime: Long                    = 0
+  private var commandResponseTime: Long                = 0
+  private var commandEncodeTime: Long                  = 0
+  private var commandDecodeTime: Long                  = 0
+  private var zeroMQPullSocketStr: String              = ""
+  private var zeroMQPushSocketStr: String              = ""
+  private var zeroMQSubScribeSocketStr: String         = ""
+  private var zeroMQPubSocketStr: String               = ""
 
   override def onMessage(msg: ZeroMQMessage): Behavior[ZeroMQMessage] = {
     msg match {
@@ -61,32 +70,61 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         Behavior.same
       }
       case msg: PublishEvent => {
+        val encodeStartTime = System.currentTimeMillis()
         val positionDemands: Array[Byte] = messageTransformer.encodeEvent(msg.mcsPositionDemands)
+        log.info(s"*** Time required to encode position demands are : ${System.currentTimeMillis() - encodeStartTime} ***")
+        val zeroMQSendTime = System.currentTimeMillis()
         if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
           pubSocket.send(positionDemands)
         }
+        log.info(s"Time required to send through ZeroMQ is : ${System.currentTimeMillis() - zeroMQSendTime}")
         Behavior.same
       }
-      case msg: StartEventSubscription => {
-        val eventName: String = subscribeSocket.recvStr()
-        statePublisherActor ! PublishState(messageTransformer.decodeEvent(eventName, subscribeSocket.recv(ZMQ.DONTWAIT)))
+      case msg: StartSimulEventSubscr => {
+        new Thread(new Runnable {
+          override def run(): Unit = startSubscrToSimulEvents()
+        }).start()
+        log.info("Started subscribing to events from Simulator.")
+        Behavior.same
+      }
+      case msg: Disconnect => {
+        disconnectFromMCS()
         Behavior.same
       }
     }
   }
-
+  private def startSubscrToSimulEvents() = {
+    while (true) {
+      val eventName: String = subscribeSocket.recvStr()
+      log.info(s"Received event: ${eventName} from Simulator")
+      if (subscribeSocket.hasReceiveMore) {
+        val eventData    = subscribeSocket.recv(ZMQ.DONTWAIT)
+        val receivedTime = System.currentTimeMillis()
+        val currentState = messageTransformer.decodeEvent(eventName, eventData)
+        log.info(
+          s"Time required for transforming: ${eventName} into current State is: ${System.currentTimeMillis() - receivedTime}"
+        )
+        statePublisherActor ! PublishState(currentState)
+      } else {
+        log.error(s"No event data is received for event: ${eventName}")
+      }
+    }
+  }
   private def submitCommandToMCS(msg: SubmitCommand) = {
     val controlCommand: ControlCommand = msg.controlCommand
     val commandName: String            = controlCommand.commandName.name
-    log.info(msg = s"Sending command  : ${commandName} to MCS simulator")
-    if (pushSocket.sendMore(commandName)) {
-      log.info(s"Sent commandName : ${commandName}")
-      if (pushSocket.send(messageTransformer.encodeMessage(controlCommand), ZMQ.NOBLOCK)) {
+    val commandNameSent                = pushSocket.sendMore(commandName)
+    if (commandNameSent) {
+      commandEncodeTime = System.currentTimeMillis()
+      val encodedCommand = messageTransformer.encodeMessage(controlCommand)
+      log.info(s" ** Time required to encode command: ${commandName} is: ${System.currentTimeMillis() - commandEncodeTime} ** ")
+      commandSendTime = System.currentTimeMillis()
+      if (pushSocket.send(encodedCommand, ZMQ.NOBLOCK)) {
+        log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
         msg.sender ! MCSResponse(readCommandResponse(commandName, controlCommand.runId))
       } else {
-        msg.sender ! MCSResponse(
-          CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem.")
-        )
+        log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
+        msg.sender ! MCSResponse(CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem."))
       }
     } else {
       msg.sender ! MCSResponse(CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem."))
@@ -97,13 +135,17 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     val responseCommandName: String = pullSocket.recvStr()
     if (commandName == responseCommandName) {
       if (pullSocket.hasReceiveMore) {
-        log.info(s"Response for command :${commandName} is received and processing it")
         val responsePacket: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
-        val response: SubystemResponse  = messageTransformer.decodeCommandResponse(responsePacket)
         log.info(
-          s"Subsystem response is : ${response} and responseParam : ${response.commandResponse} converting it into CSWResponse"
+          s" ** Time required to get response for command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** "
         )
-        paramSetTransformer.getCSWResponse(runId, response)
+        commandDecodeTime = System.currentTimeMillis()
+        val response: SubystemResponse = messageTransformer.decodeCommandResponse(responsePacket)
+        val commandResponse            = paramSetTransformer.getCSWResponse(runId, response)
+        log.info(
+          s"Time required for decoding response for command: ${commandName} is: ${System.currentTimeMillis() - commandDecodeTime}"
+        )
+        commandResponse
       } else {
         CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
       }
@@ -115,23 +157,34 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
 
   private def initMCSConnection(config: Config): Boolean = {
     log.info(s"config object is :${config}")
-    val zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
-    val pushSocketConn      = pushSocket.bind(zeroMQPushSocketStr)
+    zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
+    val pushSocketConn = pushSocket.bind(zeroMQPushSocketStr)
     log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and connection : ${pushSocketConn}")
 
-    val zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
-    val pullSocketConn      = pullSocket.connect(zeroMQPullSocketStr)
+    zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
+    val pullSocketConn = pullSocket.connect(zeroMQPullSocketStr)
     log.info(msg = s"ZeroMQ pull socket is : ${zeroMQPullSocketStr} and connection : ${pullSocketConn}")
 
-    val zeroMQSubScribeSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQSub")
-    subscribeSocket.subscribe("Welcome to MCS Events".getBytes)
+    zeroMQSubScribeSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQSub")
+    //subscribeSocket.subscribe("Welcome to MCS Events".getBytes)
     val subSockConn = subscribeSocket.connect(zeroMQSubScribeSocketStr)
+    subscribeSocket.subscribe(ZMQ.SUBSCRIPTION_ALL) // added this becz unable to receive msgs without this.
     log.info(msg = s"ZeroMQ subscribe socket is : ${zeroMQSubScribeSocketStr} and connection is : ${subSockConn}")
 
-    val zeroMQPubSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPub")
-    val pubSockConn        = pubSocket.bind(zeroMQPubSocketStr)
+    zeroMQPubSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPub")
+    val pubSockConn = pubSocket.bind(zeroMQPubSocketStr)
     log.info(msg = s"ZeroMQ pub socket is : ${zeroMQPubSocketStr} and connection is : ${pubSockConn}")
 
     pushSocketConn && pullSocketConn && subSockConn && pubSockConn
+  }
+  private def disconnectFromMCS(): Unit = {
+    pushSocket.disconnect(zeroMQPushSocketStr)
+    pushSocket.close()
+    pullSocket.disconnect(zeroMQPullSocketStr)
+    pullSocket.close()
+    subscribeSocket.disconnect(zeroMQSubScribeSocketStr)
+    subscribeSocket.close()
+    pubSocket.disconnect(zeroMQPubSocketStr)
+    pubSocket.close()
   }
 }

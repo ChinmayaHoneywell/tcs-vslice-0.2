@@ -48,9 +48,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
   def getHCDState(state: String): CurrentState = {
     val lifeCycleStateKey                 = EventConstants.LifeCycleStateKey
     val lifeCycleParam: Parameter[String] = lifeCycleStateKey.set(state)
-
-    val timestamp = timeStampKey.set(Instant.now)
-
+    val timestamp                         = timeStampKey.set(Instant.now)
     CurrentState(prefix, StateName(EventConstants.HCDLifecycleState)).add(lifeCycleParam).add(timestamp)
   }
   /*

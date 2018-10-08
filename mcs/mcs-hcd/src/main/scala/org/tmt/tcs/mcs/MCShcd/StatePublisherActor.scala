@@ -60,7 +60,7 @@ object StatePublisherActor {
     )
 
 }
-//private case object TimerKey
+
 /*
 This actor is responsible for publishing state, events for MCS to assembly it dervies HCD states from
 MCS state and  events received
@@ -82,11 +82,10 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
 
    */
   private def processEvent(event: Event): Future[_] = {
-
-    log.info(msg = s"Received event : ${event} from Assembly.")
-
+    log.info(msg = s"*** Received positionDemand event to HCD's statePublisherActor at ${System.currentTimeMillis()} ***")
     event match {
       case systemEvent: SystemEvent => {
+        //TODO : Change PublishEvent(mcsDemandPosition) to systemEvent for publishing
         val mcsDemandPositions: MCSPositionDemand = paramSetTransformer.getMountDemandPositions(systemEvent)
         zeroMQActor ! PublishEvent(mcsDemandPositions)
         Future.successful("Successfully sent Assembly position demands to MCS ZeroMQActor")
@@ -105,29 +104,12 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
 
    */
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
-
-    log.info(msg = s"Received message : $msg ")
     msg match {
       case msg: StartEventSubscription => {
         val eventSubscriber = eventService.defaultSubscriber
         zeroMQActor = msg.zeroMQProtoActor
         log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
-
         eventSubscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
-        /*eventSubscriber.onComplete {
-
-        // eventSubscriber.map(subsc => subsc.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event)))
-        eventSubscriber.onComplete {
-
-          case subscriber: EventSubscriber => {
-            subscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
-          }
-          case _ => {
-            log.error("Unable to get subscriber instance from EventService.")
-            Future.failed(new Exception("Unable to get event subscriber instance from EventService "))
-          }
-
-        }*/
         Behavior.same
       }
       case msg: StateChangeMsg => {

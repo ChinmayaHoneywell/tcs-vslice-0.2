@@ -1,45 +1,45 @@
 package org.tmt.tcs.mcs.MCSassembly
 
 import java.util.Calendar
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import akka.util.Timeout
-import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
+import csw.messages.commands.ControlCommand
 import csw.messages.events.{Event, SystemEvent}
 import csw.services.command.scaladsl.CommandService
-import csw.services.event.api.scaladsl.{EventPublisher, EventService, EventSubscriber}
+import csw.services.event.api.scaladsl.{EventService, SubscriptionModes}
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventConstants, EventHandlerConstants}
+import org.tmt.tcs.mcs.MCSassembly.Constants.EventHandlerConstants
 import org.tmt.tcs.mcs.MCSassembly.EventMessage._
-
 import scala.concurrent.duration._
 import org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper
-
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
-import scala.util.{Failure, Success}
 
 sealed trait EventMessage
 
 object EventMessage {
   case class StartEventSubscription()                                extends EventMessage
   case class hcdLocationChanged(hcdLocation: Option[CommandService]) extends EventMessage
-  case class PublishEvent(event: Event)                              extends EventMessage
+  case class PublishHCDState(event: Event)                           extends EventMessage
   case class StartPublishingDummyEvent()                             extends EventMessage
+  case class DummyMsg()                                              extends EventMessage
 
 }
 
 object EventHandlerActor {
-  def createObject(loggerFactory: LoggerFactory,
+  def createObject(eventService: EventService,
                    hcdLocation: Option[CommandService],
-                   eventService: EventService): Behavior[EventMessage] =
+                   eventTransformer: EventTransformerHelper,
+                   loggerFactory: LoggerFactory): Behavior[EventMessage] =
     Behaviors.setup(
       ctx =>
-        EventHandlerActor(ctx: ActorContext[EventMessage],
-                          loggerFactory: LoggerFactory,
-                          hcdLocation: Option[CommandService],
-                          eventService: EventService)
+        EventHandlerActor(
+          ctx: ActorContext[EventMessage],
+          eventService: EventService,
+          hcdLocation: Option[CommandService],
+          eventTransformer: EventTransformerHelper,
+          loggerFactory: LoggerFactory
+      )
     )
 }
 /*
@@ -47,73 +47,67 @@ This actor is responsible consuming incoming events to MCS Assembly and publishi
 events from MCS Assembly using CSW EventService
  */
 case class EventHandlerActor(ctx: ActorContext[EventMessage],
-                             loggerFactory: LoggerFactory,
+                             eventService: EventService,
                              hcdLocation: Option[CommandService],
-                             eventService: EventService)
+                             eventTransformer: EventTransformerHelper,
+                             loggerFactory: LoggerFactory)
     extends MutableBehavior[EventMessage] {
 
-  private val log                                      = loggerFactory.getLogger
-  implicit val ec: ExecutionContextExecutor            = ctx.executionContext
-  implicit val duration: Timeout                       = 20 seconds
-  private val eventSubscriber                          = eventService.defaultSubscriber
-  private val eventPublisher                           = eventService.defaultPublisher
-  private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
+  private val log                           = loggerFactory.getLogger
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  implicit val duration: Timeout            = 20 seconds
+  private val eventSubscriber               = eventService.defaultSubscriber
+  private val eventPublisher                = eventService.defaultPublisher
 
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     msg match {
       case x: StartEventSubscription => subscribeEventMsg()
-      case x: hcdLocationChanged     => EventHandlerActor.createObject(loggerFactory, x.hcdLocation, eventService)
-      case x: PublishEvent           => publishEvent(x.event)
+      case x: hcdLocationChanged     => EventHandlerActor.createObject(eventService, x.hcdLocation, eventTransformer, loggerFactory)
+      case x: PublishHCDState        => publishReceivedEvent(x.event)
 
       case x: StartPublishingDummyEvent => {
         publishDummyEventFromAssembly()
         Behavior.same
       }
 
+      case _ => {
+        log.error(s"************************ Received unknown message  in EventHandlerActor*********************")
+        Behavior.same
+      }
+
     }
   }
 
-  def publishEvent(event: Event): Behavior[EventMessage] = {
-    log.info(msg = s"Received msg : ${event} for publishing")
-    eventPublisher.publish(event)
-    Behavior.same
+  def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
+    eventPublisher.publish(event, 10.seconds, ex => log.info(s"${ex}"))
+    EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, loggerFactory)
   }
   /*
    *This function subscribes to position demand Events received from Other TCS Assemblies
    * using CSW EventService
    */
   def subscribeEventMsg(): Behavior[EventMessage] = {
+    log.info(msg = s"Started subscribing events Received from ClientApp.")
+    eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey,
+                                      event => sendEventByEventPublisher(event),
+                                      10.seconds,
+                                      SubscriptionModes.RateLimiterMode)
 
-    log.info(msg = s"Started subscribring events Received from Pointing Kernel.")
-    eventSubscriber.subscribeAsync(EventHandlerConstants.PositionDemandKey, event => sendEventByOneWayCommand(event))
-    Behavior.same
+    EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, loggerFactory)
   }
   /*
   This function publishes event by using EventPublisher to the HCD
    */
   private def sendEventByEventPublisher(msg: Event): Future[_] = {
 
-    log.info(s"Sending event : ${msg} to HCD by evntPublisher")
+    log.info(s" *** Received positionDemand event to EventHandler at : ${System.currentTimeMillis()} *** ")
 
     msg match {
       case systemEvent: SystemEvent => {
-        //eventPublisher.map(pub => pub.publish(systemEvent))
         eventPublisher.publish(systemEvent)
-        /* eventPublisher.onComplete {
-          case Success(publisher: EventPublisher) => {
-            log.info(
-              s"Received Event : ${msg} in Assembly EventHandlerActor in sendEventByEventPublisher function publishing the same to HCD"
-            )
-            publisher.publish(systemEvent)
-          }
-          case Failure(e) => {
-            log.error(s"Unable to get EventPublisher instance : ${e.printStackTrace()}")
-            Future.failed(e)
-          }
-        }*/
       }
     }
-    Future.successful("Successfully sent event by event publisher")
+    Future.successful("Successfully sent positionDemand by event publisher")
   }
 
   /*
@@ -151,15 +145,17 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   private def publishDummyEventFromAssembly(): Unit = {
 
     log.info(msg = "Started publishing dummy Events from Assembly per 30 seconds")
+    new Thread(new Runnable { override def run(): Unit = sendDummyEvent }).start()
+
+  }
+  def sendDummyEvent() = {
     while (true) {
       Thread.sleep(60000)
-      println(
-        s"Publishing Dummy event from assembly current time is" +
-        s" : ${Calendar.getInstance.getTime}"
-      )
+      log.info(s"Publishing Dummy event from assembly current time is : ${Calendar.getInstance.getTime}")
       val event: SystemEvent = eventTransformer.getDummyAssemblyEvent()
       // eventPublisher.map(publisher => publisher.publish(event, 30.seconds))
-      eventPublisher.publish(event, 60.seconds)
+      eventPublisher.publish(event, 30.seconds)
+      log.info("Successfully published dummy event from assembly")
     }
   }
 }

@@ -50,13 +50,11 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
       case msg: InitializeMsg => doInitialize()
       case msg: ShutdownMsg   => doShutdown()
       case msg: GetAssemblyConfig => {
-        log.info(msg = s"Sending configuration of assembly in LifeCycleActor.")
-        println("In getAssembly config call")
         msg.sender ! AssemblyConfig(config)
         Behavior.same
       }
       case _ => {
-        log.info(s"Incorrect message is sent to LifeCycleActor : $msg")
+        log.error(s"Incorrect message is sent to LifeCycleActor : $msg")
         Behavior.unhandled
       }
     }
@@ -68,19 +66,11 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
 
    */
   private def doInitialize(): Behavior[LifeCycleMessage] = {
-    println("Starting initialization")
-    log.info(msg = " Initializing MCS Assembly actor with the help of LifecycleActor")
-    //TODO : TEmporary commenting config call in assembly
-    /* val assemblyConfig: Config = getAssemblyConfig()
+    val assemblyConfig: Config = getAssemblyConfig()
     val commandTimeout         = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
-    log.info(msg = s"command timeout duration is seconds ${commandTimeout}")
-    val numberOfRetries = assemblyConfig.getInt("tmt.tcs.mcs.retries")
-    log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${numberOfRetries}")
-    val velAccLimit = assemblyConfig.getInt("tmt.tcs.mcs.limit")
-    log.info(msg = s"numberOfRetries for connection between assembly and HCD  is  ${velAccLimit}")
-    config = Some(assemblyConfig)*/
-    log.info(msg = s"Successfully initialized assembly configuration")
-    println("Initialization successfully completed")
+    val numberOfRetries        = assemblyConfig.getInt("tmt.tcs.mcs.retries")
+    val velAccLimit            = assemblyConfig.getInt("tmt.tcs.mcs.limit")
+    config = Some(assemblyConfig)
     Behavior.same
   }
 
@@ -89,27 +79,20 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     Behavior.stopped
   }
   private def getAssemblyConfig(): Config = {
-    println("In getAssemblyConfig method")
     val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val configData: ConfigData                   = Await.result(getConfigData(filePath), 30.seconds)
     Await.result(configData.toConfigObject, 20.seconds)
-
   }
 
   private def getConfigData(filePath: Path): Future[ConfigData] = {
-    println("In get configData method")
     val futConfigData: Future[Option[ConfigData]] = configClient.getActive(filePath)
     futConfigData flatMap {
       case Some(configData: ConfigData) => {
-        //Await.result(configData.toConfigObject, 3.seconds)
-        println("Received configData ")
         Future.successful(configData)
-        //configData
       }
       case None => {
-        println("Unable to get configuration")
         throw ConfigNotFoundException()
       }
     }

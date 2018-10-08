@@ -7,7 +7,7 @@ import csw.messages.events.{Event, SystemEvent}
 import csw.messages.params.generics.Parameter
 import csw.messages.params.states.CurrentState
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventConstants, EventHandlerConstants}
+import org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventHandlerConstants}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage.AssemblyCurrentState
 
 object EventTransformerHelper {
@@ -54,17 +54,15 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
     val elInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.EL_InPosition_Key)
     val timeStampKey: Option[Parameter[Instant]]   = currentState.get(EventHandlerConstants.TimeStampKey)
 
-    SystemEvent(
-      EventHandlerConstants.CURRENT_POSITION_PREFIX,
-      EventHandlerConstants.CURRENT_POSITION_STATE,
-      Set(azPosParam.get,
-          elPosParam.get,
-          azPosErrorParam.get,
-          elPosErrorParam.get,
-          azInPosKey.get,
-          elInPosKey.get,
-          timeStampKey.get)
-    )
+    SystemEvent(EventHandlerConstants.CURRENT_POSITION_PREFIX, EventHandlerConstants.CURRENT_POSITION_STATE)
+      .add(azPosParam.get)
+      .add(elPosParam.get)
+      .add(azPosErrorParam.get)
+      .add(elPosErrorParam.get)
+      .add(azInPosKey.get)
+      .add(elInPosKey.get)
+      .add(timeStampKey.get)
+
   }
   def getDiagnosisEvent(currentState: CurrentState): Event = {
     val azPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.AzPosKey)
@@ -92,9 +90,10 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
     val healthReason: Option[Parameter[String]]  = currentState.get(EventHandlerConstants.HEALTH_REASON_KEY)
     val timeStampKey: Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.TimeStampKey)
 
-    SystemEvent(EventHandlerConstants.HEALTH_PREFIX,
-                EventHandlerConstants.HEALTH_STATE,
-                Set(health.get, healthReason.get, timeStampKey.get))
+    SystemEvent(EventHandlerConstants.HEALTH_PREFIX, EventHandlerConstants.HEALTH_STATE)
+      .add(health.get)
+      .add(healthReason.get)
+      .add(timeStampKey.get)
   }
   def getDriveState(currentState: CurrentState): Event = {
     val processing: Option[Parameter[Boolean]]    = currentState.get(EventHandlerConstants.PROCESSING_PARAM_KEY)

@@ -1,4 +1,6 @@
 package org.tmt.tcs.mcs.MCShcd.msgTransformers
+import java.time.Instant
+
 import com.google.protobuf.GeneratedMessage
 import csw.messages.commands.ControlCommand
 import csw.messages.params.generics.Parameter
@@ -18,16 +20,16 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
 
   override def decodeCommandResponse(responsePacket: Array[Byte]): SubystemResponse = {
 
-    log.info(msg = s"Decoding command Response")
+    //log.info(msg = s"Decoding command Response")
 
     val commandResponse: MCSCommandResponse   = MCSCommandResponse.parseFrom(responsePacket)
     val cmdError: MCSCommandResponse.CmdError = commandResponse.getCmdError
-    log.info(s"Command Response from Simulator is : ${commandResponse}")
+    //log.info(s"Command Response from Simulator is : ${commandResponse}")
     if (MCSCommandResponse.CmdError.OK.equals(cmdError)) {
-      log.info("No Error from Simulator")
+      //log.info("No Error from Simulator")
       SubystemResponse(true, None, None)
     } else {
-      log.error(s"Error from simulator cmdError : ${cmdError} and expected : ${MCSCommandResponse.CmdError.OK}")
+      //log.error(s"Error from simulator cmdError : ${cmdError} and expected : ${MCSCommandResponse.CmdError.OK}")
       SubystemResponse(false, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
     }
 
@@ -54,7 +56,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   }
 
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
-    log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")
+    //log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")
     controlCommand.commandName.name match {
       case Commands.FOLLOW => {
         getFollowCommandBytes
@@ -78,7 +80,12 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   }
   override def encodeEvent(mcsPositionDemands: MCSPositionDemand): Array[Byte] = {
     val event: GeneratedMessage =
-      TcsPositionDemandEvent.newBuilder().setAzimuth(mcsPositionDemands.azdPos).setElevation(mcsPositionDemands.elPos).build()
+      TcsPositionDemandEvent
+        .newBuilder()
+        .setAzimuth(mcsPositionDemands.azdPos)
+        .setElevation(mcsPositionDemands.elPos)
+        .setTime(Instant.now().toEpochMilli)
+        .build()
     event.toByteArray
   }
 

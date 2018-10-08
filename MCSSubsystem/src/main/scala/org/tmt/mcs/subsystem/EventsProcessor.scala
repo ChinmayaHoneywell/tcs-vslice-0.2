@@ -33,13 +33,14 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
     val subSocketAddr = addr + subSocketPort
     subSocket.connect(subSocketAddr)
+    subSocket.subscribe(ZMQ.SUBSCRIPTION_ALL)
     println(s"MCS Simulator is subscribing on : ${subSocketAddr}")
 
   }
   def startPublishingCurrPos(): Unit ={
     println("Publish Current position thread started")
     while(true){
-      Thread.sleep(10)
+      Thread.sleep(11000)
       updateCurrentAzPos()
       updateCurrentElPos()
       val mcsCurrentPosition : McsCurrentPositionEvent =  TcsMcsEventsProtos.McsCurrentPositionEvent.newBuilder()
@@ -61,8 +62,17 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         .setAzWrapPosDemand(AzPosDemanded)
         .setAzWrapPosError(AzPosDemanded - AzCurrPos)
         .build()
+
+      //println("Publishing currentPosition : "+mcsCurrentPosition)
       if(pubSocket.sendMore("CurrentPosition")){
-        pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)
+        println("Sent event: CurrentPosition to MCS")
+        if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
+          println("Sent currentPosition event data")
+        }else{
+          println("Error!!!! Unable to send currentPositionEvent Data.")
+        }
+      }else{
+        println("Error --> Unable to send currentPosition event name.")
       }
     }
   }
@@ -100,14 +110,17 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   def startPublishingHealth() : Unit = {
     println("Publish Health Thread Started")
     while(true){
-      Thread.sleep(1000)
+      Thread.sleep(12000)
       val mcsHealth = TcsMcsEventsProtos.McsHealth.newBuilder()
         .setHealth(TcsMcsEventsProtos.McsHealth.Health.Good)
         .setReason("All is well")
         .setTime(Instant.now().toEpochMilli)
         .build()
+      println("Publishing Health information.")
       if(pubSocket.sendMore("Health")){
-        pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)
+        if(pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)){
+          println("Successfully published health event")
+        }
       }
     }
   }
@@ -138,12 +151,16 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     println("Subscribe position Demands thread started")
     while (true) {
       val eventName: String = subSocket.recvStr()
-      if ("MountDemandPosition".equals(eventName)) {
+      println(s"Received : ${eventName} from MCS")
+      if (subSocket.hasReceiveMore) {
         val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
         val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
+        println(s"Received position demands from MCS at ${System.currentTimeMillis()}")
         setAzPosDemanded(positionDemand.getAzimuth)
         setElPosDemanded(positionDemand.getElevation)
         demandedTime = positionDemand.getTime
+      }else{
+        println("Didn't get any position demands yet.")
       }
     }
   }

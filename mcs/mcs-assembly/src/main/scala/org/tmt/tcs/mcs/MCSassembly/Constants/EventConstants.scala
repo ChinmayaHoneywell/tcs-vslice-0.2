@@ -24,7 +24,7 @@ object EventConstants {
 
   //MCS Simulator currentPosition state
   val CURRENT_POSITION: String = "CurrentPosition"
-  val CURRENT_POS_PREFIX       = "tmt.tcs.mcs.currentposition"
+  val CURRENT_POS_PREFIX       = "tmt.tcs.mcsA"
 
   //MCS Diagnosis event
   val DIAGNOSIS_STATE: String  = "Diagnosis"
@@ -32,7 +32,7 @@ object EventConstants {
 
   // MCS Health event
   val HEALTH_STATE: String  = "Health"
-  val Health_Prefix: String = "tmt.tcs.mcs.health"
+  val Health_Prefix: String = "tmt.tcs.mcsA"
   val HealthKey: String     = "HealthKey"
   val HealthReason: String  = "HealthReasonKey"
 

@@ -5,26 +5,29 @@ import java.time.Instant
 import csw.messages.events.{EventKey, EventName}
 import csw.messages.params.generics.{Key, KeyType}
 import csw.messages.params.models.{Prefix, Subsystem}
-import org.tmt.tcs.mcs.MCSdeploy.constants.EventConstants.{
-  DIAGNOSIS_PREFIX,
-  DIAGNOSIS_STATE,
-  DRIVE_STATE,
-  DUMMY_STATE,
-  DUMMY_STATE_PREFIX,
-  HEALTH_STATE,
-  MCS_AZ_STATE,
-  MCS_EL_STATE,
-  _
-}
+import org.tmt.tcs.mcs.MCSdeploy.constants.EventConstants._
 
 object DeployConstants {
   //Below are set of keys required for subscribing to events
   val PositionDemandKey: Set[EventKey] = Set(
-    EventKey(Prefix(TPK_PREFIX), EventName(MOUNT_DEMAND_POSITION))
+    EventKey(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
   )
-  val currentPositionSet: Set[EventKey] = Set(EventKey(CURRENT_POSITION_PREFIX, CURRENT_POSITION_STATE))
+  val currentPositionSet: Set[EventKey] = Set(
+    EventKey(Prefix(EventConstants.CURRENT_POS_PREFIX), EventName(EventConstants.CURRENT_POSITION))
+  )
+  val healthSet: Set[EventKey] = Set(
+    EventKey(Prefix(EventConstants.Health_Prefix), EventName(EventConstants.HEALTH_STATE))
+  )
+
+  val dummyEventKey: Set[EventKey] = Set(
+    EventKey(Prefix(EventConstants.DUMMY_STATE_PREF), EventName(EventConstants.DUMMY_STATE_NAME))
+  )
 
   val mcsHCDPrefix = Prefix(Subsystem.MCS.toString)
+
+  //These parameters are needed by position demand event
+  val PositionDemandPref: Prefix         = Prefix(TPK_PREFIX)
+  val PositionDemandEventName: EventName = EventName(MOUNT_DEMAND_POSITION)
 
   //These parameters are needed for assembly current state event generation
   val LifecycleStateKey: Key[String]   = KeyType.StringKey.make(LIFECYLE_STATE_KEY)
@@ -36,8 +39,7 @@ object DeployConstants {
   val TrackIDKey: Key[Int] = KeyType.IntKey.make(POITNTING_KERNEL_TRACK_ID)
 
   //These parameters are needed for current position event send from assembly to tpk
-  val CURRENT_POSITION_STATE          = EventName(CURRENT_POSITION)
-  val CURRENT_POSITION_PREFIX         = Prefix(CURRENT_POS_PREFIX)
+
   val AzPosKey: Key[Double]           = KeyType.DoubleKey.make(POINTING_KERNEL_AZ_POS)
   val ElPosKey: Key[Double]           = KeyType.DoubleKey.make(POINTING_KERNEL_EL_POS)
   val AZ_POS_ERROR_KEY: Key[Double]   = KeyType.DoubleKey.make(AZ_POS_ERROR)
@@ -51,8 +53,7 @@ object DeployConstants {
   val DIAGNOSIS_PREFIX = Prefix(EventConstants.DIAGNOSIS_PREFIX)
 
   //These parameters are needed for Health event
-  val HEALTH_STATE                   = EventName(EventConstants.HEALTH_STATE)
-  val HEALTH_PREFIX                  = Prefix(EventConstants.Health_Prefix)
+
   val HEALTH_KEY: Key[String]        = KeyType.StringKey.make(EventConstants.HealthKey)
   val HEALTH_REASON_KEY: Key[String] = KeyType.StringKey.make(EventConstants.HealthReason)
 
@@ -64,8 +65,4 @@ object DeployConstants {
   val MCS_AZ_STATE: Key[String]             = KeyType.StringKey.make(EventConstants.MCS_AZ_STATE)
   val MCS_EL_STATE: Key[String]             = KeyType.StringKey.make(EventConstants.MCS_EL_STATE)
 
-  //These are parameters needed for dummy events
-  val DUMMY_STATE             = EventName(EventConstants.DUMMY_STATE)
-  val DUMMY_STATE_PREFIX      = Prefix(EventConstants.DUMMY_STATE_PREFIX)
-  val DummyEventKey: Key[Int] = KeyType.IntKey.make(DUMMY_STATE_KEY)
 }

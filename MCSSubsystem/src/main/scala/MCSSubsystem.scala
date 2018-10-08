@@ -20,29 +20,31 @@ object MCSSubsystem extends App{
   eventProcessor.initialize(addr,pubSocketPort,subSocketPort)
 
   new Thread(new Runnable {
-    override def run(): Unit =
-      commandProcessor.processCommand();
+    override def run(): Unit =  commandProcessor.processCommand()
   }).start()
 
   new Thread(new Runnable {
-    override def run(): Unit =
-      eventProcessor.startPublishingCurrPos();
-  }).start()
-    //TODO : Temporarily commenting these events need to add more required fields facing
-    // mandatory fields missing issues.
- /* new Thread(new Runnable{
-    override def run(): Unit = eventProcessor.startPublishingDiagnosis();
+    override def run(): Unit =  eventProcessor.startPublishingCurrPos()
   }).start()
 
-   new Thread(new Runnable {
-    override def run(): Unit =  eventProcessor.startPublishingDriveState()
-  }).start()*/
 
-   new Thread(new Runnable {
+  new Thread(new Runnable {
     override def run(): Unit = eventProcessor.startPublishingHealth()
-  }).start();
+  }).start()
 
+  new Thread(new Runnable {
+    override def run(): Unit = eventProcessor.subscribePositionDemands
+  }).start()
 
+  //TODO : Temporarily commenting these events need to add more required fields facing
+  // mandatory fields missing issues.
+  /* new Thread(new Runnable{
+     override def run(): Unit = eventProcessor.startPublishingDiagnosis();
+   }).start()
+
+    new Thread(new Runnable {
+     override def run(): Unit =  eventProcessor.startPublishingDriveState()
+   }).start()*/
 
 
   

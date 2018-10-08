@@ -27,6 +27,7 @@ import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
+import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{Disconnect, StartSimulEventSubscr}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{ZeroMQMessage, ZeroMQProtocolActor}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.ParamSetTransformer
 import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
@@ -104,6 +105,7 @@ class McsHcdHandlers(
     if (connectToSimulator(lifecycleMsg)) {
       statePublisherActor ! StartEventSubscription(zeroMQProtoActor)
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
+      zeroMQProtoActor ! StartSimulEventSubscr()
     } else {
       log.error(msg = s"Unable to connect with MCS Simulator")
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.Disconnected)
@@ -491,6 +493,7 @@ class McsHcdHandlers(
 
   override def onShutdown(): Future[Unit] = Future {
     log.info(msg = "Shutting down MCS HCD")
+    zeroMQProtoActor ! Disconnect()
     lifeCycleActor ! ShutdownMsg()
     statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Off, HCDOperationalState.Disconnected)
   }

@@ -31,6 +31,7 @@ import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCSassembly.EventMessage.{hcdLocationChanged, StartEventSubscription, StartPublishingDummyEvent}
+import org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -58,22 +59,31 @@ class McsAssemblyHandlers(
                               alarmService,
                               loggerFactory) {
 
-  implicit val ec: ExecutionContextExecutor                = ctx.executionContext
-  private val log                                          = loggerFactory.getLogger
-  private val configClient: ConfigClientService            = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
+  private val log                           = loggerFactory.getLogger
+
+  private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
+
   var hcdStateSubscriber: Option[CurrentStateSubscription] = None
   var hcdLocation: Option[CommandService]                  = None
 
   val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, configClient, loggerFactory), "LifeCycleActor")
+
+  private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
+
   val eventHandlerActor: ActorRef[EventMessage] =
-    ctx.spawn(EventHandlerActor.createObject(loggerFactory, hcdLocation, eventService), name = "EventHandlerActor")
-  val monitorActor: ActorRef[MonitorMessage] =
-    ctx.spawn(MonitorActor.createObject(AssemblyLifeCycleState.Initalized,
-                                        AssemblyOperationalState.Ready,
-                                        eventHandlerActor,
-                                        loggerFactory),
-              name = "MonitorActor")
+    ctx.spawn(EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, loggerFactory),
+              name = "EventHandlerActor")
+
+  val monitorActor: ActorRef[MonitorMessage] = ctx.spawn(
+    MonitorActor.createObject(AssemblyLifeCycleState.Initalized,
+                              AssemblyOperationalState.Ready,
+                              eventHandlerActor,
+                              eventTransformer,
+                              loggerFactory),
+    name = "MonitorActor"
+  )
   val commandHandlerActor: ActorRef[CommandMessage] = ctx.spawn(
     CommandHandlerActor.createObject(commandResponseManager, isOnline = true, hcdLocation, loggerFactory),
     "CommandHandlerActor"
@@ -86,10 +96,9 @@ class McsAssemblyHandlers(
   3. sends  StartPublishingEvents  and StartEventSubscription msg to EventHandlerActor
    */
   override def initialize(): Future[Unit] = Future {
-    log.info(msg = "Initializing MCS Assembly")
+    //log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
     eventHandlerActor ! StartEventSubscription()
-
     eventHandlerActor ! StartPublishingDummyEvent()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
