@@ -7,7 +7,8 @@ import akka.stream.Materializer;
 import com.typesafe.config.Config;
 import csw.framework.exceptions.FailureStop;
 import csw.messages.commands.ControlCommand;
-import csw.services.command.scaladsl.CommandResponseManager;
+
+import csw.services.command.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.api.models.ConfigData;
 import csw.services.config.client.internal.ActorRuntime;

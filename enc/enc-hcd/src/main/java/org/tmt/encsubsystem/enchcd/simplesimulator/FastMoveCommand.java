@@ -1,7 +1,7 @@
-package org.tmt.encsubsystem.enchcd.subsystem;
+package org.tmt.encsubsystem.enchcd.simplesimulator;
 
 /**
- * This command can be submitted to subsystem using IMessageCommunicator.
+ * This command is submitted to SimpleSimulator.
  * Example - communicator.sendCommand(new FastMoveCommand(3.2, 6.5))
  */
 public class FastMoveCommand {
@@ -10,6 +10,14 @@ public class FastMoveCommand {
     public FastMoveCommand(double az, double el) {
         this.az = az;
         this.el = el;
+    }
+
+    @Override
+    public String toString() {
+        return "FastMoveCommand{" +
+                "az=" + az +
+                ", el=" + el +
+                '}';
     }
 
     public double getEl() {

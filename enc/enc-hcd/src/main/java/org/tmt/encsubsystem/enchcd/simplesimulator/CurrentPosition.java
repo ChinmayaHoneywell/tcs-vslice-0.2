@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.subsystem;
+package org.tmt.encsubsystem.enchcd.simplesimulator;
 
 public class CurrentPosition {
     private double az, el;

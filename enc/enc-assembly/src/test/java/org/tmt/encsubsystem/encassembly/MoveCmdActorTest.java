@@ -2,16 +2,12 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandName;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.messages.commands.Setup;
-import csw.messages.javadsl.JUnits;
-import csw.messages.params.generics.JKeyTypes;
 import csw.messages.params.models.Id;
-import csw.messages.params.models.Prefix;
+import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
 import org.mockito.Mock;

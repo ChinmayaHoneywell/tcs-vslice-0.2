@@ -1,15 +1,17 @@
 package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.typed.javadsl.ActorContext;
+import csw.framework.CurrentStatePublisher;
 import csw.framework.javadsl.JComponentBehaviorFactory;
 import csw.framework.javadsl.JComponentHandlers;
-import csw.framework.scaladsl.CurrentStatePublisher;
+import csw.messages.TopLevelActorMessage;
 import csw.messages.framework.ComponentInfo;
-import csw.messages.scaladsl.TopLevelActorMessage;
-import csw.services.command.scaladsl.CommandResponseManager;
-import csw.services.event.javadsl.IEventService;
+import csw.services.command.CommandResponseManager;
+import csw.services.event.api.javadsl.IEventService;
+import csw.services.alarm.api.javadsl.IAlarmService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.JLoggerFactory;
+
 
 public class JEncAssemblyBehaviorFactory extends JComponentBehaviorFactory {
 
@@ -21,9 +23,10 @@ public class JEncAssemblyBehaviorFactory extends JComponentBehaviorFactory {
             CurrentStatePublisher currentStatePublisher,
             ILocationService locationService,
             IEventService eventService,
+            IAlarmService alarmService,
             JLoggerFactory loggerFactory
     ) {
-        return new JEncAssemblyHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, loggerFactory);
+        return new JEncAssemblyHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, alarmService,loggerFactory);
     }
 
 }

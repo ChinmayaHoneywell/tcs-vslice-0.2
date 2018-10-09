@@ -14,8 +14,9 @@ import csw.messages.params.generics.Parameter;
 import csw.messages.params.models.Id;
 import csw.messages.params.models.ObsId;
 import csw.messages.params.models.Prefix;
+import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-import csw.services.command.scaladsl.CommandResponseManager;
+
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 import scala.Option;

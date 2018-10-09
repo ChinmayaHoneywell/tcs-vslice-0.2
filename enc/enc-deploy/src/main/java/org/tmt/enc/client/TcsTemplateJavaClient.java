@@ -28,6 +28,7 @@ import csw.services.logging.javadsl.JLoggingSystemFactory;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.net.InetAddress;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
@@ -74,7 +75,7 @@ public class TcsTemplateJavaClient {
 
     private Optional<JCommandService> getAssemblyBlocking() throws Exception {
 
-        FiniteDuration waitForResolveLimit = new FiniteDuration(30, TimeUnit.SECONDS);
+        Duration waitForResolveLimit = Duration.ofSeconds(30);
 
         Optional<AkkaLocation> resolveResult = locationService.resolve(assemblyConnection, waitForResolveLimit).get();
 

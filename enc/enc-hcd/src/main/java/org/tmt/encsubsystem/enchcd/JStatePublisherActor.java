@@ -5,7 +5,7 @@ import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.actor.typed.javadsl.TimerScheduler;
-import csw.framework.scaladsl.CurrentStatePublisher;
+import csw.framework.CurrentStatePublisher;
 import csw.messages.params.generics.JKeyTypes;
 import csw.messages.params.generics.Key;
 import csw.messages.params.generics.Parameter;
@@ -13,8 +13,8 @@ import csw.messages.params.states.CurrentState;
 import csw.messages.params.states.StateName;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.subsystem.CurrentPosition;
-import org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
+import org.tmt.encsubsystem.enchcd.simplesimulator.CurrentPosition;
+import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -215,7 +215,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         log.debug(() -> "Publish Message Received ");
 
         // example parameters for a current state
-        CurrentPosition currentPosition = IMessageCommunicatorSimpleImpl.getInstance().receiveEventCurrentPosition();
+        CurrentPosition currentPosition = SimpleSimulator.getInstance().getCurrentPosition();
         Parameter azPosParam = azPosKey.set(currentPosition.getAz()).withUnits(degree);
         Parameter azPosErrorParam = azPosErrorKey.set(0.34).withUnits(degree);
         Parameter elPosParam = elPosKey.set(currentPosition.getEl()).withUnits(degree);

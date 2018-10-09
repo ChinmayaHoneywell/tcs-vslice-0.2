@@ -7,8 +7,10 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Adapter;
 import akka.actor.typed.javadsl.AskPattern;
 import akka.util.Timeout;
+import csw.framework.CurrentStatePublisher;
 import csw.framework.javadsl.JComponentHandlers;
-import csw.framework.scaladsl.CurrentStatePublisher;
+
+import csw.messages.TopLevelActorMessage;
 import csw.messages.commands.CommandIssue;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
@@ -19,13 +21,16 @@ import csw.messages.location.LocationRemoved;
 import csw.messages.location.LocationUpdated;
 import csw.messages.location.TrackingEvent;
 import csw.messages.params.generics.JKeyTypes;
-import csw.messages.scaladsl.TopLevelActorMessage;
+
+import csw.services.alarm.api.javadsl.IAlarmService;
+import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-import csw.services.command.scaladsl.CommandResponseManager;
+
 import csw.services.command.scaladsl.CurrentStateSubscription;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.client.javadsl.JConfigClientFactory;
-import csw.services.event.javadsl.IEventService;
+
+import csw.services.event.api.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
@@ -80,9 +85,10 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             CurrentStatePublisher currentStatePublisher,
             ILocationService locationService,
             IEventService eventService,
+            IAlarmService alarmService,
             JLoggerFactory loggerFactory
     ) {
-        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, loggerFactory);
+        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, alarmService, loggerFactory);
         this.currentStatePublisher = currentStatePublisher;
         this.log = loggerFactory.getLogger(getClass());
         this.commandResponseManager = commandResponseManager;

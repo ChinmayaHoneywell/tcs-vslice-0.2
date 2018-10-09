@@ -2,7 +2,7 @@ package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.ActorRef;
-import csw.framework.scaladsl.CurrentStatePublisher;
+import csw.framework.CurrentStatePublisher;
 import csw.messages.params.states.CurrentState;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
