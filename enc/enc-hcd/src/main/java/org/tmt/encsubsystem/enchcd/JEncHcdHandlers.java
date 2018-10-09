@@ -20,7 +20,7 @@ import csw.services.event.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
+import org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;

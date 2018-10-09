@@ -12,8 +12,8 @@ import csw.messages.params.generics.Parameter;
 import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.FastMoveCommand;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
+import org.tmt.encsubsystem.enchcd.subsystem.FastMoveCommand;
+import org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.util.Optional;
 

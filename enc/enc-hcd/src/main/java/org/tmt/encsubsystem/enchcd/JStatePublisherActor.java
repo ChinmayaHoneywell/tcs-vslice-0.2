@@ -13,8 +13,8 @@ import csw.messages.params.states.CurrentState;
 import csw.messages.params.states.StateName;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.CurrentPosition;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
+import org.tmt.encsubsystem.enchcd.subsystem.CurrentPosition;
+import org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.time.Duration;
 import java.time.Instant;

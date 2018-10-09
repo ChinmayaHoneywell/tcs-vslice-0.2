@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem;
+package org.tmt.encsubsystem.enchcd.subsystem;
 
 public class CurrentPosition {
     private double az, el;

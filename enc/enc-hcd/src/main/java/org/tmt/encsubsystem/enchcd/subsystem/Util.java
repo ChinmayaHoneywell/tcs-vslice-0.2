@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem;
+package org.tmt.encsubsystem.enchcd.subsystem;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

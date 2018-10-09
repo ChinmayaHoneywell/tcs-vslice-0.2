@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem;
+package org.tmt.encsubsystem.enchcd.subsystem;
 
 /**
  * This command can be submitted to subsystem using IMessageCommunicator.
