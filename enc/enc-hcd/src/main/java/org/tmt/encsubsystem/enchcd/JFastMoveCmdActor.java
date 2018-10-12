@@ -9,11 +9,11 @@ import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.messages.params.generics.Parameter;
-import csw.services.command.scaladsl.CommandResponseManager;
+import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.FastMoveCommand;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
+import org.tmt.encsubsystem.enchcd.simplesimulator.FastMoveCommand;
+import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.util.Optional;
 
@@ -69,7 +69,7 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
         Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
         Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
             log.debug(() -> "Submitting fastMove command to ENC Subsystem");
-           FastMoveCommand.Response response = IMessageCommunicatorSimpleImpl.getInstance().sendCommand(new FastMoveCommand((double)azParam.value(0), (double)elParam.value(0)));
+           FastMoveCommand.Response response = SimpleSimulator.getInstance().sendCommand(new FastMoveCommand((double)azParam.value(0), (double)elParam.value(0)));
            switch (response.getStatus()){
                case OK:
                    commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));

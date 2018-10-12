@@ -9,8 +9,9 @@ import akka.actor.typed.javadsl.ReceiveBuilder;
 import com.typesafe.config.Config;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
+import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-import csw.services.command.scaladsl.CommandResponseManager;
+
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 

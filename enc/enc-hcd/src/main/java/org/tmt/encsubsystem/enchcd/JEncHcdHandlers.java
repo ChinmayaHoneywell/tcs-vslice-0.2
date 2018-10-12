@@ -5,22 +5,22 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Adapter;
 import akka.actor.typed.javadsl.AskPattern;
 import akka.util.Timeout;
+import csw.framework.CurrentStatePublisher;
 import csw.framework.javadsl.JComponentHandlers;
-import csw.framework.scaladsl.CurrentStatePublisher;
+import csw.messages.TopLevelActorMessage;
 import csw.messages.commands.CommandIssue;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.messages.framework.ComponentInfo;
 import csw.messages.location.TrackingEvent;
-import csw.messages.scaladsl.TopLevelActorMessage;
-import csw.services.command.scaladsl.CommandResponseManager;
+import csw.services.alarm.api.javadsl.IAlarmService;
+import csw.services.command.CommandResponseManager;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.client.javadsl.JConfigClientFactory;
-import csw.services.event.javadsl.IEventService;
+import csw.services.event.api.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.org.tmt.encsubsystem.enchcd.subsystem.IMessageCommunicatorSimpleImpl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -64,9 +64,10 @@ public class JEncHcdHandlers extends JComponentHandlers {
             CurrentStatePublisher currentStatePublisher,
             ILocationService locationService,
             IEventService eventService,
+            IAlarmService alarmService,
             JLoggerFactory loggerFactory
     ) {
-        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, loggerFactory);
+        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, alarmService,loggerFactory);
         this.currentStatePublisher = currentStatePublisher;
         this.log = loggerFactory.getLogger(getClass());
         this.commandResponseManager = commandResponseManager;
@@ -80,8 +81,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
         commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
         lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, statePublisherActor, configClientApi, loggerFactory));
 
-        //initializing subsystem communicator/ may move it to initialize hook
-        IMessageCommunicatorSimpleImpl.getInstance();
+
     }
     /**
      * This is a CSW Hook to initialize assembly.

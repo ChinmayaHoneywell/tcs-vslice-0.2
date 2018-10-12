@@ -1,7 +1,6 @@
 package org.tmt.encsubsystem.encassembly;
 
 import csw.messages.commands.CommandName;
-import csw.messages.commands.ControlCommand;
 import csw.messages.commands.Setup;
 import csw.messages.javadsl.JUnits;
 import csw.messages.params.generics.JKeyTypes;

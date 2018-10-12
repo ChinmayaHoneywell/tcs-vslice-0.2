@@ -8,7 +8,7 @@ import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.messages.commands.Setup;
 import csw.messages.params.models.Prefix;
-import csw.services.command.scaladsl.CommandResponseManager;
+import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
 import org.mockito.Mock;

@@ -3,22 +3,25 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
-import csw.framework.scaladsl.CurrentStatePublisher;
+import csw.framework.CurrentStatePublisher;
+import csw.messages.TopLevelActorMessage;
 import csw.messages.commands.CommandIssue;
 import csw.messages.commands.CommandName;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.Setup;
 import csw.messages.framework.ComponentInfo;
-import csw.messages.location.*;
+import csw.messages.location.AkkaLocation;
+import csw.messages.location.Connection;
+import csw.messages.location.LocationRemoved;
 import csw.messages.params.models.Prefix;
 import csw.messages.params.states.CurrentState;
-import csw.messages.scaladsl.TopLevelActorMessage;
+import csw.services.alarm.api.javadsl.IAlarmService;
+import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-import csw.services.command.scaladsl.CommandResponseManager;
 import csw.services.command.scaladsl.CurrentStateSubscription;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.client.javadsl.JConfigClientFactory;
-import csw.services.event.javadsl.IEventService;
+import csw.services.event.api.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
@@ -26,21 +29,19 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import javax.swing.text.html.Option;
-
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
 
 
 /**
@@ -79,6 +80,9 @@ public class JEncAssemblyHandlersTest {
 
     @Mock
     IEventService eventService;
+    @Mock
+    IAlarmService alarmService;
+
 
     @Mock
     IConfigClientService configClientApi;
@@ -104,7 +108,7 @@ public class JEncAssemblyHandlersTest {
             return testKit.spawn(i.getArgument(0));
         });
         JEncAssemblyBehaviorFactory factory = new JEncAssemblyBehaviorFactory();
-        assemblyHandlers = (JEncAssemblyHandlers)factory.jHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, jLoggerFactory);
+        assemblyHandlers = (JEncAssemblyHandlers)factory.jHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, alarmService, jLoggerFactory);
     }
 
     @After
