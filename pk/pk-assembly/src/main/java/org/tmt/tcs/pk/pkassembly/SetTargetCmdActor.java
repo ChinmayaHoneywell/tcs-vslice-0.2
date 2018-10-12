@@ -3,16 +3,17 @@ package org.tmt.tcs.pk.pkassembly;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.messages.params.generics.Parameter;
-import csw.services.command.scaladsl.CommandResponseManager;
+import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.tmt.tcs.pk.wrapper.TpkWrapper;
 
-public class SetTargetCmdActor extends Behaviors.MutableBehavior<ControlCommand> {
+public class SetTargetCmdActor extends MutableBehavior<ControlCommand> {
 
     // Add messages here
     // No sealed trait/interface or messages for this actor.  Always accepts the Submit command message.
@@ -34,7 +35,7 @@ public class SetTargetCmdActor extends Behaviors.MutableBehavior<ControlCommand>
 
     public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, TpkWrapper tpkWrapper) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<ControlCommand>) new SetTargetCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager,
+            return (MutableBehavior<ControlCommand>) new SetTargetCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager,
                     loggerFactory, tpkWrapper);
         });
     }

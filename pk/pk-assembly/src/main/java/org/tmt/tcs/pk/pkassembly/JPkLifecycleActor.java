@@ -3,12 +3,13 @@ package org.tmt.tcs.pk.pkassembly;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import com.typesafe.config.Config;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
-public class JPkLifecycleActor extends Behaviors.MutableBehavior<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage> {
+public class JPkLifecycleActor extends MutableBehavior<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage> {
 
 
     // add messages here
@@ -32,7 +33,7 @@ public class JPkLifecycleActor extends Behaviors.MutableBehavior<org.tmt.tcs.pk.
 
     public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<LifecycleMessage>) new org.tmt.tcs.pk.pkassembly.JPkLifecycleActor((ActorContext<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage>) ctx, loggerFactory);
+            return (MutableBehavior<LifecycleMessage>) new org.tmt.tcs.pk.pkassembly.JPkLifecycleActor((ActorContext<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage>) ctx, loggerFactory);
         });
     }
 

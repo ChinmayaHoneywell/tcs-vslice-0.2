@@ -3,16 +3,17 @@ package org.tmt.tcs.pk.pkassembly;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.ControlCommand;
-import csw.services.command.scaladsl.CommandResponseManager;
+import csw.services.command.CommandResponseManager;
 import org.tmt.tcs.pk.pkassembly.JPkCommandHandlerActor.CommandMessage;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.tmt.tcs.pk.wrapper.TpkWrapper;
 
-public class JPkCommandHandlerActor extends Behaviors.MutableBehavior<CommandMessage> {
+public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
 
 
     // add messages here
@@ -50,7 +51,7 @@ public class JPkCommandHandlerActor extends Behaviors.MutableBehavior<CommandMes
 
     public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<CommandMessage>) new JPkCommandHandlerActor((ActorContext<JPkCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, online, loggerFactory);
+            return (MutableBehavior<CommandMessage>) new JPkCommandHandlerActor((ActorContext<JPkCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, online, loggerFactory);
         });
     }
 

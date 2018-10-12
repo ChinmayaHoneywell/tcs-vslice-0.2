@@ -3,12 +3,12 @@ package org.tmt.tcs.pk.pkassembly;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-//import akka.actor.typed.javadsl.MutableBehavior;
 
-public class JPkEventHandlerActor extends Behaviors.MutableBehavior<JPkEventHandlerActor.EventMessage> {
+public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.EventMessage> {
 
 
     // add messages here
@@ -31,7 +31,7 @@ public class JPkEventHandlerActor extends Behaviors.MutableBehavior<JPkEventHand
 
     public static <EventMessage> Behavior<EventMessage> behavior(JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (Behaviors.MutableBehavior<EventMessage>) new JPkEventHandlerActor((ActorContext<JPkEventHandlerActor.EventMessage>) ctx, loggerFactory);
+            return (MutableBehavior<EventMessage>) new JPkEventHandlerActor((ActorContext<JPkEventHandlerActor.EventMessage>) ctx, loggerFactory);
         });
     }
 
