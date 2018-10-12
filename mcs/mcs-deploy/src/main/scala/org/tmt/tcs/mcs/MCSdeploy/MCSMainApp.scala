@@ -1,6 +1,7 @@
 package org.tmt.tcs.mcs.MCSdeploy
 
 import java.net.InetAddress
+import java.time.Instant
 import java.util.Calendar
 
 import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
@@ -85,7 +86,7 @@ object MCSMainApp extends App {
   println(s"Dummy Long Command Response is : ${resp6}")
 
   new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
-   new Thread(new Runnable {
+  new Thread(new Runnable {
     override def run(): Unit = startPublishPosDemands()
   }).start()
 
@@ -93,17 +94,19 @@ object MCSMainApp extends App {
     println("Started publishing position demands")
     val eventService = getEventService
     val publisher    = eventService.defaultPublisher
-    var azpos        = 122
+    var azpos        = 125
     var elpos        = 57
     while (true) {
       Thread.sleep(10000)
-      val trackID     = DeployConstants.TrackIDKey.set(122)
+      val trackID     = DeployConstants.TrackIDKey.set(100)
       val azPosDemand = DeployConstants.AzPosKey.set(azpos)
       val elPosDemand = DeployConstants.ElPosKey.set(elpos)
+      val sentTime    = DeployConstants.TimeStampKey.set(Instant.now)
       val event = SystemEvent(DeployConstants.PositionDemandPref, DeployConstants.PositionDemandEventName)
         .add(trackID)
         .add(azPosDemand)
         .add(elPosDemand)
+        .add(sentTime)
       println(s"*** Publishing event: ${event} from ClientApp at time : ${System.currentTimeMillis()} ***")
       publisher.publish(event)
       azpos += 1
@@ -119,23 +122,23 @@ object MCSMainApp extends App {
     subscriber.subscribeCallback(DeployConstants.dummyEventKey, event => proecessDummyEvent(event))
   }
   def proecessDummyEvent(event: Event): Future[_] = {
-    println(s"** Received event : ${event} from Assembly. ** ")
+    //println(s"** Received event : ${event} from Assembly. ** ")
     Future.successful[String]("Successfully processed Dummy event from assembly")
   }
   def processHealth(event: Event): Future[_] = {
-    println(s"*** Received health event: ${event} from assembly at time : ${Calendar.getInstance().getTime} *** ")
+    // println(s"*** Received health event: ${event} from assembly at time : ${Calendar.getInstance().getTime} *** ")
     Future.successful[String]("Successfully processed Health event from assembly")
   }
   def processCurrentPosition(event: Event): Future[_] = {
     val today = Calendar.getInstance().getTime()
-    println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
+    // println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
     event match {
       case systemEvent: SystemEvent => {
         val params                               = systemEvent.paramSet
         val azPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
         val simulatorSentTimeParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
-        println(s"Received azPosParam is  : ${azPosParam.head}")
-        println(s"Current Position send by Simulator at : ${simulatorSentTimeParam.head}")
+        //println(s"Received azPosParam is  : ${azPosParam.head}")
+        // println(s"Current Position send by Simulator at : ${simulatorSentTimeParam.head}")
 
       }
     }

@@ -25,7 +25,7 @@ case class PointDemandCmdActor(ctx: ActorContext[ControlCommand],
     extends MutableBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
-    log.info(s"Submitting point demand command with id : ${msg.runId} to Protocol")
+    // log.info(s"Submitting point demand command with id : ${msg.runId} to Protocol")
     //val commandResponse: CommandResponse = subsystemManager.sendCommand(msg)
     implicit val duration: Timeout = 20 seconds
     implicit val scheduler         = ctx.system.scheduler
@@ -34,7 +34,7 @@ case class PointDemandCmdActor(ctx: ActorContext[ControlCommand],
     }, 10.seconds)
     response match {
       case x: ZeroMQMessage.MCSResponse => {
-        log.info(s"Response from MCS for command runID : ${msg.runId} is : ${x}")
+        // log.info(s"Response from MCS for command runID : ${msg.runId} is : ${x}")
         commandResponseManager.addOrUpdateCommand(msg.runId, x.commandResponse)
       }
       case _ => {

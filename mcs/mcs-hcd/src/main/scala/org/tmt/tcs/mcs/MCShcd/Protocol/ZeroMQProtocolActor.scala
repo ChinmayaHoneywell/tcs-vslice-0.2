@@ -4,6 +4,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import com.typesafe.config.Config
 import csw.messages.commands.{CommandIssue, CommandResponse, ControlCommand}
+import csw.messages.events.SystemEvent
 import csw.messages.params.models.Id
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.EventMessage
@@ -19,7 +20,7 @@ object ZeroMQMessage {
 
   case class SubmitCommand(sender: ActorRef[ZeroMQMessage], controlCommand: ControlCommand) extends ZeroMQMessage
   case class MCSResponse(commandResponse: CommandResponse)                                  extends ZeroMQMessage
-  case class PublishEvent(mcsPositionDemands: MCSPositionDemand)                            extends ZeroMQMessage
+  case class PublishEvent(event: SystemEvent)                                               extends ZeroMQMessage
   case class StartSimulEventSubscr()                                                        extends ZeroMQMessage
 
   case class SimulatorConnResponse(connected: Boolean) extends ZeroMQMessage
@@ -70,14 +71,11 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         Behavior.same
       }
       case msg: PublishEvent => {
-        val encodeStartTime = System.currentTimeMillis()
-        val positionDemands: Array[Byte] = messageTransformer.encodeEvent(msg.mcsPositionDemands)
-        log.info(s"*** Time required to encode position demands are : ${System.currentTimeMillis() - encodeStartTime} ***")
-        val zeroMQSendTime = System.currentTimeMillis()
+        val positionDemands: Array[Byte] = messageTransformer.encodeEvent(msg.event)
         if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
           pubSocket.send(positionDemands)
         }
-        log.info(s"Time required to send through ZeroMQ is : ${System.currentTimeMillis() - zeroMQSendTime}")
+
         Behavior.same
       }
       case msg: StartSimulEventSubscr => {
@@ -96,14 +94,13 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private def startSubscrToSimulEvents() = {
     while (true) {
       val eventName: String = subscribeSocket.recvStr()
-      log.info(s"Received event: ${eventName} from Simulator")
+      //log.info(s"Received event: ${eventName} from Simulator")
       if (subscribeSocket.hasReceiveMore) {
         val eventData    = subscribeSocket.recv(ZMQ.DONTWAIT)
-        val receivedTime = System.currentTimeMillis()
         val currentState = messageTransformer.decodeEvent(eventName, eventData)
-        log.info(
+        /*log.info(
           s"Time required for transforming: ${eventName} into current State is: ${System.currentTimeMillis() - receivedTime}"
-        )
+        )*/
         statePublisherActor ! PublishState(currentState)
       } else {
         log.error(s"No event data is received for event: ${eventName}")
@@ -117,13 +114,13 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     if (commandNameSent) {
       commandEncodeTime = System.currentTimeMillis()
       val encodedCommand = messageTransformer.encodeMessage(controlCommand)
-      log.info(s" ** Time required to encode command: ${commandName} is: ${System.currentTimeMillis() - commandEncodeTime} ** ")
+      // log.info(s" ** Time required to encode command: ${commandName} is: ${System.currentTimeMillis() - commandEncodeTime} ** ")
       commandSendTime = System.currentTimeMillis()
       if (pushSocket.send(encodedCommand, ZMQ.NOBLOCK)) {
-        log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
+        // log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
         msg.sender ! MCSResponse(readCommandResponse(commandName, controlCommand.runId))
       } else {
-        log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
+        //log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
         msg.sender ! MCSResponse(CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem."))
       }
     } else {
@@ -136,15 +133,15 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     if (commandName == responseCommandName) {
       if (pullSocket.hasReceiveMore) {
         val responsePacket: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
-        log.info(
+        /*log.info(
           s" ** Time required to get response for command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** "
-        )
+        )*/
         commandDecodeTime = System.currentTimeMillis()
         val response: SubystemResponse = messageTransformer.decodeCommandResponse(responsePacket)
         val commandResponse            = paramSetTransformer.getCSWResponse(runId, response)
-        log.info(
+        /* log.info(
           s"Time required for decoding response for command: ${commandName} is: ${System.currentTimeMillis() - commandDecodeTime}"
-        )
+        )*/
         commandResponse
       } else {
         CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))

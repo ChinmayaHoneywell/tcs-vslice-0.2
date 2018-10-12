@@ -31,7 +31,7 @@ case class FollowCmdActor(ctx: ActorContext[ImmediateCommand],
   private val log: Logger                   = loggerFactory.getLogger
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   override def onMessage(msg: ImmediateCommand): Behavior[ImmediateCommand] = {
-    log.info(s"Submitting follow command with id : ${msg.controlCommand.runId} to Protocol")
+    //log.info(s"Submitting follow command with id : ${msg.controlCommand.runId} to Protocol")
     implicit val duration: Timeout = 20 seconds
     implicit val scheduler         = ctx.system.scheduler
     /*implicit val context: ActorRefFactory        = ctx.system.toUntyped
@@ -41,7 +41,7 @@ case class FollowCmdActor(ctx: ActorContext[ImmediateCommand],
     }, 10.seconds)
     response match {
       case x: ZeroMQMessage.MCSResponse => {
-        log.info(s"Response from MCS for command runID : ${msg.controlCommand.runId} is : ${x}")
+        //  log.info(s"Response from MCS for command runID : ${msg.controlCommand.runId} is : ${x}")
         msg.sender ! ImmediateCommandResponse(x.commandResponse)
       }
       case _ => {

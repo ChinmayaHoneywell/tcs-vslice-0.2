@@ -27,11 +27,11 @@ case class PositionDemandActor(ctx: ActorContext[ControlCommand],
                                zeroMQProtoActor: ActorRef[ZeroMQMessage],
                                paramSetTransformer: ParamSetTransformer)
     extends MutableBehavior[ControlCommand] {
-
+  private val log = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
+    log.info(s"Sending position demands: ${msg} to ZeroMQActor for publishing")
 
-    zeroMQProtoActor ! PublishEvent(paramSetTransformer.getMountDemandPositions(msg.paramSet))
-
+    zeroMQProtoActor ! PublishEvent(paramSetTransformer.getMountDemandPositions(msg))
     Behavior.same
   }
 

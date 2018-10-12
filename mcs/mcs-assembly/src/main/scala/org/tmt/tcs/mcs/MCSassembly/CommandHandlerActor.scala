@@ -60,12 +60,12 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
         createObject(commandResponseManager, false, hcdLocation, loggerFactory)
       }
       case x: submitCommandMsg => {
-        log.info(msg = s"In commandHandlerActor submitCommandMsg processing command :${x} ")
+        // log.info(msg = s"In commandHandlerActor submitCommandMsg processing command :${x} ")
         handleSubmitCommand(x)
         Behavior.same
       }
       case x: ImmediateCommand => {
-        log.info(msg = s"In commandHandler actor processing immediate command : ${x}")
+        //log.info(msg = s"In commandHandler actor processing immediate command : ${x}")
         handleImmediateCommand(x)
         Behavior.same
       }
@@ -93,10 +93,10 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     working to it
    */
   def handleSubmitCommand(msg: submitCommandMsg): Unit = {
-    log.info(
+    /*log.info(
       msg = s"In commandHandlerActor handleSubmitCommand()" +
       s" function value of hcdLocation is : ${hcdLocation}"
-    )
+    )*/
     msg.controlCommand.commandName.name match {
       case Commands.STARTUP  => handleStartupCommand(msg)
       case Commands.SHUTDOWN => handleShutDownCommand(msg)
@@ -132,7 +132,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     hcdLocation match {
       case Some(commandService: CommandService) => {
         val response = Await.result(commandService.submit(setup), 5.seconds)
-        log.info(msg = s" Result of startup command is : $response")
+        //log.info(msg = s" Result of startup command is : $response")
         commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
         commandResponseManager.updateSubCommand(response.runId, response)
         log.info(msg = s"Successfully updated status of startup command in commandResponseManager : ${response}")
@@ -152,14 +152,14 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
   }
 
   def handleMoveCommand(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  Move command to MoveCommandActor")
+    //log.info(msg = "Sending  Move command to MoveCommandActor")
     val moveCommandActor: ActorRef[ControlCommand] =
       ctx.spawn(MoveCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "MoveCommandActor")
     moveCommandActor ! msg.controlCommand
   }
 
   def handleFollowCommand(msg: ImmediateCommand): Unit = {
-    log.info(msg = "Sending  Follow command to FollowCommandActor")
+    // log.info(msg = "Sending  Follow command to FollowCommandActor")
     val followCommandActor: ActorRef[ImmediateCommand] =
       ctx.spawn(FollowCommandActor.createObject(hcdLocation, loggerFactory), "FollowCommandActor")
     followCommandActor ! msg

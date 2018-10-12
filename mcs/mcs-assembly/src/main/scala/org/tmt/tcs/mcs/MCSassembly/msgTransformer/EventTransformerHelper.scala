@@ -5,9 +5,10 @@ import java.time.Instant
 import csw.messages.commands.{CommandName, ControlCommand, Setup}
 import csw.messages.events.{Event, SystemEvent}
 import csw.messages.params.generics.Parameter
-import csw.messages.params.states.CurrentState
+import csw.messages.params.models.Prefix
+import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventHandlerConstants}
+import org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventConstants, EventHandlerConstants}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage.AssemblyCurrentState
 
 object EventTransformerHelper {
@@ -42,6 +43,21 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
 
   }
 
+  /*
+    This function transforms mount demand positions systemEvent into CurrrentState
+   */
+  def getCurrentState(event: SystemEvent): CurrentState = {
+    val azParamOption: Option[Parameter[Double]]   = event.get(EventHandlerConstants.AzPosKey)
+    val elParamOption: Option[Parameter[Double]]   = event.get(EventHandlerConstants.ElPosKey)
+    val trackIDOption: Option[Parameter[Int]]      = event.get(EventHandlerConstants.TrackIDKey)
+    val sentTimeOption: Option[Parameter[Instant]] = event.get(EventHandlerConstants.TimeStampKey)
+
+    CurrentState(Prefix(EventConstants.TPK_PREFIX), StateName(EventConstants.MOUNT_DEMAND_POSITION))
+      .add(azParamOption.get)
+      .add(elParamOption.get)
+      .add(trackIDOption.get)
+      .add(sentTimeOption.get)
+  }
   /*
     This function converts currentPosition from HCD wrapped in  currentState to systemEvent
    */
@@ -114,14 +130,20 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
   for sending to HCD as oneWayCommand
    */
   def getOneWayCommandObject(systemEvent: SystemEvent): ControlCommand = {
-    val azParam: Option[Parameter[Double]]       = systemEvent.get(EventHandlerConstants.AzPosKey)
-    val elParamOption: Option[Parameter[Double]] = systemEvent.get(EventHandlerConstants.ElPosKey)
-    val trackIDOption: Option[Parameter[Int]]    = systemEvent.get(EventHandlerConstants.TrackIDKey)
+    log.info(s"Input one way command object is: $systemEvent")
+    val azParam: Option[Parameter[Double]]         = systemEvent.get(EventHandlerConstants.AzPosKey)
+    val elParamOption: Option[Parameter[Double]]   = systemEvent.get(EventHandlerConstants.ElPosKey)
+    val trackIDOption: Option[Parameter[Int]]      = systemEvent.get(EventHandlerConstants.TrackIDKey)
+    val sentTimeOption: Option[Parameter[Instant]] = systemEvent.get(EventHandlerConstants.TimeStampKey)
 
     val setup = Setup(EventHandlerConstants.mcsHCDPrefix, CommandName(Commands.POSITION_DEMANDS), None)
-    setup.add(azParam.get).add(elParamOption.get).add(trackIDOption.get)
-    setup
+      .add(azParam.get)
+      .add(elParamOption.get)
+      .add(trackIDOption.get)
+      .add(sentTimeOption.get)
 
+    log.info(s"Transformed one way command object is : $setup")
+    setup
   }
   /*
     This is dummy event which assembly publishes every 10 seconds

@@ -35,8 +35,9 @@ object EventMessage {
                              operationalState: HCDOperationalState.operationalState)
       extends EventMessage
   // case class StartPublishing() extends EventMessage
-  case class StartEventSubscription(zeroMQProtoActor: ActorRef[ZeroMQMessage]) extends EventMessage
-  case class PublishState(currentState: CurrentState)                          extends EventMessage
+  case class StartEventSubscription(zeroMQProtoActor: ActorRef[ZeroMQMessage])                          extends EventMessage
+  case class PublishState(currentState: CurrentState)                                                   extends EventMessage
+  case class AssemblyStateChange(zeroMQProtoActor: ActorRef[ZeroMQMessage], currentState: CurrentState) extends EventMessage
 
 }
 
@@ -82,12 +83,12 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
 
    */
   private def processEvent(event: Event): Future[_] = {
-    log.info(msg = s"*** Received positionDemand event to HCD's statePublisherActor at ${System.currentTimeMillis()} ***")
+    log.info(msg = s"*** Received positionDemands: ${event} to HCD StatePublisherActor at ${System.currentTimeMillis()} ***")
     event match {
       case systemEvent: SystemEvent => {
         //TODO : Change PublishEvent(mcsDemandPosition) to systemEvent for publishing
-        val mcsDemandPositions: MCSPositionDemand = paramSetTransformer.getMountDemandPositions(systemEvent)
-        zeroMQActor ! PublishEvent(mcsDemandPositions)
+        // val mcsDemandPositions: MCSPositionDemand = paramSetTransformer.getMountDemandPositions(systemEvent)
+        zeroMQActor ! PublishEvent(systemEvent)
         Future.successful("Successfully sent Assembly position demands to MCS ZeroMQActor")
       }
     }
@@ -134,6 +135,13 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
         log.info(msg = s"Changing current operational state of MCS HCD to: ${currOperationalState}")
         StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, eventService, loggerFactory)
       }
+      case msg: AssemblyStateChange => {
+        log.info(s"*** Received Assembly position demands : ${msg.currentState} at: ${System.currentTimeMillis()} ***")
+        zeroMQActor = msg.zeroMQProtoActor
+        val event = paramSetTransformer.getMountDemandPositions(msg.currentState)
+        zeroMQActor ! PublishEvent(event)
+        Behavior.same
+      }
       //TODO : In case later decesion changed to use this message then rewrite publishCurrentPosition case
       /*case msg: StartPublishing => {
         timer.startPeriodicTimer(TimerKey, publishCurrentPosition(), Duration.create(10, TimeUnit.SECONDS))
@@ -141,10 +149,10 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
       }*/
 
       case msg: GetCurrentState => {
-        log.info(
+        /* log.info(
           msg =
             s"Sending current lifecyclestate :  ${lifeCycleState} and operationalState : ${operationalState} to sender : ${msg.sender}"
-        )
+        )*/
         msg.sender ! HcdCurrentState(lifeCycleState, operationalState)
         Behavior.same
       }

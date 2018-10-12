@@ -12,19 +12,26 @@ import csw.messages.commands.CommandIssue.{
   WrongNumberOfParametersIssue
 }
 import csw.messages.framework.ComponentInfo
-import csw.messages.location.TrackingEvent
+import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, TrackingEvent}
 import csw.messages.params.generics.Parameter
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.EventMessage.{HCDOperationalStateChangeMsg, StartEventSubscription, StateChangeMsg}
+import org.tmt.tcs.mcs.MCShcd.EventMessage.{
+  AssemblyStateChange,
+  HCDOperationalStateChangeMsg,
+  StartEventSubscription,
+  StateChangeMsg
+}
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
+import csw.messages.params.states.CurrentState
 import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
+import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{Disconnect, StartSimulEventSubscr}
@@ -103,7 +110,8 @@ class McsHcdHandlers(
     }, 10.seconds)
 
     if (connectToSimulator(lifecycleMsg)) {
-      statePublisherActor ! StartEventSubscription(zeroMQProtoActor)
+      //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
+      //statePublisherActor ! StartEventSubscription()
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
       zeroMQProtoActor ! StartSimulEventSubscr()
     } else {
@@ -139,12 +147,27 @@ class McsHcdHandlers(
     }
   }
 
+  var assemblyDemandsSubscriber: Option[CurrentStateSubscription] = None
+  var assemblyLocation: Option[CommandService]                    = None
+
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    log.info(msg = "Location event changed for MCD HCD")
+    log.info(msg = "** Assembly Location changed **")
+    trackingEvent match {
+      case LocationUpdated(location) => {
+        assemblyLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
+        assemblyDemandsSubscriber = Some(
+          assemblyLocation.get.subscribeCurrentState(statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, _))
+        )
+      }
+      case LocationRemoved(_) => {
+        assemblyLocation = None
+        log.error(s"Removing Assembly Location registered with HCD")
+      }
+    }
   }
 
   override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
-    log.info(msg = s" validating command ----> ${controlCommand.commandName}")
+    // log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
       case Commands.DATUM => {
         validateDatumCommand(controlCommand)
@@ -168,6 +191,7 @@ class McsHcdHandlers(
         CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.POSITION_DEMANDS => {
+        log.info(s"** Position Demands Validate loop is executed")
         CommandResponse.Accepted(controlCommand.runId)
       }
       case x =>
@@ -383,7 +407,7 @@ class McsHcdHandlers(
 
    */
   private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
-    log.info("Validating follow command in HCD")
+    //log.info("Validating follow command in HCD")
     def validateParamset: Boolean = {
       return controlCommand.paramSet.isEmpty
     }
@@ -487,7 +511,7 @@ class McsHcdHandlers(
   }
 
   override def onOneway(controlCommand: ControlCommand): Unit = {
-    log.info(msg = "Sending position demands to MCS Simulator in HCDHandler oneway loop")
+    log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
     positionDemandActor ! controlCommand
   }
 

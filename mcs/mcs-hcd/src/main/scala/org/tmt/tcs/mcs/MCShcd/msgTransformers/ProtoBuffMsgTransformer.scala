@@ -3,6 +3,7 @@ import java.time.Instant
 
 import com.google.protobuf.GeneratedMessage
 import csw.messages.commands.ControlCommand
+import csw.messages.events.SystemEvent
 import csw.messages.params.generics.Parameter
 import csw.messages.params.states.CurrentState
 import csw.services.logging.scaladsl.LoggerFactory
@@ -78,13 +79,31 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       }
     }
   }
-  override def encodeEvent(mcsPositionDemands: MCSPositionDemand): Array[Byte] = {
+  override def encodeEvent(systemEvent: SystemEvent): Array[Byte] = {
+
+    val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
+
+    var azParam = 0.0
+    if (systemEvent.exists(EventConstants.AzPosKey)) {
+      azParam = systemEvent.get(EventConstants.AzPosKey).get.head
+    }
+    var elParam = 0.0
+    if (systemEvent.exists(EventConstants.ElPosKey)) {
+      elParam = systemEvent.get(EventConstants.ElPosKey).get.head
+    }
+    var timeSent = Instant.now().toEpochMilli
+    if (systemEvent.exists(EventConstants.TimeStampKey)) {
+      timeSent = systemEvent.get(EventConstants.TimeStampKey).get.head.toEpochMilli
+    }
+
+    // val trackID: Int = trackIDOption.get.head
+
     val event: GeneratedMessage =
       TcsPositionDemandEvent
         .newBuilder()
-        .setAzimuth(mcsPositionDemands.azdPos)
-        .setElevation(mcsPositionDemands.elPos)
-        .setTime(Instant.now().toEpochMilli)
+        .setAzimuth(azParam)
+        .setElevation(elParam)
+        .setTime(timeSent)
         .build()
     event.toByteArray
   }

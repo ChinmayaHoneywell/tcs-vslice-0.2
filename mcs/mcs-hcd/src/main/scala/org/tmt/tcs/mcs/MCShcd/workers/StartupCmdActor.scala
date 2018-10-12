@@ -25,7 +25,7 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
   private val log: Logger = loggerFactory.getLogger
 
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
-    log.info(s"Submitting startup  command with id : ${msg.runId} to simulator")
+    //  log.info(s"Submitting startup  command with id : ${msg.runId} to simulator")
 
     implicit val duration: Timeout = 10 seconds
     implicit val scheduler         = ctx.system.scheduler
@@ -34,7 +34,7 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
     }, 10.seconds)
     response match {
       case x: ZeroMQMessage.MCSResponse => {
-        log.info(s"Response from MCS for command runID : ${msg.runId} is : ${x}")
+        // log.info(s"Response from MCS for command runID : ${msg.runId} is : ${x}")
         commandResponseManager.addOrUpdateCommand(msg.runId, x.commandResponse)
       }
       case _ => {

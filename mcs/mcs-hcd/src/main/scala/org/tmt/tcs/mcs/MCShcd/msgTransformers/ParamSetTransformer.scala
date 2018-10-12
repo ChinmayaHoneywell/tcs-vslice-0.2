@@ -3,8 +3,8 @@ package org.tmt.tcs.mcs.MCShcd.msgTransformers
 import java.time.Instant
 
 import csw.messages.commands.CommandIssue.WrongInternalStateIssue
-import csw.messages.commands.{CommandIssue, CommandResponse}
-import csw.messages.events.SystemEvent
+import csw.messages.commands.{CommandIssue, CommandResponse, ControlCommand}
+import csw.messages.events.{EventName, SystemEvent}
 import csw.messages.params.generics.{Key, Parameter}
 import csw.messages.params.models.{Id, Prefix, Subsystem}
 import csw.messages.params.models.Units.degree
@@ -24,27 +24,54 @@ object ParamSetTransformer {
 
 case class ParamSetTransformer(loggerFactory: LoggerFactory) {
 
+  private val log                        = loggerFactory.getLogger
   private val prefix                     = Prefix(Subsystem.MCS.toString)
   private val timeStampKey: Key[Instant] = EventConstants.TimeStampKey
-  def getMountDemandPositions(paramSet: Set[Parameter[_]]): MCSPositionDemand = {
-    val azPosParam: Parameter[_]   = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
-    val elPosParam: Parameter[_]   = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
-    val trackIDParam: Parameter[_] = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID).get
-    val az: Double                 = azPosParam.head.asInstanceOf[Number].doubleValue()
-    val el: Double                 = elPosParam.head.asInstanceOf[Number].doubleValue()
-    val trackID: Int               = trackIDParam.head.asInstanceOf[Integer].intValue()
-    MCSPositionDemand(trackID, az, el)
-  }
-  def getMountDemandPositions(systemEvent: SystemEvent): MCSPositionDemand = {
-    val azParamOption: Option[Parameter[Double]] = systemEvent.get(EventConstants.AzPosKey)
-    val elParamOption: Option[Parameter[Double]] = systemEvent.get(EventConstants.ElPosKey)
-    val trackIDOption: Option[Parameter[Int]]    = systemEvent.get(EventConstants.TrackIDKey)
+  def getMountDemandPositions(msg: ControlCommand): SystemEvent = {
+    val paramSet = msg.paramSet
+    //paramSet: Set[Parameter[_]]
 
-    val azParam: Double = azParamOption.get.head
-    val elParam: Double = elParamOption.get.head
-    val trackID: Int    = trackIDOption.get.head
-    MCSPositionDemand(trackID, azParam, elParam)
+    val azPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
+    val elPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
+    val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
+    val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
+
+    val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
+    val azPos    = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
+    val elPos    = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
+    val sentTime = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(Instant.now()))
+
+    SystemEvent(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
+      .add(trackID)
+      .add(azPos)
+      .add(elPos)
+      .add(sentTime)
+
   }
+  def getMountDemandPositions(currentState: CurrentState): SystemEvent = {
+
+    val trackIDOption  = currentState.get(EventConstants.TrackIDKey)
+    val azPosOption    = currentState.get(EventConstants.AzPosKey)
+    val elPosOption    = currentState.get(EventConstants.ElPosKey)
+    val sentTimeOption = currentState.get(EventConstants.TimeStampKey)
+
+    val trackID  = trackIDOption.getOrElse(EventConstants.TrackIDKey.set(0))
+    val azPos    = azPosOption.getOrElse(EventConstants.AzPosKey.set(0.0))
+    val elPos    = elPosOption.getOrElse(EventConstants.ElPosKey.set(0.0))
+    val sentTime = sentTimeOption.getOrElse(EventConstants.TimeStampKey.set(Instant.now()))
+
+    val event = SystemEvent(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
+      .add(trackID)
+      .add(azPos)
+      .add(elPos)
+      .add(sentTime)
+
+    event
+  }
+  /* def getMountDemandPositions(systemEvent: SystemEvent): MCSPositionDemand = {
+
+    MCSPositionDemand(trackID, azParam, elParam)
+  }*/
   def getHCDState(state: String): CurrentState = {
     val lifeCycleStateKey                 = EventConstants.LifeCycleStateKey
     val lifeCycleParam: Parameter[String] = lifeCycleStateKey.set(state)

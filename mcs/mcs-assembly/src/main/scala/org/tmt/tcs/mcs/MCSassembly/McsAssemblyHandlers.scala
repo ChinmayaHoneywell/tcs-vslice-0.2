@@ -73,7 +73,7 @@ class McsAssemblyHandlers(
   private val eventTransformer: EventTransformerHelper = EventTransformerHelper.create(loggerFactory)
 
   val eventHandlerActor: ActorRef[EventMessage] =
-    ctx.spawn(EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, loggerFactory),
+    ctx.spawn(EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory),
               name = "EventHandlerActor")
 
   val monitorActor: ActorRef[MonitorMessage] = ctx.spawn(
@@ -98,7 +98,6 @@ class McsAssemblyHandlers(
   override def initialize(): Future[Unit] = Future {
     //log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
-    eventHandlerActor ! StartEventSubscription()
     eventHandlerActor ! StartPublishingDummyEvent()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
@@ -125,14 +124,15 @@ class McsAssemblyHandlers(
         log.error(s"Removing HCD Location registered with assembly")
       }
     }
-
     monitorActor ! LocationEventMsg(hcdLocation)
     commandHandlerActor ! updateHCDLocation(hcdLocation)
+    log.error(s"Sending hcdLocation:$hcdLocation to eventHandlerActor")
     eventHandlerActor ! hcdLocationChanged(hcdLocation)
+    eventHandlerActor ! StartEventSubscription()
   }
 
   override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
-    log.info(msg = s" validating command ----> ${controlCommand.commandName}")
+    //log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
 
       case Commands.FOLLOW => {
@@ -174,7 +174,7 @@ class McsAssemblyHandlers(
     log.info("Validating Follow Command")
 
     val assemblyCurrentState = getCurrentAssemblyState
-    log.info(msg = s"Monitor Actor's current state while executing Follow command is  : ${assemblyCurrentState}")
+    //log.info(msg = s"Monitor Actor's current state while executing Follow command is  : ${assemblyCurrentState}")
     if (validateAssemblyState(assemblyCurrentState)) {
       executeFollowCommandAndSendResponse(controlCommand)
     } else {
@@ -247,7 +247,7 @@ class McsAssemblyHandlers(
    */
   private def validateParams(controlCommand: ControlCommand): Boolean = {
     val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
-    log.info(s"axes value is ${axes}")
+    //log.info(s"axes value is ${axes}")
     val param = axes.head
     if (param == "BOTH" || param == "AZ" || param == "EL") {
       return true
@@ -290,7 +290,7 @@ class McsAssemblyHandlers(
       val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
         MonitorMessage.GetCurrentState(ref)
       }, 3.seconds)
-      log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
+      //log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
       if (validateAssemblyState(assemblyCurrentState)) {
         CommandResponse.Accepted(controlCommand.runId)
       } else {

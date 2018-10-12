@@ -155,7 +155,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
       if (subSocket.hasReceiveMore) {
         val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
         val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
-        println(s"Received position demands from MCS at ${System.currentTimeMillis()}")
+        println(s"*** Received position demands: ${positionDemand} from MCS at:  ${System.currentTimeMillis()} *** ")
         setAzPosDemanded(positionDemand.getAzimuth)
         setElPosDemanded(positionDemand.getElevation)
         demandedTime = positionDemand.getTime
