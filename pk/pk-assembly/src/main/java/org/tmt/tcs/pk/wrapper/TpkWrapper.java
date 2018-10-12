@@ -1,6 +1,7 @@
 package org.tmt.tcs.pk.wrapper;
 
 import akka.actor.ActorRef;
+import org.tmt.tcs.pk.pkassembly.JPkEventHandlerActor;
 
 import java.util.Optional;
 
@@ -15,6 +16,11 @@ public class TpkWrapper {
     private TpkPoc tpkEndpoint;
 
     private boolean publishDemands = false;
+    private akka.actor.typed.ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor;
+
+    public TpkWrapper(akka.actor.typed.ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor){
+        this.eventHandlerActor = eventHandlerActor;
+    }
 
     /**
      * Callback which is register with the C++ code and call from the fast

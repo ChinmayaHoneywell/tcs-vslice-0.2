@@ -33,25 +33,27 @@ public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
     public static final class GoOfflineMessage implements CommandMessage { }
 
     private ActorContext<CommandMessage> actorContext;
+    private ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor;
     private JLoggerFactory loggerFactory;
     private ILogger log;
     private Boolean online;
     private CommandResponseManager commandResponseManager;
     private TpkWrapper tpkWrapper;
 
-    private JPkCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory) {
+    private JPkCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory, ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
         this.online = online;
         this.commandResponseManager = commandResponseManager;
+        this.eventHandlerActor = eventHandlerActor;
 
         initiateTpkEndpoint();
     }
 
-    public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory) {
+    public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory, ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<CommandMessage>) new JPkCommandHandlerActor((ActorContext<JPkCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, online, loggerFactory);
+            return (MutableBehavior<CommandMessage>) new JPkCommandHandlerActor((ActorContext<JPkCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, online, loggerFactory, eventHandlerActor);
         });
     }
 
@@ -71,13 +73,13 @@ public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
                         command -> {
                             log.info("Inside JPkCommandHandlerActor: GoOnlineMessage Received");
                             // change the behavior to online
-                            return behavior(commandResponseManager, Boolean.TRUE, loggerFactory);
+                            return behavior(commandResponseManager, Boolean.TRUE, loggerFactory, eventHandlerActor);
                         })
                 .onMessage(GoOfflineMessage.class,
                         command -> {
                             log.info("Inside JPkCommandHandlerActor: GoOfflineMessage Received");
                             // change the behavior to online
-                            return behavior(commandResponseManager, Boolean.FALSE, loggerFactory);
+                            return behavior(commandResponseManager, Boolean.FALSE, loggerFactory, eventHandlerActor);
                         });
 
         return builder.build();
@@ -105,7 +107,7 @@ public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
 
         System.loadLibrary("example");
 
-        tpkWrapper = new TpkWrapper();
+        tpkWrapper = new TpkWrapper(eventHandlerActor);
 
         new Thread(new Runnable() {
             public void run() {

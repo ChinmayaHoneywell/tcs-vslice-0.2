@@ -78,9 +78,9 @@ public class JPkAssemblyHandlers extends JComponentHandlers {
         // Load the configuration from the configuration service
         //Config assemblyConfig = getAssemblyConfig();
 
-        commandHandlerActor = ctx.spawnAnonymous(JPkCommandHandlerActor.behavior(commandResponseManager, Boolean.TRUE, loggerFactory));
         lifecycleActor = ctx.spawnAnonymous(JPkLifecycleActor.behavior(loggerFactory));
-        eventHandlerActor = ctx.spawnAnonymous(JPkEventHandlerActor.behavior(loggerFactory));
+        eventHandlerActor = ctx.spawnAnonymous(JPkEventHandlerActor.behavior(eventService, loggerFactory));
+        commandHandlerActor = ctx.spawnAnonymous(JPkCommandHandlerActor.behavior(commandResponseManager, Boolean.TRUE, loggerFactory, eventHandlerActor));
     }
 
     @Override
