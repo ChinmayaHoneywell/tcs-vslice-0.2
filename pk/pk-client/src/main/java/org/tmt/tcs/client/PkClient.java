@@ -19,6 +19,7 @@ import csw.services.command.javadsl.JCommandService;
 import csw.services.location.javadsl.*;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -55,7 +56,7 @@ public class PkClient {
 
     private Optional<JCommandService> getAssemblyBlocking() throws Exception {
 
-        FiniteDuration waitForResolveLimit = new FiniteDuration(30, TimeUnit.SECONDS);
+        Duration waitForResolveLimit = Duration.ofSeconds(30);
 
         Optional<AkkaLocation> resolveResult = locationService.resolve(assemblyConnection, waitForResolveLimit).get();
 
