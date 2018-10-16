@@ -80,12 +80,12 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
         // NOTE: we use get instead of getOrElse because we assume the command has been validated
         //Parameter axesParam = message.paramSet().find(x -> x.keyName().equals("axes")).get();
         Parameter operation = message.paramSet().find(x -> x.keyName().equals("operation")).get();
-        Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
-        Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
+        Parameter baseParam = message.paramSet().find(x -> x.keyName().equals("base")).get();
+        Parameter capParam = message.paramSet().find(x -> x.keyName().equals("cap")).get();
         Parameter mode = message.paramSet().find(x -> x.keyName().equals("mode")).get();
         Parameter timeDuration = message.paramSet().find(x -> x.keyName().equals("timeDuration")).get();
 
-        CompletableFuture<CommandResponse> moveFuture = move(message.maybeObsId(), operation, azParam, elParam, mode, timeDuration);
+        CompletableFuture<CommandResponse> moveFuture = move(message.maybeObsId(), operation, baseParam, capParam, mode, timeDuration);
 
         moveFuture.thenAccept((response) -> {
 
@@ -108,8 +108,8 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
 
     CompletableFuture<CommandResponse> move(Option<ObsId> obsId,
                                             Parameter operation,
-                                            Parameter azParam,
-                                            Parameter elParam,
+                                            Parameter baseParam,
+                                            Parameter capParam,
                                             Parameter mode,
                                             Parameter timeDuration) {
         String modeValue = (String) mode.get(0).get();
@@ -118,8 +118,8 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
             if ("fast".equals(modeValue)) {
                 log.debug(() -> "Submitting fastMove command to HCD");
                 Setup fastMoveSetupCmd = new Setup(templateHcdPrefix, new CommandName("fastMove"), Optional.empty())
-                        .add(azParam)
-                        .add(elParam)
+                        .add(baseParam)
+                        .add(capParam)
                         .add(mode)
                         .add(operation);
 

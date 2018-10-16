@@ -66,10 +66,10 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
      */
     private void handleSubmitCommand(ControlCommand message) {
         System.out.println("worker actor handling command fast move");
-        Parameter azParam = message.paramSet().find(x -> x.keyName().equals("az")).get();
-        Parameter elParam = message.paramSet().find(x -> x.keyName().equals("el")).get();
+        Parameter baseParam = message.paramSet().find(x -> x.keyName().equals("base")).get();
+        Parameter capParam = message.paramSet().find(x -> x.keyName().equals("cap")).get();
             log.debug(() -> "Submitting fastMove command to ENC Subsystem");
-           FastMoveCommand.Response response = SimpleSimulator.getInstance().sendCommand(new FastMoveCommand((double)azParam.value(0), (double)elParam.value(0)));
+           FastMoveCommand.Response response = SimpleSimulator.getInstance().sendCommand(new FastMoveCommand((double)baseParam.value(0), (double)capParam.value(0)));
            switch (response.getStatus()){
                case OK:
                    commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));

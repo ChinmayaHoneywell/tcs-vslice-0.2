@@ -7,7 +7,12 @@ import java.math.RoundingMode;
  * Utility class having common function
  */
 public class Util {
-
+    /**
+     * This function round value of double to given decimal places.
+     * @param value
+     * @param places
+     * @return
+     */
     public static double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
 
@@ -17,6 +22,6 @@ public class Util {
     }
 
     public static double diff(double v1, double v2, int places){
-        return round(v1, places) - round(v2, places);
+        return round(round(v1, places) - round(v2, places), places);
     }
 }

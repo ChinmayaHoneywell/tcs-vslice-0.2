@@ -3,6 +3,7 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.ActorRef;
 import csw.framework.CurrentStatePublisher;
+import csw.messages.framework.ComponentInfo;
 import csw.messages.params.states.CurrentState;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
@@ -50,6 +51,8 @@ public class JStatePublisherActorTest {
 
     @Mock
     CurrentStatePublisher currentStatePublisher;
+    @Mock
+    ComponentInfo componentInfo;
 
     @Captor
     ArgumentCaptor<CurrentState> currentStateArgumentCaptor;
@@ -61,7 +64,7 @@ public class JStatePublisherActorTest {
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        statePublisherActor = testKit.spawn(JStatePublisherActor.behavior(currentStatePublisher, jLoggerFactory, JEncHcdHandlers.LifecycleState.Initialized, JEncHcdHandlers.OperationalState.Idle));
+        statePublisherActor = testKit.spawn(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, jLoggerFactory, JEncHcdHandlers.LifecycleState.Initialized, JEncHcdHandlers.OperationalState.Idle));
     }
 
     @After
@@ -96,7 +99,7 @@ public class JStatePublisherActorTest {
     @Test
     public void currentStatePublishTest() throws InterruptedException {
 
-        statePublisherActor.tell(new JStatePublisherActor.PublishMessage());
+        statePublisherActor.tell(new JStatePublisherActor.PublishCurrentPositionMessage());
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(currentStatePublisher).publish(currentStateArgumentCaptor.capture());
         CurrentState currentState = currentStateArgumentCaptor.getValue();

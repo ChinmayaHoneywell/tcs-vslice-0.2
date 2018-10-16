@@ -6,6 +6,7 @@ import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
 import akka.actor.typed.javadsl.TimerScheduler;
 import csw.framework.CurrentStatePublisher;
+import csw.messages.framework.ComponentInfo;
 import csw.messages.params.generics.JKeyTypes;
 import csw.messages.params.generics.Key;
 import csw.messages.params.generics.Parameter;
@@ -14,6 +15,7 @@ import csw.messages.params.states.StateName;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.tmt.encsubsystem.enchcd.simplesimulator.CurrentPosition;
+import org.tmt.encsubsystem.enchcd.simplesimulator.Health;
 import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.time.Duration;
@@ -21,11 +23,11 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static csw.messages.javadsl.JUnits.degree;
+import static org.tmt.encsubsystem.enchcd.Constants.CURRENT_POSITION_PUBLISH_FREQUENCY;
+import static org.tmt.encsubsystem.enchcd.Constants.HEALTH_PUBLISH_FREQUENCY;
 
 
 public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.StatePublisherMessage> {
-
-
     // add messages here
     interface StatePublisherMessage {
     }
@@ -58,7 +60,10 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         }
     }
 
-    public static final class PublishMessage implements StatePublisherMessage {
+    public static final class PublishCurrentPositionMessage implements StatePublisherMessage {
+    }
+
+    public static final class PublishHealthMessage implements StatePublisherMessage {
     }
 
     /**
@@ -89,50 +94,47 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
     private CurrentStatePublisher currentStatePublisher;
     private ILogger log;
     private TimerScheduler<StatePublisherMessage> timer;
+    private ComponentInfo componentInfo;
 
     JEncHcdHandlers.LifecycleState lifecycleState;
     JEncHcdHandlers.OperationalState operationalState;
 
-
-    String currentStatePrefix = "tmt.tcs.ecs.currentStates";
-
-    // current state name and Object to represent lifecycle state and operational state of hcd/subsystem
-    String OpsAndLifecycleStateName = "OpsAndLifecycleState";
-    CurrentState OpsAndLyfCycleCurrentState;
     //Keys to represent lifecycle state and operational state, parameters will be created from these keys
-    Key lifecycleKey = JKeyTypes.StringKey().make("LifecycleState");
-    Key operationalkey = JKeyTypes.StringKey().make("OperationalState");
+    private Key<String> lifecycleKey = JKeyTypes.StringKey().make("LifecycleState");
+    private Key<String> operationalKey = JKeyTypes.StringKey().make("OperationalState");
+
+    //keys for current position
+    private Key<Double> basePosKey = JKeyTypes.DoubleKey().make("basePosKey");
+    private Key<Double> capPosKey = JKeyTypes.DoubleKey().make("capPosKey");
+
+    //keys for health
+    private Key<String> healthKey = JKeyTypes.StringKey().make("healthKey");
+    private Key<String> healthReasonKey = JKeyTypes.StringKey().make("healthReasonKey");
+    private Key<Instant> healthTimeKey = JKeyTypes.TimestampKey().make("healthTimeKey");
 
 
-    // state name for current position
-    String currentPositionStateName = "currentPosition";
+    //this is the time when subsystem sampled the data.
+    private Key<Instant> ecsSubsystemTimestampKey = JKeyTypes.TimestampKey().make("subsystemTimestampKey");
+    //this is the time when ENC HCD processed the data
+    private Key<Instant> encHcdTimestampKey = JKeyTypes.TimestampKey().make("hcdTimestampKey");
 
-    //keys for creating current position parameters
-    Key timestampKey = JKeyTypes.TimestampKey().make("timestampKey");
 
-    Key<Double> azPosKey = JKeyTypes.DoubleKey().make("azPosKey");
-    Key<Double> azPosErrorKey = JKeyTypes.DoubleKey().make("azPosErrorKey");
-    Key<Double> elPosKey = JKeyTypes.DoubleKey().make("elPosKey");
-    Key<Double> elPosErrorKey = JKeyTypes.DoubleKey().make("elPosErrorKey");
-    Key<Boolean> azInPositionKey = JKeyTypes.BooleanKey().make("azInPositionKey");
-    Key<Boolean> elInPositionKey = JKeyTypes.BooleanKey().make("elInPositionKey");
+    private static final Object TIMER_KEY_CURRENT_POSITION = new Object();
+    private static final Object TIMER_KEY_HEALTH = new Object();
 
-    private static final Object TIMER_KEY = new Object();
-
-    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
+    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
         this.timer = timer;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(this.getClass());
         this.currentStatePublisher = currentStatePublisher;
         this.lifecycleState = lifecycleState;
         this.operationalState = operationalState;
-
-        OpsAndLyfCycleCurrentState = new CurrentState(currentStatePrefix, new StateName(OpsAndLifecycleStateName));
+        this.componentInfo = componentInfo;
     }
 
-    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
+    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
         return Behaviors.withTimers(timers -> {
-            return (MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, currentStatePublisher, loggerFactory, lifecycleState, operationalState);
+            return (MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, componentInfo, currentStatePublisher, loggerFactory, lifecycleState, operationalState);
         });
     }
 
@@ -157,15 +159,21 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
                             onStop(command);
                             return Behaviors.same();
                         })
-                .onMessage(PublishMessage.class,
-                        command -> {
-                            log.debug(() -> "PublishMessage Received");
-                            onPublishMessage(command);
+                .onMessage(PublishCurrentPositionMessage.class,
+                        publishCurrentPositionMessage -> {
+                            log.debug(() -> "PublishCurrentPositionMessage Received");
+                            publishCurrentPosition();
+                            return Behaviors.same();
+                        })
+                .onMessage(PublishHealthMessage.class,
+                        publishHealthMessage -> {
+                            log.debug(() -> "PublishCurrentPositionMessage Received");
+                            publishHealth();
                             return Behaviors.same();
                         })
                 .onMessage(StateChangeMessage.class,
                         command -> {
-                            log.debug(() -> "LifecycleStateChangeMessage Received");
+                            log.debug(() -> "StateChangeMessage Received");
                             handleStateChange(command);
                             return Behaviors.same();
                         });
@@ -173,20 +181,21 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
     }
 
     private void onStart(StartMessage message) {
-
         log.debug(() -> "Start Message Received ");
-
-        timer.startPeriodicTimer(TIMER_KEY, new PublishMessage(), Duration.ofMillis(1000));
-
+        timer.startPeriodicTimer(TIMER_KEY_CURRENT_POSITION, new PublishCurrentPositionMessage(), Duration.ofMillis(1000/CURRENT_POSITION_PUBLISH_FREQUENCY));
+        timer.startPeriodicTimer(TIMER_KEY_HEALTH, new PublishHealthMessage(), Duration.ofMillis(1000/HEALTH_PUBLISH_FREQUENCY));
         log.debug(() -> "start message completed");
-
-
     }
 
+    /**
+     * This method will stop all timers i.e. it will stop publishing all current states from HCD.
+     * @param message
+     */
     private void onStop(StopMessage message) {
 
         log.debug(() -> "Stop Message Received ");
-        timer.cancel(TIMER_KEY);
+        timer.cancel(TIMER_KEY_CURRENT_POSITION);
+        timer.cancel(TIMER_KEY_HEALTH);
     }
 
     /**
@@ -198,46 +207,50 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         //change current state or if state is not present in message then keep it as is.
         lifecycleState = message.lifecycleState.orElse(lifecycleState);
         operationalState = message.operationalState.orElse(operationalState);
-        CurrentState currentState = OpsAndLyfCycleCurrentState
-                .add(lifecycleKey.set(lifecycleState.name()))
-                .add(operationalkey.set(operationalState.name()));
-
+        CurrentState currentState = new CurrentState(componentInfo.prefix().prefix(), new StateName(Constants.HCD_STATE))
+                .madd(lifecycleKey.set(lifecycleState.name()),operationalKey.set(operationalState.name()));
         currentStatePublisher.publish(currentState);
     }
 
     /**
-     * This method receives current event from subsystem and
+     * This method get current position from subsystem and
      * publish it using current state publisher as per timer frequency.
-     * @param message
      */
-    private void onPublishMessage(PublishMessage message) {
-
-        log.debug(() -> "Publish Message Received ");
-
+    private void publishCurrentPosition() {
         // example parameters for a current state
         CurrentPosition currentPosition = SimpleSimulator.getInstance().getCurrentPosition();
-        Parameter azPosParam = azPosKey.set(currentPosition.getAz()).withUnits(degree);
-        Parameter azPosErrorParam = azPosErrorKey.set(0.34).withUnits(degree);
-        Parameter elPosParam = elPosKey.set(currentPosition.getEl()).withUnits(degree);
-        Parameter elPosErrorParam = elPosErrorKey.set(0.03).withUnits(degree);
-        Parameter azInPositionParam = azInPositionKey.set(false);
-        Parameter elInPositionParam = elInPositionKey.set(true);
 
-        Parameter timestamp = timestampKey.set(Instant.now());
+        Parameter<Double> basePosParam = basePosKey.set(currentPosition.getBase()).withUnits(degree);
+        Parameter<Double> capPosParam = capPosKey.set(currentPosition.getCap()).withUnits(degree);
+        //this is the time when subsystem published current position.
+        Parameter<Instant> ecsSubsystemTimestampParam = ecsSubsystemTimestampKey.set(Instant.ofEpochMilli(currentPosition.getTime()));
+        //this is the time when ENC HCD processed current position
+        Parameter<Instant> encHcdTimestampParam = encHcdTimestampKey.set(Instant.now());
 
-        //create CurrentState and use sequential add
-        CurrentState currentStatePosition = new CurrentState(currentStatePrefix, new StateName(currentPositionStateName))
-                .add(azPosParam)
-                .add(elPosParam)
-                .add(azPosErrorParam)
-                .add(elPosErrorParam)
-                .add(azInPositionParam)
-                .add(elInPositionParam)
-                .add(timestamp);
+        CurrentState currentStatePosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(Constants.CURRENT_POSITION))
+                .add(basePosParam)
+                .add(capPosParam)
+                .add(ecsSubsystemTimestampParam)
+                .add(encHcdTimestampParam);
 
         currentStatePublisher.publish(currentStatePosition);
+     }
 
+    /**
+     * This method get current health from subsystem and
+     * publish it using current state publisher as per timer frequency.
+     */
+    private void publishHealth() {
+        Health health = SimpleSimulator.getInstance().getHealth();
+        Parameter<String> healthParam = healthKey.set(health.getHealth().name());
+        Parameter<String> healthReasonParam = healthReasonKey.set(health.getReason());
+        Parameter<Instant> healthTimeParam = healthTimeKey.set(Instant.ofEpochMilli(health.getTime()));
 
+        CurrentState currentStateHealth = new CurrentState(componentInfo.prefix().prefix(), new StateName(Constants.HEALTH))
+                .add(healthParam)
+                .add(healthReasonParam)
+                .add(healthTimeParam);
+        currentStatePublisher.publish(currentStateHealth);
     }
 
 

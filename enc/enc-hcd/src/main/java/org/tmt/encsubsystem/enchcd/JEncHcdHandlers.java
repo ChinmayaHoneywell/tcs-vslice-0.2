@@ -76,7 +76,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
         this.eventService = eventService;
         this.componentInfo = componentInfo;
         configClientApi = JConfigClientFactory.clientApi(Adapter.toUntyped(actorContext.getSystem()), locationService);
-        statePublisherActor = ctx.spawnAnonymous(JStatePublisherActor.behavior(currentStatePublisher, loggerFactory, LifecycleState.Initialized, OperationalState.Idle));
+        statePublisherActor = ctx.spawnAnonymous(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, loggerFactory, LifecycleState.Initialized, OperationalState.Idle));
 
         commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
         lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, statePublisherActor, configClientApi, loggerFactory));

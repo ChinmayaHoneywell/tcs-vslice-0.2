@@ -1,39 +1,32 @@
 package org.tmt.encsubsystem.enchcd.simplesimulator;
 
 /**
- * This command is submitted to SimpleSimulator.
+ * This command is submitted to SimpleSimulator to move enclosure at specified position.
  * Example - communicator.sendCommand(new FastMoveCommand(3.2, 6.5))
  */
 public class FastMoveCommand {
-    private double az, el;
+    private double base, cap;
 
-    public FastMoveCommand(double az, double el) {
-        this.az = az;
-        this.el = el;
+    public FastMoveCommand(double base, double cap) {
+        this.base = base;
+        this.cap = cap;
     }
 
-    @Override
-    public String toString() {
-        return "FastMoveCommand{" +
-                "az=" + az +
-                ", el=" + el +
-                '}';
+
+    public double getBase() {
+        return base;
     }
 
-    public double getEl() {
-        return el;
+    public void setBase(double base) {
+        this.base = base;
     }
 
-    public void setEl(double el) {
-        this.el = el;
+    public double getCap() {
+        return cap;
     }
 
-    public double getAz() {
-        return az;
-    }
-
-    public void setAz(double az) {
-        this.az = az;
+    public void setCap(double cap) {
+        this.cap = cap;
     }
 
     public static final class Response{

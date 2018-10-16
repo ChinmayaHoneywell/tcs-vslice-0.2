@@ -1,34 +1,48 @@
 package org.tmt.encsubsystem.enchcd.simplesimulator;
 
+/**
+ * This is a POJO Class to represent current position of enclosure.
+ */
 public class CurrentPosition {
-    private double az, el;
+    private double base, cap;
+    private long time;
 
-    public CurrentPosition(double az, double el) {
-        this.az = az;
-        this.el = el;
+    public CurrentPosition(double base, double cap, long time) {
+        this.base = base;
+        this.cap = cap;
+        this.time = time;
     }
 
     @Override
     public String toString() {
         return "CurrentPosition{" +
-                "az=" + az +
-                ", el=" + el +
+                "base=" + base +
+                ", cap=" + cap +
+                ", time=" + time +
                 '}';
     }
 
-    public double getEl() {
-        return el;
+    public double getBase() {
+        return base;
     }
 
-    public void setEl(double el) {
-        this.el = el;
+    public void setBase(double base) {
+        this.base = base;
     }
 
-    public double getAz() {
-        return az;
+    public double getCap() {
+        return cap;
     }
 
-    public void setAz(double az) {
-        this.az = az;
+    public void setCap(double cap) {
+        this.cap = cap;
+    }
+
+    public long getTime() {
+        return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
     }
 }
