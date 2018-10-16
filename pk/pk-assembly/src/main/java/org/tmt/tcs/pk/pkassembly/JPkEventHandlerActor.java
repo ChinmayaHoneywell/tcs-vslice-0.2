@@ -48,19 +48,19 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
         ReceiveBuilder<EventMessage> builder = receiveBuilder()
                 .onMessage(McsDemandMessage.class,
                         message -> {
-                            log.info("McsDemandMessage Received");
+                            log.info("Inside JPkEventHandlerActor: McsDemandMessage Received");
                             publishMcsDemand(message);
                             return Behaviors.same();
                         })
                 .onMessage(EncDemandMessage.class,
                         message -> {
-                            log.info("EncDemandMessage Received");
+                            log.info("Inside JPkEventHandlerActor: EncDemandMessage Received");
                             publishEncDemand(message);
                             return Behaviors.same();
                         })
                 .onMessage(M3DemandMessage.class,
                         message -> {
-                            log.info("M3DemandMessage Received");
+                            log.info("Inside JPkEventHandlerActor: M3DemandMessage Received");
                             publishM3Demand(message);
                             return Behaviors.same();
                         });
@@ -69,7 +69,7 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
 
     private void publishMcsDemand(McsDemandMessage message) {
 
-        log.info("Publish Mcs Demand Received ");
+        log.info("Inside JPkEventHandlerActor: Publishing Mcs Demand ");
         Key<Double> azDoubleKey = JKeyTypes.DoubleKey().make("mcs.az");
         Key<Double> elDoubleKey = JKeyTypes.DoubleKey().make("mcs.el");
 
@@ -79,7 +79,7 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
 
     private void publishEncDemand(EncDemandMessage message) {
 
-        log.info("Publish Enc Demand Received ");
+        log.info("Inside JPkEventHandlerActor: Publishing Enc Demand ");
         Key<Double> baseDoubleKey = JKeyTypes.DoubleKey().make("ecs.base");
         Key<Double> capDoubleKey = JKeyTypes.DoubleKey().make("ecs.cap");
 
@@ -89,7 +89,7 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
 
     private void publishM3Demand(M3DemandMessage message) {
 
-        log.info("Publish M3 Demand Received ");
+        log.info("Inside JPkEventHandlerActor: Publishing M3 Demand ");
         Key<Double> rotationDoubleKey = JKeyTypes.DoubleKey().make("m3.rotation");
         Key<Double> tiltDoubleKey = JKeyTypes.DoubleKey().make("m3.tilt");
 

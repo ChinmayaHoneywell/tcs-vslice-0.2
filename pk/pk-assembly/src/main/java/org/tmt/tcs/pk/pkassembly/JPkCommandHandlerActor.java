@@ -105,8 +105,6 @@ public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
     public void initiateTpkEndpoint() {
         log.debug("Inside JPkCommandHandlerActor: initiateTpkEndpoint");
 
-        System.loadLibrary("example");
-
         tpkWrapper = new TpkWrapper(eventHandlerActor);
 
         new Thread(new Runnable() {
