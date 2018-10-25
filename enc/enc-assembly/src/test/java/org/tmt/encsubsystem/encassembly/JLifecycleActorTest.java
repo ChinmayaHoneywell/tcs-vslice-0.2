@@ -44,6 +44,8 @@ public class JLifecycleActorTest {
 
     TestProbe<JCommandHandlerActor.CommandMessage> commandHandlerActor;
 
+    TestProbe<JEventHandlerActor.EventMessage> eventHandlerActor;
+
     JLoggerFactory jLoggerFactory;
     ActorRef<JLifecycleActor.LifecycleMessage> lifecycleCmdActor;
 
@@ -56,7 +58,7 @@ public class JLifecycleActorTest {
 
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         commandHandlerActor = testKit.createTestProbe();
-        lifecycleCmdActor = testKit.spawn(JLifecycleActor.behavior(commandResponseManager, Optional.of(hcdCommandService), configClientApi, commandHandlerActor.getRef(), jLoggerFactory));
+        lifecycleCmdActor = testKit.spawn(JLifecycleActor.behavior(commandResponseManager, Optional.of(hcdCommandService), configClientApi, commandHandlerActor.getRef(), eventHandlerActor.getRef(), jLoggerFactory));
     }
 
     @After

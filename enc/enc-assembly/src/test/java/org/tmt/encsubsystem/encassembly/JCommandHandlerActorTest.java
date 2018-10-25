@@ -2,6 +2,7 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.testkit.typed.javadsl.BehaviorTestKit;
 import akka.actor.testkit.typed.javadsl.TestInbox;
+import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.javadsl.ActorContext;
 import csw.messages.commands.CommandName;
 import csw.messages.commands.ControlCommand;
@@ -40,6 +41,8 @@ public class JCommandHandlerActorTest {
 
     @Mock
     JCommandService hcdCommandService;
+    TestProbe<JMonitorActor.MonitorMessage> monitorActor;
+
 
     BehaviorTestKit<JCommandHandlerActor.CommandMessage> commandHandlerBehaviourKit;
 
@@ -49,7 +52,7 @@ public class JCommandHandlerActorTest {
     public void setUp() throws Exception {
         when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         replyTo = TestInbox.create();
-        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, Optional.of(hcdCommandService), true, jLoggerFactory, Optional.empty()));
+        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, Optional.of(hcdCommandService), true, jLoggerFactory, Optional.empty(), monitorActor.getRef()));
     }
 
     @After

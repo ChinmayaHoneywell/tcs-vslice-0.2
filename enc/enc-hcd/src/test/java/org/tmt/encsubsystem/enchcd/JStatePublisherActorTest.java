@@ -12,8 +12,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
-import java.util.Optional;
+import org.tmt.encsubsystem.enchcd.models.HCDState;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -64,7 +63,8 @@ public class JStatePublisherActorTest {
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        statePublisherActor = testKit.spawn(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, jLoggerFactory, JEncHcdHandlers.LifecycleState.Initialized, JEncHcdHandlers.OperationalState.Idle));
+        HCDState hcdState = new HCDState(HCDState.LifecycleState.Initialized, HCDState.OperationalState.Idle);
+        statePublisherActor = testKit.spawn(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, jLoggerFactory, hcdState));
     }
 
     @After
@@ -72,19 +72,16 @@ public class JStatePublisherActorTest {
     }
 
     /**
-     * given hcd is initialized,
-     * when state publisher actor received state change message
-     * then it should publish change to assembly using current state publisher
-     * <p>
-     * <p>
-     * Ref -
+     * given HCD is running,
+     * when state publisher actor receives follow command complted message,
+     * then it should change hcdstate to follow
      * How to test if actor has executed some function?
      * https://stackoverflow.com/questions/27091629/akka-test-that-function-from-test-executed?answertab=oldest#tab-top
      */
     @Test
-    public void stateChangeTest() throws InterruptedException {
+    public void followCommandCompletedTest() throws InterruptedException {
 
-        statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Running), Optional.of(JEncHcdHandlers.OperationalState.Ready)));
+        statePublisherActor.tell(new JStatePublisherActor.FollowCommandCompletedMessage());
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(currentStatePublisher).publish(currentStateArgumentCaptor.capture());
         CurrentState currentState = currentStateArgumentCaptor.getValue();

@@ -63,7 +63,6 @@ public class JStartUpCmdActorTest {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         statePublisherMessageTestProbe = testKit.createTestProbe();
         startUpCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, statePublisherMessageTestProbe.getRef(), jLoggerFactory));
-
     }
 
     @After
@@ -78,12 +77,10 @@ public class JStartUpCmdActorTest {
      */
     @Test
     public void startupCommandCompletion() {
-
         Setup startupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("startup"), Optional.empty());
         startUpCmdActor.tell(startupCmd);
         //checking if statePublisher Actor received state change message
-        statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Running), Optional.of(JEncHcdHandlers.OperationalState.Ready)));
-
+        statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.InitializedMessage());
         verify(commandResponseManager).addOrUpdateCommand(startupCmd.runId(), new CommandResponse.Completed(startupCmd.runId()));
     }
 }

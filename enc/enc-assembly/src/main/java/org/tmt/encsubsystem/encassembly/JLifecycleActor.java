@@ -5,12 +5,12 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.*;
 import akka.stream.Materializer;
+import akka.util.Timeout;
 import com.typesafe.config.Config;
 import csw.framework.exceptions.FailureStop;
 import csw.messages.commands.ControlCommand;
 import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.api.models.ConfigData;
 import csw.services.config.client.internal.ActorRuntime;
@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
 /**
@@ -43,6 +44,10 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
     }
 
     public static final class ShutdownMessage implements LifecycleMessage {
+        public final CompletableFuture<Void> cf;
+        public ShutdownMessage(CompletableFuture<Void> cf) {
+            this.cf =cf;
+        }
     }
 
     public static final class SubmitCommandMessage implements LifecycleMessage {
@@ -73,9 +78,10 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
     private CommandResponseManager commandResponseManager;
     private Optional<JCommandService> hcdCommandService;
     ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor;
+    ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor;
 
 
-    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, JLoggerFactory loggerFactory) {
+    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, JLoggerFactory loggerFactory) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
@@ -83,12 +89,13 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         this.commandResponseManager = commandResponseManager;
         this.hcdCommandService = hcdCommandService;
         this.commandHandlerActor = commandHandlerActor;
+        this.eventHandlerActor = eventHandlerActor;
 
     }
 
-    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, JLoggerFactory loggerFactory) {
+    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, loggerFactory);
+            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, eventHandlerActor, loggerFactory);
         });
     }
 
@@ -108,30 +115,16 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
                             return Behaviors.same();
                         })
                 .onMessage(ShutdownMessage.class,
-                        command -> {
+                        shutdownMessage -> {
                             log.debug(() -> "ShutdownMessage Received");
-                            onShutdown(command);
-                            return Behaviors.same();
-                        })
-                .onMessage(SubmitCommandMessage.class,
-                        command -> command.controlCommand.commandName().name().equals("startup"),
-                        command -> {
-                            log.debug(() -> "StartUp Received");
-                            handleStartupCommand(command.controlCommand);
-                            return Behaviors.same();
-                        })
-                .onMessage(SubmitCommandMessage.class,
-                        command -> command.controlCommand.commandName().name().equals("shutdown"),
-                        command -> {
-                            log.debug(() -> "shutdown Received");
-                            handleShutdownCommand(command.controlCommand);
+                            onShutdown(shutdownMessage);
                             return Behaviors.same();
                         })
                 .onMessage(UpdateHcdCommandServiceMessage.class,
                         command -> {
                             log.debug(() -> "UpdateTemplateHcdMessage Received");
                             // update the template hcd
-                            return behavior(commandResponseManager, command.commandServiceOptional, configClientApi, commandHandlerActor, loggerFactory);
+                            return behavior(commandResponseManager, command.commandServiceOptional, configClientApi, commandHandlerActor, eventHandlerActor, loggerFactory);
                         });
         return builder.build();
     }
@@ -143,6 +136,8 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
      */
     private void onInitialize(InitializeMessage message) {
         log.debug(() -> "Initialize Message Received ");
+        eventHandlerActor.tell(new JEventHandlerActor.PublishAssemblyStateMessage());//change to ask pattern?
+        eventHandlerActor.tell(new JEventHandlerActor.SubscribeEventMessage());
         Config assemblyConfig = getAssemblyConfig();
         // example of working with Config
         Double ventopenpercentage = assemblyConfig.getDouble("ventopenpercentage");
@@ -155,41 +150,23 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
 
     /**
      * This is called as part of csw component shutdown.
-     * Lifecycle actor will perform shutdown activities like releasing occupied resources if any.
+     * Lifecycle actor will perform shutdown activities like releasing occupied resources if any, stop publishing events
      * @param message
      */
     private void onShutdown(ShutdownMessage message) {
-
         log.debug(() -> "Shutdown Message Received ");
+        try {
+            String cfString= AskPattern.ask(eventHandlerActor, (ActorRef<String> replyTo)->
+                    new JEventHandlerActor.StopEventsMessage(replyTo), new Timeout(10, TimeUnit.SECONDS) , actorContext.getSystem().scheduler()
+            ).toCompletableFuture().get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        message.cf.complete(null);
+
     }
-
-    /**
-     * This method will received startup command and create worker actor to handle it.
-     * command will be forwarded to worker actor.
-     * @param controlCommand
-     */
-    private void handleStartupCommand(ControlCommand controlCommand) {
-
-        log.debug(() -> "handle Startup Command = " + controlCommand);
-        ActorRef<ControlCommand> startupCmdActor =
-                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, hcdCommandService, loggerFactory));
-
-        startupCmdActor.tell(controlCommand);
-    }
-    /**
-     * This method will received shutdown command and create worker actor to handle it.
-     * command will be forwarded to worker actor.
-     * @param controlCommand
-     */
-    private void handleShutdownCommand(ControlCommand controlCommand) {
-
-        log.debug(() -> "handle shutdown Command = " + controlCommand);
-        ActorRef<ControlCommand> shutdownCmdActor =
-                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, hcdCommandService, loggerFactory));
-
-        shutdownCmdActor.tell(controlCommand);
-    }
-
 
     /**
      * This method load assembly configuration.

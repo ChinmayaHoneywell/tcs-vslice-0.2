@@ -10,6 +10,7 @@ import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.tmt.encsubsystem.encassembly.model.AssemblyState;
 
 import java.util.Optional;
 
@@ -40,7 +41,8 @@ public class JMonitorActorTest {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         eventHandlerActor = testKit.createTestProbe();
         commandHandlerActor = testKit.createTestProbe();
-        monitorActor = testKit.spawn(JMonitorActor.behavior(JEncAssemblyHandlers.LifecycleState.Initialized, JEncAssemblyHandlers.OperationalState.Idle, jLoggerFactory, eventHandlerActor.getRef(), commandHandlerActor.getRef()));
+        AssemblyState assemblyState = new AssemblyState(AssemblyState.LifecycleState.Initialized, AssemblyState.OperationalState.Idle);
+        monitorActor = testKit.spawn(JMonitorActor.behavior(assemblyState, jLoggerFactory, eventHandlerActor.getRef()));
     }
 
     @After
@@ -56,8 +58,8 @@ public class JMonitorActorTest {
     public void connectionFailureTest() throws InterruptedException {
         monitorActor.tell(new JMonitorActor.LocationEventMessage(Optional.empty()));
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
-        JEncAssemblyHandlers.OperationalState operationalState = JEncAssemblyHandlers.askOperationalStateFromMonitor(monitorActor, testKit.system());
-        assertEquals(operationalState, JEncAssemblyHandlers.OperationalState.Faulted);
+        AssemblyState.OperationalState operationalState = JEncAssemblyHandlers.askOperationalStateFromMonitor(monitorActor, testKit.system());
+        assertEquals(operationalState, AssemblyState.OperationalState.Faulted);
     }
 
 

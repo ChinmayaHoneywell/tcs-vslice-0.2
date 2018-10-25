@@ -2,22 +2,37 @@ package org.tmt.encsubsystem.encassembly;
 
 
 import akka.actor.Cancellable;
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.MutableBehavior;
 import akka.actor.typed.javadsl.ReceiveBuilder;
+import csw.framework.CurrentStatePublisher;
 import csw.messages.events.Event;
+import csw.messages.events.EventKey;
 import csw.messages.events.EventName;
 import csw.messages.events.SystemEvent;
 import csw.messages.framework.ComponentInfo;
 import csw.messages.params.generics.Parameter;
+import csw.messages.params.models.ArrayData;
+import csw.messages.params.models.Prefix;
+import csw.messages.params.states.CurrentState;
+import csw.messages.params.states.StateName;
 import csw.services.event.api.javadsl.IEventService;
+import csw.services.event.api.javadsl.IEventSubscriber;
+import csw.services.event.api.javadsl.IEventSubscription;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.encassembly.model.AssemblyState;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
+import static org.tmt.encsubsystem.encassembly.Constants.*;
 
 /*** EventHandlerActor handles event processing.
  * it takes data from other actors like monitor actor and publish event using event service.
@@ -25,100 +40,34 @@ import java.time.Instant;
  */
 public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.EventMessage> {
 
-
-    // add messages here
-    interface EventMessage {
-    }
-
-    /**
-     * Send this message to EventHandlerActor to start publishing assembly events to
-     */
-    public static final class AssemblyStateMessage implements EventMessage {
-        public final JEncAssemblyHandlers.LifecycleState lifecycleState;
-        public final JEncAssemblyHandlers.OperationalState operationalState;
-        public final Instant time;
-
-        public  AssemblyStateMessage(JEncAssemblyHandlers.LifecycleState lifecycleState, JEncAssemblyHandlers.OperationalState operationalState, Instant time){
-            this.lifecycleState = lifecycleState;
-            this.operationalState = operationalState;
-            this.time = time;
-        }
-
-        @Override
-        public String toString() {
-            return "AssemblyStateMessage{" +
-                    "lifecycleState=" + lifecycleState +
-                    ", operationalState=" + operationalState +
-                    ", time=" + time +
-                    '}';
-        }
-    }
-
-    /**
-     * EventHandlerActor message for current position event.
-     */
-    public static final class CurrentPositionMessage implements  EventMessage{
-        public final Parameter<Double> basePosParam;
-        public final Parameter<Double> capPosParam;
-        public final Parameter<Instant> subsystemTimestamp;
-        public final Parameter<Instant> hcdTimestamp;
-        public final Parameter<Instant> assemblyTimestamp;
-
-
-        public CurrentPositionMessage(Parameter<Double> basePosParam, Parameter<Double> capPosParam, Parameter<Instant> subsystemTimestamp, Parameter<Instant> hcdTimestamp, Parameter<Instant> assemblyTimestamp) {
-           this.basePosParam = basePosParam;
-           this.capPosParam = capPosParam;
-           this.subsystemTimestamp = subsystemTimestamp;
-           this.hcdTimestamp = hcdTimestamp;
-           this.assemblyTimestamp = assemblyTimestamp;
-        }
-    }
-
-    public static final class HealthMessage implements  EventMessage {
-        public final Parameter<String> healthParam;
-        public final Parameter<String> healthReasonParam;
-        public final Parameter<Instant> healthTimeParam;
-        public final Parameter<Instant> assemblyTimestamp;
-
-        public HealthMessage(Parameter<String> healthParam, Parameter<String> healthReasonParam, Parameter<Instant> healthTimeParam, Parameter<Instant> assemblyTimestamp) {
-            this.healthParam = healthParam;
-            this.healthReasonParam = healthReasonParam;
-            this.healthTimeParam = healthTimeParam;
-            this.assemblyTimestamp = assemblyTimestamp;
-        }
-    }
-
-    /**
-     * Upon receiving this message, EventHandlerActor will start publishing assembly state at defined frequency.
-     */
-    public static final class StartPublishingAssemblyState implements  EventMessage{
-
-    }
-
     private ActorContext<EventMessage> actorContext;
-    ComponentInfo componentInfo;
-    IEventService eventService;
+    private ComponentInfo componentInfo;
+    private IEventService eventService;
+    private CurrentStatePublisher currentStatePublisher;
     private JLoggerFactory loggerFactory;
     private ILogger log;
+    private IEventSubscription positionDemandsSubscription;
+    private Optional<Cancellable> cancellable = Optional.empty();
+
     /**
-     * This hold latest assembly
+     * This hold latest assembly state
      */
     private AssemblyStateMessage assemblyState;
 
 
-    private JEventHandlerActor(ActorContext<EventMessage> actorContext, ComponentInfo componentInfo, IEventService eventService, JLoggerFactory loggerFactory,JEncAssemblyHandlers.LifecycleState assemblyLifecycleState, JEncAssemblyHandlers.OperationalState assemblyOperationalState ) {
+    private JEventHandlerActor(ActorContext<EventMessage> actorContext, ComponentInfo componentInfo, IEventService eventService, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, AssemblyState assemblyState) {
         this.actorContext = actorContext;
         this.componentInfo = componentInfo;
         this.eventService = eventService;
+        this.currentStatePublisher = currentStatePublisher;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());// how expensive is this operation?
-        this.assemblyState = new AssemblyStateMessage(assemblyLifecycleState, assemblyOperationalState, Instant.now());
-
+        this.assemblyState = new AssemblyStateMessage(assemblyState, ASSEMBLY_STATE_TIME_KEY.set(Instant.now()));
     }
 
-    public static <EventMessage> Behavior<EventMessage> behavior(ComponentInfo componentInfo, IEventService eventService, JLoggerFactory loggerFactory, JEncAssemblyHandlers.LifecycleState assemblyLifecycleState, JEncAssemblyHandlers.OperationalState assemblyOperationalState) {
+    public static <EventMessage> Behavior<EventMessage> behavior(ComponentInfo componentInfo, IEventService eventService, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, AssemblyState assemblyState) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<EventMessage>) new JEventHandlerActor((ActorContext<JEventHandlerActor.EventMessage>) ctx, componentInfo, eventService, loggerFactory, assemblyLifecycleState, assemblyOperationalState);
+            return (MutableBehavior<EventMessage>) new JEventHandlerActor((ActorContext<JEventHandlerActor.EventMessage>) ctx, componentInfo, eventService, currentStatePublisher, loggerFactory, assemblyState);
         });
     }
 
@@ -133,29 +82,84 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         ReceiveBuilder<EventMessage> builder = receiveBuilder()
                 .onMessage(CurrentPositionMessage.class,
                         currentPositionMessage -> {
-                            log.debug(() -> "EventPublishMessage Received");
+                            log.debug(() -> "CurrentPositionMessage Received");
                             publishCurrentPosition(currentPositionMessage);
                             return Behaviors.same();
                         })
                 .onMessage(AssemblyStateMessage.class,
                         assemblyStateMessage -> {
-                            log.debug(() -> "Assembly state message received" + assemblyStateMessage);
+                            log.debug(() -> "AssemblyStateMessage received" + assemblyStateMessage.assemblyState);
                             this.assemblyState = assemblyStateMessage; // updating assembly state in event handler actor
                             return Behaviors.same();
                         })
                 .onMessage(HealthMessage.class,
                         healthMessage -> {
-                            log.debug(() -> "Health message received");
+                            log.debug(() -> "HealthMessage received");
                             publishHealth(healthMessage);
                             return Behaviors.same();
                         })
-                .onMessage(StartPublishingAssemblyState.class,
-                assemblyStateMessage -> {
-                    log.debug(() -> "Start Publishing Assembly State message received");
-                    startPublishingAssemblyState();
-                    return Behaviors.same();
-                });
+                .onMessage(DiagnosticMessage.class,
+                        diagnosticMessage -> {
+                            log.debug(() -> "DiagnosticMessage received");
+                            publishDiagnostic(diagnosticMessage);
+                            return Behaviors.same();
+                        })
+                .onMessage(PublishAssemblyStateMessage.class,
+                        assemblyStateMessage -> {
+                            log.debug(() -> "PublishAssemblyStateMessage received");
+                            Cancellable c= startPublishingAssemblyState();
+                            cancellable = Optional.of(c);
+                            return Behaviors.same();
+                        })
+                .onMessage(StopEventsMessage.class,
+                        stopEventsMessage -> {
+                            log.debug(() -> "StopEventsMessage received");
+                            stopPublishingAssemblyState(stopEventsMessage);
+                            return Behaviors.same();
+                        })
+                .onMessage(SubscribeEventMessage.class,
+                        subscribeEventMessage -> {
+                            log.debug(() -> "PublishAssemblyStateMessage received");
+                            subscribeToEvents(subscribeEventMessage);
+                            return Behaviors.same();
+                        });
         return builder.build();
+    }
+
+    private void stopPublishingAssemblyState(StopEventsMessage message) {
+        cancellable.ifPresent(c-> c.cancel());
+        message.replyTo.tell("Done");
+    }
+
+    /**
+     * This method subscribe to events from other assemblies.
+     * And forward events to other components and hcd.
+     * @param subscribeEventMessage
+     */
+    private void subscribeToEvents(SubscribeEventMessage subscribeEventMessage) {
+        positionDemandsSubscription  = subscribeEncDemandsPositions();
+    }
+
+    private IEventSubscription subscribeEncDemandsPositions(){
+        IEventSubscriber subscriber = eventService.defaultSubscriber();
+        EventKey eventKey = new EventKey(new Prefix(DEMAND_POSITIONS_PUBLISHER_PREFIX), new EventName(DEMAND_POSITIONS));
+        return subscriber.subscribeAsync(Collections.singleton(eventKey), this::demandPositionsCallback);
+    }
+
+
+    private CompletableFuture<String> demandPositionsCallback(Event event){
+
+        Parameter baseParam = event.paramSet().find(x -> x.keyName().equals(DEMAND_POSITIONS_BASE_KEY)).get();
+        Parameter capParam = event.paramSet().find(x -> x.keyName().equals(DEMAND_POSITIONS_CAP_KEY)).get();
+        Parameter<Instant> clientTimeParam = CLIENT_TIMESTAMP_KEY.set(event.eventTime().time());
+        Parameter<Instant> assemblyTimeParam = ASSEMBLY_TIMESTAMP_KEY.set(event.eventTime().time());
+        CurrentState demandPosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(DEMAND_POSITIONS))
+                .add(baseParam)
+                .add(capParam)
+                .add(clientTimeParam)
+                .add(assemblyTimeParam);
+        currentStatePublisher.publish(demandPosition);
+        return CompletableFuture.completedFuture("Ok");
     }
 
     /**
@@ -179,6 +183,16 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
     }
 
     /**
+     * This method publish diagnostic event.
+     * @param message
+     */
+    private void publishDiagnostic(DiagnosticMessage message) {
+        SystemEvent diagnosticEvent = new SystemEvent(componentInfo.prefix(), new EventName(Constants.DIAGNOSTIC))
+                .madd(message.diagnosticByteParam, message.diagnosticTimeParam);
+        eventService.defaultPublisher().publish(diagnosticEvent);
+    }
+
+    /**
      * This method create event generator to publish assembly state.
      * This method keep publishing latest assembly state over and over unless any update is received from monitor actor.
      * @return
@@ -187,12 +201,97 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         Event baseEvent = new SystemEvent(componentInfo.prefix(), new EventName(Constants.ASSEMBLY_STATE));
         return eventService.defaultPublisher().publish(()->
              ((SystemEvent) baseEvent)
-                        .add(Constants.LIFECYCLE_KEY.set(this.assemblyState.lifecycleState.name()))
-                        .add(Constants.OPERATIONAL_KEY.set(this.assemblyState.operationalState.name()))
-                    .add(Constants.TIME_OF_STATE_DERIVATION.set(this.assemblyState.time))
-        , Duration.ofMillis(1000/Constants.ASSEMBLY_STATE_EVENT_FREQUENCY_IN_HERTZ));
+                     .add(LIFECYCLE_KEY.set(this.assemblyState.assemblyState.getLifecycleState().name()))
+                     .add(OPERATIONAL_KEY.set(this.assemblyState.assemblyState.getOperationalState().name()))
+                    .add(this.assemblyState.time)
+        , Duration.ofMillis(1000/Constants.ASSEMBLY_STATE_EVENT_FREQUENCY_IN_HERTZ),error->{
+            log.error("Assembly state publish error");
+                });
+    }
+
+    interface EventMessage {
+    }
+
+    /**
+     * Send this message to EventHandlerActor to start publishing assembly events to
+     */
+    public static final class AssemblyStateMessage implements EventMessage {
+        public final AssemblyState assemblyState;
+        public final Parameter<Instant> time;
+
+        public  AssemblyStateMessage(AssemblyState assemblyState, Parameter<Instant>  time){
+            this.assemblyState = assemblyState;
+            this.time = time;
+        }
+
+    }
+
+    /**
+     * EventHandlerActor message for current position event.
+     */
+    public static final class CurrentPositionMessage implements  EventMessage{
+        public final Parameter<Double> basePosParam;
+        public final Parameter<Double> capPosParam;
+        public final Parameter<Instant> subsystemTimestamp;
+        public final Parameter<Instant> hcdTimestamp;
+        public final Parameter<Instant> assemblyTimestamp;
+
+
+        public CurrentPositionMessage(Parameter<Double> basePosParam, Parameter<Double> capPosParam, Parameter<Instant> subsystemTimestamp, Parameter<Instant> hcdTimestamp, Parameter<Instant> assemblyTimestamp) {
+            this.basePosParam = basePosParam;
+            this.capPosParam = capPosParam;
+            this.subsystemTimestamp = subsystemTimestamp;
+            this.hcdTimestamp = hcdTimestamp;
+            this.assemblyTimestamp = assemblyTimestamp;
+        }
+    }
+
+    public static final class HealthMessage implements  EventMessage {
+        public final Parameter<String> healthParam;
+        public final Parameter<String> healthReasonParam;
+        public final Parameter<Instant> healthTimeParam;
+        public final Parameter<Instant> assemblyTimestamp;
+
+        public HealthMessage(Parameter<String> healthParam, Parameter<String> healthReasonParam, Parameter<Instant> healthTimeParam, Parameter<Instant> assemblyTimestamp) {
+            this.healthParam = healthParam;
+            this.healthReasonParam = healthReasonParam;
+            this.healthTimeParam = healthTimeParam;
+            this.assemblyTimestamp = assemblyTimestamp;
+        }
+    }
+
+    public  static final class DiagnosticMessage implements  EventMessage {
+        public final Parameter<ArrayData<Byte>> diagnosticByteParam;
+        public final Parameter<Instant> diagnosticTimeParam;
+
+        public DiagnosticMessage(Parameter<ArrayData<Byte>> diagnosticByteParam, Parameter<Instant> diagnosticTimeParam) {
+            this.diagnosticByteParam = diagnosticByteParam;
+            this.diagnosticTimeParam = diagnosticTimeParam;
+        }
+    }
+
+    /**
+     * Upon receiving this message, EventHandlerActor will start publishing assembly state at defined frequency.
+     */
+    public static final class PublishAssemblyStateMessage implements  EventMessage{
+    }
+
+    /**
+     * Upon receiving this message, EventHandlerActor will stop publishing assembly state at defined frequency.
+     */
+    public static final class StopEventsMessage implements  EventMessage{
+        public final ActorRef<String> replyTo;
+
+        public StopEventsMessage(ActorRef<String> replyTo) {
+            this.replyTo = replyTo;
+        }
     }
 
 
+    /**
+     * This will start events subscription
+     */
+    public static final class SubscribeEventMessage implements  EventMessage{
+    }
 
 }

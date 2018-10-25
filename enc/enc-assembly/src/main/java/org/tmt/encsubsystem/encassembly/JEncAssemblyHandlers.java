@@ -9,7 +9,6 @@ import akka.actor.typed.javadsl.AskPattern;
 import akka.util.Timeout;
 import csw.framework.CurrentStatePublisher;
 import csw.framework.javadsl.JComponentHandlers;
-
 import csw.messages.TopLevelActorMessage;
 import csw.messages.commands.CommandIssue;
 import csw.messages.commands.CommandResponse;
@@ -21,19 +20,17 @@ import csw.messages.location.LocationRemoved;
 import csw.messages.location.LocationUpdated;
 import csw.messages.location.TrackingEvent;
 import csw.messages.params.generics.JKeyTypes;
-
 import csw.services.alarm.api.javadsl.IAlarmService;
 import csw.services.command.CommandResponseManager;
 import csw.services.command.javadsl.JCommandService;
-
 import csw.services.command.scaladsl.CurrentStateSubscription;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.client.javadsl.JConfigClientFactory;
-
 import csw.services.event.api.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.encassembly.model.AssemblyState;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -49,16 +46,6 @@ import java.util.concurrent.TimeUnit;
  * You can find more information on this here : https://tmtsoftware.github.io/csw-prod/framework.html
  */
 public class JEncAssemblyHandlers extends JComponentHandlers {
-
-
-    // what should be the initial state when assembly is just deployed, even before the onInitialize hook get called.
-    public enum LifecycleState {
-        Initialized, Running, Offline, Online
-    }
-
-    public enum OperationalState {
-        Idle, Ready, Following, Slewing, Tracking, InPosition, Halted, Faulted
-    }
 
     private ILogger log;
     private CommandResponseManager commandResponseManager;
@@ -97,17 +84,14 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
         this.componentInfo = componentInfo;
 
         configClientApi = JConfigClientFactory.clientApi(Adapter.toUntyped(actorContext.getSystem()), locationService);
-
-        // Load the configuration from the configuration service
-        // Config assemblyConfig = getAssemblyConfig();
+        AssemblyState initialAssemblyState = new AssemblyState(AssemblyState.LifecycleState.Initialized, AssemblyState.OperationalState.Idle);
         log.debug(() -> "Spawning Handler Actors in assembly");
-        commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory, Optional.empty()));
+        eventHandlerActor = ctx.spawnAnonymous(JEventHandlerActor.behavior(componentInfo, eventService,currentStatePublisher, loggerFactory, initialAssemblyState));
+        monitorActor = ctx.spawnAnonymous(JMonitorActor.behavior(initialAssemblyState, loggerFactory, eventHandlerActor));
+        commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, hcdCommandService, Boolean.TRUE, loggerFactory, Optional.empty(), monitorActor));
+        lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, eventHandlerActor, loggerFactory));
 
-        eventHandlerActor = ctx.spawnAnonymous(JEventHandlerActor.behavior(componentInfo, eventService,loggerFactory, JEncAssemblyHandlers.LifecycleState.Initialized, JEncAssemblyHandlers.OperationalState.Idle));
-        eventHandlerActor.tell(new JEventHandlerActor.StartPublishingAssemblyState());//should event publishing start after assembly initialization?
-        lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, loggerFactory));
 
-        monitorActor = ctx.spawnAnonymous(JMonitorActor.behavior(JEncAssemblyHandlers.LifecycleState.Initialized, JEncAssemblyHandlers.OperationalState.Idle, loggerFactory, eventHandlerActor, commandHandlerActor));
 
     }
 
@@ -118,7 +102,6 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
      */
     @Override
     public CompletableFuture<Void> jInitialize() {
-
         CompletableFuture<Void> cf = new CompletableFuture<>();
         log.debug(() -> "initializing enc assembly");
         lifecycleActor.tell(new JLifecycleActor.InitializeMessage(cf));
@@ -131,16 +114,17 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
      */
     @Override
     public CompletableFuture<Void> jOnShutdown() {
-        return CompletableFuture.runAsync(() -> {
-            log.debug(() -> "shutdown enc assembly");
-            lifecycleActor.tell(new JLifecycleActor.ShutdownMessage());
-        });
+        CompletableFuture<Void> cf = new CompletableFuture<>();
+        log.debug(() -> "shutdown enc assembly");
+        subscription.ifPresent(subscription -> subscription.unsubscribe());
+            lifecycleActor.tell(new JLifecycleActor.ShutdownMessage(cf));
+            return cf;
     }
 
     /**
      * This is a callback method
      * When CSW detect HCD, HCD connection is obtained by assembly in this method.
-     * CSW will notify assembly in case hcd connection is lost throught this method.
+     * CSW will notify assembly in case hcd connection is lost through this method.
      * @param trackingEvent
      */
     @Override
@@ -160,7 +144,6 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
         } else if (trackingEvent instanceof LocationRemoved) {
             // do something for the tracked location when it is no longer available
-
             hcdCommandService = Optional.empty();
             // FIXME: not sure if this is necessary
             subscription.ifPresent(subscription -> subscription.unsubscribe());
@@ -197,7 +180,6 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
                 return accepted;
 
             case "follow":
-
                 //State based validation
                 if (!isStateValid(askOperationalStateFromMonitor(monitorActor, actorContext.getSystem()))) {
                     return new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.WrongInternalStateIssue("Assembly is not in valid operational state"));
@@ -207,6 +189,10 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
             case "startup":
                 return accepted;
             case "shutdown":
+                return accepted;
+            case "assemblyTestCommand":
+                return accepted;
+            case "hcdTestCommand":
                 return accepted;
 
             default:
@@ -220,29 +206,13 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
 
     /**
      * This CSW hook is called after command is validated in validate hook.
-     * Command is forwarded to Command Handler Actor or Lifecycle Actor for processing.
+     * Command is forwarded to CommandHandlerActor or LifecycleActor for processing.
      * @param controlCommand
      */
     @Override
     public void onSubmit(ControlCommand controlCommand) {
-        log.info(() -> "Assembly received command - " + controlCommand);
-        switch (controlCommand.commandName().name()) {
-            case "startup":
-                lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
-                break;
-            case "shutdown":
-                lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
-                break;
-            case "move":
-                commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
-                break;
-            case "follow":
-                commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
-                break;
-
-
-        }
-
+        log.debug(() -> "Assembly received command - " + controlCommand);
+        commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
     }
 
     @Override
@@ -288,11 +258,11 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
      * @param operationalState
      * @return
      */
-    private boolean isStateValid(OperationalState operationalState) {
-        return operationalState == OperationalState.Ready ||
-                operationalState == OperationalState.Slewing ||
-                operationalState == OperationalState.Tracking ||
-                operationalState == OperationalState.InPosition;
+    private boolean isStateValid(AssemblyState.OperationalState operationalState) {
+        return operationalState == AssemblyState.OperationalState.Ready ||
+                operationalState == AssemblyState.OperationalState.Slewing ||
+                operationalState == AssemblyState.OperationalState.Tracking ||
+                operationalState == AssemblyState.OperationalState.InPosition;
     }
 
     /**
@@ -301,15 +271,15 @@ public class JEncAssemblyHandlers extends JComponentHandlers {
      *
      * @return
      */
-    public static OperationalState askOperationalStateFromMonitor(ActorRef<JMonitorActor.MonitorMessage> actor, ActorSystem system) {
+    public static AssemblyState.OperationalState askOperationalStateFromMonitor(ActorRef<JMonitorActor.MonitorMessage> actor, ActorSystem system) {
 
-        final JMonitorActor.AssemblyStatesResponseMessage assemblyStates;
+        final JMonitorActor.AssemblyStatesResponseMessage assemblyStatesResponse;
         try {
-            assemblyStates = AskPattern.ask(actor, (ActorRef<JMonitorActor.AssemblyStatesResponseMessage> replyTo) ->
+            assemblyStatesResponse = AskPattern.ask(actor, (ActorRef<JMonitorActor.AssemblyStatesResponseMessage> replyTo) ->
                             new JMonitorActor.AssemblyStatesAskMessage(replyTo)
                     , new Timeout(10, TimeUnit.SECONDS), system.scheduler()).toCompletableFuture().get();
             //  log.debug(() -> "Got Assembly state from monitor actor - " + assemblyStates.assemblyOperationalState + " ,  " + assemblyStates.assemblyLifecycleState);
-            return assemblyStates.assemblyOperationalState;
+            return assemblyStatesResponse.assemblyState.getOperationalState();
         } catch (Exception e) {
             e.printStackTrace();
             return null;

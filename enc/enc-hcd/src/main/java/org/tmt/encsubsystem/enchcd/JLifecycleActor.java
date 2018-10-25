@@ -22,9 +22,6 @@ import java.util.concurrent.ExecutionException;
 //import akka.actor.typed.javadsl.MutableBehavior;
 
 public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMessage> {
-
-
-    // add messages here
     interface LifecycleMessage {
     }
 
@@ -66,8 +63,6 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         this.configClientApi = configClientApi;
         this.commandResponseManager = commandResponseManager;
         this.statePublisherActor = statePublisherActor;
-
-
     }
 
     public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
@@ -96,20 +91,6 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
                             log.debug(() -> "ShutdownMessage Received");
                             onShutdown(command);
                             return Behaviors.same();
-                        })
-                .onMessage(SubmitCommandMessage.class,
-                        command -> command.controlCommand.commandName().name().equals("startup"),
-                        command -> {
-                            log.debug(() -> "StartUp Received");
-                            handleStartupCommand(command.controlCommand);
-                            return Behaviors.same();
-                        })
-                .onMessage(SubmitCommandMessage.class,
-                        command -> command.controlCommand.commandName().name().equals("shutdown"),
-                        command -> {
-                            log.debug(() -> "Shutdown Received");
-                            handleShutdownCommand(command.controlCommand);
-                            return Behaviors.same();
                         });
 
         return builder.build();
@@ -134,23 +115,6 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         JStatePublisherActor.StopMessage stopMessage = new JStatePublisherActor.StopMessage();
         statePublisherActor.tell(stopMessage);
     }
-
-    private void handleStartupCommand(ControlCommand controlCommand) {
-        log.debug(() -> "handle Startup Command = " + controlCommand);
-        ActorRef<ControlCommand> startupCmdActor =
-                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
-        startupCmdActor.tell(controlCommand);
-    }
-
-    private void handleShutdownCommand(ControlCommand controlCommand) {
-
-        log.debug(() -> "handle shutdown Command = " + controlCommand);
-        ActorRef<ControlCommand> shutdownCmdActor =
-                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
-
-        shutdownCmdActor.tell(controlCommand);
-    }
-
 
     /**
      * This method load assembly configuration.

@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.simplesimulator;
+package org.tmt.encsubsystem.enchcd.models;
 
 /**
  * This is a POJO Class to represent current position of enclosure.

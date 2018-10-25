@@ -40,7 +40,10 @@ public class ENCEventsClient {
 
         IEventService eventService;
 
-        String assemblyState = "Lifecycle state = ?, Operational State = ?";
+        String assemblyState = "Unknown";
+        String health="Unknown";
+        String diagnostic="Unknown";
+
 
         public ENCEventsClient(ActorSystem system, ILocationService locationService) throws Exception {
             this.source = new Prefix("enc.enc-event-client");
@@ -89,8 +92,8 @@ public class ENCEventsClient {
             long subsystemToClientDuration = Duration.between(subsystemInstantTime, clientInstantTime).toMillis();
             long hcdToAssemblyDuration = Duration.between(hcdInstantTime, assemblyInstantTime).toMillis();
 
-            //System.out.print("\r"+event.eventName().name()+", base="+ basePosParam.value(0) + ", cap="+ capPosParam.value(0) + ", subsystem timestamp - " + subsystemInstantTime + ", HCD timestamp- " + hcdInstantTime+ ", Assembly timestamp- " + assemblyInstantTime + ", Client timestamp- " + clientInstantTime + ", Time taken(HCD to Client) - " + hcdToClientDuration + "ms, Time taken(Subsystem to Client) - " + subsystemToClientDuration + "ms, Time taken(HCD to Assembly) - " + hcdToAssemblyDuration+"ms" + ", "+assemblyState);
-            log.info(()->event.eventName().name()+", "+ basePosParam.value(0) + ", "+ capPosParam.value(0) + ", " + subsystemInstantTime + ", " + hcdInstantTime+ ", " + assemblyInstantTime + ", " + clientInstantTime + ", " + hcdToClientDuration + ", " + subsystemToClientDuration + ", " + hcdToAssemblyDuration);
+            //System.out.print("\r"+event.eventName().name()+", base="+ basePosParam.value(0) + ", cap="+ capPosParam.value(0) + ", subsystem timestamp - " + subsystemInstantTime + ", HCD timestamp- " + hcdInstantTime+ ", Assembly timestamp- " + assemblyInstantTime + ", Client timestamp- " + clientInstantTime + ", Time taken(HCD to Client) - " + hcdToClientDuration + "ms, Time taken(Subsystem to Client) - " + subsystemToClientDuration + "ms, Time taken(HCD to Assembly) - " + hcdToAssemblyDuration+"ms" + " , "+assemblyState+ ", " + health+" , "+ diagnostic);
+            log.info(()->"Event="+event.eventName().name()+", base="+ basePosParam.value(0) + ", cap="+ capPosParam.value(0) + ", subsystem time=" + subsystemInstantTime + ", hcd time=" + hcdInstantTime+ ", assembly time=" + assemblyInstantTime + ", subscriber time=" + clientInstantTime + ", Duration(hcd to subscriber in ms)=" + hcdToClientDuration + ", Duration(subsystem to subscriber in ms)=" + subsystemToClientDuration + ", Duration(hcd to assembly in ms)=" + hcdToAssemblyDuration);
             return CompletableFuture.completedFuture("Ok");
         }
 
@@ -101,8 +104,8 @@ public class ENCEventsClient {
      */
     private IEventSubscription subscribeAssemblyState(){
         IEventSubscriber subscriber = eventService.defaultSubscriber();
-        EventKey currentPositionEventKey = new EventKey(new Prefix("tmt.tcs.ecs"), new EventName("assemblyState"));
-        return subscriber.subscribeAsync(Collections.singleton(currentPositionEventKey), this::currentAssemblyStateCallback);
+        EventKey assemblyStateEventKey = new EventKey(new Prefix("tmt.tcs.ecs"), new EventName("assemblyState"));
+        return subscriber.subscribeAsync(Collections.singleton(assemblyStateEventKey), this::currentAssemblyStateCallback);
     }
 
     /**
@@ -111,16 +114,14 @@ public class ENCEventsClient {
      * @return
      */
     private CompletableFuture<String> currentAssemblyStateCallback(Event event){
-        //Instant clientInstantTime = Instant.now();
         Parameter lifecycleStateParam = event.paramSet().find(x -> x.keyName().equals("LifecycleState")).get();
         Parameter operationalStateParam = event.paramSet().find(x -> x.keyName().equals("OperationalState")).get();
-        Parameter timeOfStateDerivation = event.paramSet().find(x -> x.keyName().equals("TimeOfStateDerivation")).get();
+        Parameter assemblyStateTimeParam = event.paramSet().find(x -> x.keyName().equals("assemblyStateTimeKey")).get();
+        Instant assemblyStateTime = (Instant) assemblyStateTimeParam.value(0);
 
-        Instant timeOfStateDerivationInstant = (Instant) timeOfStateDerivation.value(0);
-
-        log.info(()->event.eventName().name()+", "+ lifecycleStateParam.value(0) + ", "+ operationalStateParam.value(0) + ", " + timeOfStateDerivationInstant + ", " + "-"+ ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-");
-        assemblyState = "Lifecycle state="+ lifecycleStateParam.value(0) + ", Operational state="+ operationalStateParam.value(0) + ", State time=" + timeOfStateDerivationInstant;
-
+        //log.info(()->event.eventName().name()+", "+ lifecycleStateParam.value(0) + ", "+ operationalStateParam.value(0) + ", " + assemblyStateTime + ", " + "-"+ ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-");
+        log.info(()->"Event="+event.eventName().name()+", Lifecycle state="+ lifecycleStateParam.value(0) + ", operational state="+ operationalStateParam.value(0) + ", subsystem time=" + "NA" + ", hcd time=" + "NA"+ ", assembly time=" + assemblyStateTime + ", subscriber time=" + "NA" + ", Duration(hcd to subscriber in ms)=" + "NA" + ", Duration(subsystem to subscriber in ms)=" + "NA" + ", Duration(hcd to assembly in ms)=" + "NA");
+        //assemblyState = "Lifecycle state="+ lifecycleStateParam.value(0) + ", Operational state="+ operationalStateParam.value(0) + ", State event time=" + event.eventTime().time();
         return CompletableFuture.completedFuture("Ok");
     }
 
@@ -135,34 +136,63 @@ public class ENCEventsClient {
     }
 
     /**
-     * This method gets called for each assembly state event.
+     * This method gets called for each health event.
      * @param event
      * @return
      */
     private CompletableFuture<String> healthCallback(Event event){
-        log.info("health event received - " + event);
+        //log.info("health event received - " + event);
         Parameter healthParam = event.paramSet().find(x -> x.keyName().equals("healthKey")).get();
         Parameter healthReasonParam = event.paramSet().find(x -> x.keyName().equals("healthReasonKey")).get();
         Parameter healthTimeParam = event.paramSet().find(x -> x.keyName().equals("healthTimeKey")).get();
         Parameter assemblyTimestampParam = event.paramSet().find(x -> x.keyName().equals("assemblyTimestampKey")).get();
 
         Instant assemblyInstantTime = (Instant) assemblyTimestampParam.value(0);
-        Instant subsystemTime = (Instant) healthTimeParam.value(0);
+        Instant healthTime = (Instant) healthTimeParam.value(0);
 
-        log.info(()->event.eventName().name()+", "+ healthParam.value(0) + ", "+ healthReasonParam.value(0) + ", " + subsystemTime + ", " + "-"+ ", " + assemblyInstantTime + ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-");
+        //log.info(()->event.eventName().name()+", "+ healthParam.value(0) + ", "+ healthReasonParam.value(0) + ", " + healthTime + ", " + "-"+ ", " + assemblyInstantTime + ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-");
+        log.info(()->"Event="+event.eventName().name()+", health="+ healthParam.value(0) + ", reason="+ healthReasonParam.value(0) + ", subsystem time=" + healthTime + ", hcd time=" + "NA"+ ", assembly time=" + assemblyInstantTime + ", subscriber time=" + "NA" + ", Duration(hcd to subscriber in ms)=" + "NA" + ", Duration(subsystem to subscriber in ms)=" + "NA" + ", Duration(hcd to assembly in ms)=" + "NA");
+        //health = "Health="+ healthParam.value(0) + ", Health Reason="+ healthReasonParam.value(0) + ", health event time=" + event.eventTime().time();
+        return CompletableFuture.completedFuture("Ok");
+    }
 
+    /**
+     * This method subscribe to diagnostic event and register a callback function.
+     * @return
+     */
+    private IEventSubscription subscribeDiagnostic(){
+        IEventSubscriber subscriber = eventService.defaultSubscriber();
+        EventKey healthEventKey = new EventKey(new Prefix("tmt.tcs.ecs"), new EventName("diagnostic"));
+        return subscriber.subscribeAsync(Collections.singleton(healthEventKey), this::diagnosticCallback);
+    }
+
+    /**
+     * This method gets called for each diagnostic event.
+     * @param event
+     * @return
+     */
+    private CompletableFuture<String> diagnosticCallback(Event event){
+        //log.info("diagnostic event received - " + event);
+        Parameter diagnosticBytesParam = event.paramSet().find(x -> x.keyName().equals("diagnosticBytesKey")).get();
+        Parameter diagnosticTimeParam = event.paramSet().find(x -> x.keyName().equals("diagnosticTimeKey")).get();
+
+        Instant diagnosticTime = (Instant) diagnosticTimeParam.value(0);
+
+        //log.info(()->event.eventName().name()+", "+ diagnosticBytesParam.value(0) + ", "+ "-" + ", " + diagnosticTime + ", " + "-"+ ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-");
+        log.info(()->"Event="+event.eventName().name()+", diagnostics="+ diagnosticBytesParam.value(0) + ", param2="+ "NA" + ", subsystem time=" + diagnosticTime + ", hcd time=" + "NA"+ ", assembly time=" + "NA" + ", subscriber time=" + "NA" + ", Duration(hcd to subscriber in ms)=" + "NA" + ", Duration(subsystem to subscriber in ms)=" + "NA" + ", Duration(hcd to assembly in ms)=" + "NA");
+        //diagnostic = "Diagnostic Bytes="+ diagnosticBytesParam.value(0) + ", diagnostic event time="+event.eventTime().time();
         return CompletableFuture.completedFuture("Ok");
     }
 
 
-    private IEventSubscription subscribeEncPositionDemands(){
+    private IEventSubscription subscribeEncDemandsPositions(){
         IEventSubscriber subscriber = eventService.defaultSubscriber();
         EventKey eventKey = new EventKey(new Prefix("tcs.pk"), new EventName("encdemandpositions"));
-        return subscriber.subscribeAsync(Collections.singleton(eventKey), this::positionDemandsCallback);
+        return subscriber.subscribeAsync(Collections.singleton(eventKey), this::demandPositionsCallback);
     }
 
 
-    private CompletableFuture<String> positionDemandsCallback(Event event){
+    private CompletableFuture<String> demandPositionsCallback(Event event){
         Parameter baseParam = event.paramSet().find(x -> x.keyName().equals("ecs.base")).get();
         Parameter capParam = event.paramSet().find(x -> x.keyName().equals("ecs.cap")).get();
         log.info(()->event.eventName().name()+", "+ baseParam.value(0) + ", "+ capParam.value(0) + ", " + "-" + ", " + "-"+ ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-" + ", " + "-");
@@ -183,7 +213,8 @@ public class ENCEventsClient {
             IEventSubscription currentPositionSubscription = client.subscribeCurrentPosition();
             IEventSubscription assemblyStateSubscription = client.subscribeAssemblyState();
             IEventSubscription healthSubscription = client.subscribeHealth();
-            IEventSubscription positionDemandsSubscription = client.subscribeEncPositionDemands();
+            //IEventSubscription positionDemandsSubscription = client.subscribeEncDemandsPositions();
+            IEventSubscription diagnosticSubscription = client.subscribeDiagnostic();
 
             log.info(() -> "Press any key to terminate");
 
@@ -191,7 +222,8 @@ public class ENCEventsClient {
             currentPositionSubscription.unsubscribe();
             assemblyStateSubscription.unsubscribe();
             healthSubscription.unsubscribe();
-            positionDemandsSubscription.unsubscribe();
+            //positionDemandsSubscription.unsubscribe();
+            diagnosticSubscription.unsubscribe();
             Done done = loggingSystem.javaStop().get();
             system.terminate();
 

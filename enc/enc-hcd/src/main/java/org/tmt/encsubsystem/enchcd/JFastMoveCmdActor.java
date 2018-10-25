@@ -12,10 +12,8 @@ import csw.messages.params.generics.Parameter;
 import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.simplesimulator.FastMoveCommand;
+import org.tmt.encsubsystem.enchcd.models.FastMoveCommand;
 import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
-
-import java.util.Optional;
 
 public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
 
@@ -68,12 +66,11 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
         System.out.println("worker actor handling command fast move");
         Parameter baseParam = message.paramSet().find(x -> x.keyName().equals("base")).get();
         Parameter capParam = message.paramSet().find(x -> x.keyName().equals("cap")).get();
-            log.debug(() -> "Submitting fastMove command to ENC Subsystem");
+           log.debug(() -> "Submitting fastMove command to ENC Subsystem");
            FastMoveCommand.Response response = SimpleSimulator.getInstance().sendCommand(new FastMoveCommand((double)baseParam.value(0), (double)capParam.value(0)));
            switch (response.getStatus()){
                case OK:
                    commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
-                   statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.InPosition)));
                    break;
                case ERROR:
                    commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Error(message.runId(), response.getDesc()));

@@ -79,6 +79,6 @@ public class JFollowCmdActorTest {
         //checking if command completed message is received by test probe(replyTo actor)
         immediateResponseMessageTestProbe.expectMessage(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(setup.runId())));
         //checking if statePublisher Actor received state change message
-        statePublisherMessageTestProbe.expectMessage(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.Following)));
+        statePublisherMessageTestProbe.expectMessage(new JStatePublisherActor.FollowCommandCompletedMessage());
     }
 }

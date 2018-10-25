@@ -54,8 +54,7 @@ public class JFastMoveCmdActorTest {
     /**
      * given the HCD fastMove command actor is initialized, subsystem is also running
      * when message having valid fastMove command in it, is send
-     * then it should  update command response manager that command successfully completed and
-     * state publisher actor should receive state change message.
+     * then it should  update command response manager that command successfully completed
      */
     @Test
     public void fastMoveCommandCompletion() {
@@ -66,8 +65,6 @@ public class JFastMoveCmdActorTest {
                 .add(mode.set("fast"))
                 .add(operation.set("On"));
         fastMoveCmdActor.tell(setup);
-        //checking if statePublisher Actor received state change message
-        statePublisherMessageTestProbe.expectMessage(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.InPosition)));
         verify(commandResponseManager).addOrUpdateCommand(setup.runId(), new CommandResponse.Completed(setup.runId()));
     }
 }

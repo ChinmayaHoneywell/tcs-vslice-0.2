@@ -9,12 +9,12 @@ import akka.actor.typed.javadsl.ReceiveBuilder;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.services.command.CommandResponseManager;
-
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.enchcd.models.FollowCommand;
+import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.util.Objects;
-import java.util.Optional;
 
 public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessage> {
 
@@ -88,24 +88,21 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
 
     /**
      * This method process Follow command.
-     * We assume all the validation have been done at ComponentHandler and CommandHandler.
+     * It is assumed that all the validation have been done at ComponentHandler and CommandHandler.
      *
      * @param message
      */
     private void handleSubmitCommand(FollowCommandMessage message) {
-        try {
-            log.debug(() -> "Follow Command Message Received by FollowCmdActor in HCD " + message.controlCommand);
-            Thread.sleep(500);
-            //Serialize command data, submit to subsystem using ethernet ip connection
-            log.debug(() -> "Got response from enc subsystem for follow command");
-            //Sending message to change operational state.
-            statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.empty(), Optional.of(JEncHcdHandlers.OperationalState.Following)));
-            message.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(message.controlCommand.runId())));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        log.debug(() -> "HCD handling follow command = " + message);
+        FollowCommand.Response response = SimpleSimulator.getInstance().sendCommand(new FollowCommand());
+        switch (response.getStatus()){
+            case OK:
+                message.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(message.controlCommand.runId())));
+                statePublisherActor.tell(new JStatePublisherActor.FollowCommandCompletedMessage());
+                break;
+            case ERROR:
+                message.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Error(message.controlCommand.runId(), response.getDesc())));
         }
-
-
     }
 
 

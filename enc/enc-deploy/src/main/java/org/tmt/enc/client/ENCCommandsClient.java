@@ -30,9 +30,11 @@ import scala.concurrent.duration.FiniteDuration;
 
 import java.net.InetAddress;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static csw.services.location.javadsl.JComponentType.Assembly;
@@ -222,13 +224,8 @@ public class ENCCommandsClient {
      * Sends StartUp command to assembly to transit from initialization state to running state.
      */
     public CompletableFuture<CommandResponse> shutdown(Optional<ObsId> obsId) {
-
         if (commandServiceOptional.isPresent()) {
-
             JCommandService commandService = commandServiceOptional.get();
-            Long[] timeDurationValue = new Long[1];
-            timeDurationValue[0] = 10L;
-
             Setup setup = new Setup(source, new CommandName("shutdown"), obsId);
             log.debug("Submitting shutdown command to assembly...");
             return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
@@ -239,6 +236,31 @@ public class ENCCommandsClient {
         }
 
 
+    }
+
+    /**
+     * Sends AssemblyTestCommand to assembly.
+     */
+    public CompletableFuture<CommandResponse> submitAssemblyTestCommand(Optional<ObsId> obsId) {
+        if (commandServiceOptional.isPresent()) {
+            JCommandService commandService = commandServiceOptional.get();
+            Setup setup = new Setup(source, new CommandName("assemblyTestCommand"), obsId);
+            return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
+        } else {
+            return CompletableFuture.completedFuture(new CommandResponse.Error(new Id(""), "Can't locate Assembly"));
+        }
+    }
+    /**
+     * Sends HcdTestCommand to assembly.
+     */
+    public CompletableFuture<CommandResponse> submitHcdTestCommand(Optional<ObsId> obsId) {
+        if (commandServiceOptional.isPresent()) {
+            JCommandService commandService = commandServiceOptional.get();
+            Setup setup = new Setup(source, new CommandName("hcdTestCommand"), obsId);
+            return commandService.submitAndSubscribe(setup, Timeout.durationToTimeout(FiniteDuration.apply(20, TimeUnit.SECONDS)));
+        } else {
+            return CompletableFuture.completedFuture(new CommandResponse.Error(new Id(""), "Can't locate Assembly"));
+        }
     }
 
     private static Scanner scanner = new Scanner(System.in);
@@ -258,14 +280,14 @@ public class ENCCommandsClient {
 
         boolean keepRunning = true;
         while (keepRunning) {
-            log.info(() -> "Type command name [startup, invalidMove, move, follow, shutdown] or type 'exit' to stop client");
+            log.info(() -> "Type command name [startup, invalidMove, move, follow, shutdown, takeCommandMeasures] or type 'exit' to stop client");
 
             String commandName = scanner.nextLine();
             switch (commandName) {
                 case "startup":
                     log.info(() -> "Sending startup command to enclosure assembly.. ");
                     CompletableFuture<CommandResponse> startUpCmdResponse = encClient.startup(maybeObsId);
-                    log.info("Response on  startup command: " + startUpCmdResponse.get());
+                    log.info("Response on  startup command: " + startUpCmdResponse.get()+ ", Time Taken - ");
                     break;
                 case "shutdown":
                     log.info(() -> "Sending shutdown command to enclosure assembly.. ");
@@ -279,7 +301,6 @@ public class ENCCommandsClient {
                     log.info(() -> "Enclosure moved: " + respMoveCmd);
                     break;
                 case "follow":
-
                     log.info(() -> "Commanding enclosure with Follow Command: ");
                     CompletableFuture<CommandResponse> followCmdResponse = encClient.follow(maybeObsId);
                     CommandResponse respFollowCmd = followCmdResponse.get();
@@ -289,6 +310,21 @@ public class ENCCommandsClient {
                     log.info(() -> "Commanding enclosure to move with invalid param: ");
                     CompletableFuture<CommandResponse> invalidMoveCmdResponse = encClient.moveInvalid(maybeObsId, 2.34, 5.67, "On", "fast");
                     log.info("Response on invalid move command: " + invalidMoveCmdResponse.get());
+                    break;
+                case "assemblyTestCommand":
+                    log.info(() -> "Sending AssemblyTestCommand");
+                    CompletableFuture<CommandResponse> assemblyCmdResponse = encClient.submitAssemblyTestCommand(maybeObsId);
+                    log.info("CommandResponse: " + assemblyCmdResponse.get());
+                    break;
+                case "hcdTestCommand":
+                    log.info(() -> "Sending HcdTestCommand");
+                    CompletableFuture<CommandResponse> hcdCmdResponse = encClient.submitHcdTestCommand(maybeObsId);
+                    log.info("CommandResponse: " + hcdCmdResponse.get());
+                    break;
+                case "takeCommandMeasures":
+                    log.info(() -> "Starting command performance test");
+                    encClient.takeCommandMeasures();
+                    log.info("Performance measure test completed");
                     break;
                 case "exit":
                     keepRunning = false;
@@ -303,7 +339,35 @@ public class ENCCommandsClient {
 
     }
 
+    private void takeCommandMeasures() throws ExecutionException, InterruptedException {
+        for (int i =0;i<5000;i++){
+            Instant startTime = Instant.now();
+            CommandResponse startUpCmdResponse = this.startup(Optional.empty()).get();
+            Duration startupCommandDuration = Duration.between(startTime, Instant.now());
+            Thread.sleep(10);
 
+            Instant step1Time = Instant.now();
+            CommandResponse assemblyCmdResponse = this.submitAssemblyTestCommand(Optional.empty()).get();
+            Duration assemblyCommandDuration = Duration.between(step1Time,  Instant.now());
+            Thread.sleep(10);
+
+            Instant step2Time = Instant.now();
+            CommandResponse hcdCmdResponse = this.submitHcdTestCommand(Optional.empty()).get();
+            Duration hcdCommandDuration = Duration.between(step2Time, Instant.now());
+            Thread.sleep(10);
+
+            Instant step3Time = Instant.now();
+            CommandResponse shutdownCmdResponse = this.shutdown(Optional.empty()).get();
+            Duration shutdownCommandDuration = Duration.between(step3Time, Instant.now());
+            Thread.sleep(10);
+
+            log.info(()->"Time taken by startup command(ms)="+ startupCommandDuration.toMillis()
+                    + ", Time taken by assembly command(ms)=" + assemblyCommandDuration.toMillis()
+                    + ", Time taken by HCD command(ms)=" + hcdCommandDuration.toMillis()
+                    + ", Time taken by shutdown command(ms)=" + shutdownCommandDuration.toMillis());
+
+        }
+    }
 }
 
 

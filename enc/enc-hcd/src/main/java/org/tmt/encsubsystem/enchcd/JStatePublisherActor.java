@@ -10,25 +10,331 @@ import csw.messages.framework.ComponentInfo;
 import csw.messages.params.generics.JKeyTypes;
 import csw.messages.params.generics.Key;
 import csw.messages.params.generics.Parameter;
+import csw.messages.params.models.ArrayData;
 import csw.messages.params.states.CurrentState;
 import csw.messages.params.states.StateName;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-import org.tmt.encsubsystem.enchcd.simplesimulator.CurrentPosition;
-import org.tmt.encsubsystem.enchcd.simplesimulator.Health;
+import org.tmt.encsubsystem.enchcd.models.*;
 import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 
 import static csw.messages.javadsl.JUnits.degree;
-import static org.tmt.encsubsystem.enchcd.Constants.CURRENT_POSITION_PUBLISH_FREQUENCY;
-import static org.tmt.encsubsystem.enchcd.Constants.HEALTH_PUBLISH_FREQUENCY;
+import static org.tmt.encsubsystem.enchcd.Constants.*;
 
-
+/**
+ * This actor publishes various current states to assembly.
+ * This actor have timers for each current state which define schedule/frequency at which current states are published.
+ * Each current state has it's own frequency and timer.
+ */
 public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.StatePublisherMessage> {
-    // add messages here
+    //name, keys, frequency for assembly and hcd state
+    public static final String ASSEMBLY_STATE = "assemblyState";
+    public static final  String HCD_STATE = "HcdState";
+    public static final Key<String> LIFECYCLE_KEY = JKeyTypes.StringKey().make("LifecycleState");
+    public static final Key<String> OPERATIONAL_KEY = JKeyTypes.StringKey().make("OperationalState");
+    public static final Key<Instant> TIME_OF_STATE_DERIVATION = JKeyTypes.TimestampKey().make("TimeOfStateDerivation");
+    public  static final int ASSEMBLY_STATE_EVENT_FREQUENCY_IN_HERTZ = 20;
+
+    //name, keys for current position
+    public static final  String CURRENT_POSITION = "currentPosition";
+    public static final Key<Double> BASE_POS_KEY = JKeyTypes.DoubleKey().make("basePosKey");
+    public static final Key<Double> CAP_POS_KEY = JKeyTypes.DoubleKey().make("capPosKey");
+
+
+    //name, keys for health
+    public static final  String HEALTH = "health";
+    public static final Key<String> HEALTH_KEY = JKeyTypes.StringKey().make("healthKey");
+    public static final Key<String> HEALTH_REASON_KEY = JKeyTypes.StringKey().make("healthReasonKey");
+    public static final Key<Instant> HEALTH_TIME_KEY = JKeyTypes.TimestampKey().make("healthTimeKey");
+
+    //name, keys for diagnostic
+    public static final  String DIAGNOSTIC = "diagnostic";
+    public static final  Key<ArrayData<Byte>> DIAGNOSTIC_KEY = JKeyTypes.ByteArrayKey().make("diagnosticBytesKey");
+    public static final  Key<Instant> DIAGNOSTIC_TIME_KEY = JKeyTypes.TimestampKey().make("diagnosticTimeKey");
+
+    //name, keys for demand positions
+    public static final String DEMAND_POSITIONS = "encdemandpositions";
+    public static final Key<Double> DEMAND_POSITIONS_BASE_KEY = JKeyTypes.DoubleKey().make("ecs.base");
+    public static final Key<Double> DEMAND_POSITIONS_CAP_KEY = JKeyTypes.DoubleKey().make("ecs.cap");
+
+
+    //keys to hold timestamps. this will hold timestamp when was the event processed by any component.
+    //this is the time when ENC Subsystem generated/sampled given information
+    public static final Key<Instant> SUBSYSTEM_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("subsystemTimestampKey");
+    //this is the time when ENC HCD processed any event
+    public static final Key<Instant> HCD_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("hcdTimestampKey");
+    //this is the time when Assembly processed any event
+    public static final Key<Instant> ASSEMBLY_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("assemblyTimestampKey");
+    //this is the time when client processed any event
+    public static final Key<Instant> CLIENT_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("clientTimestampKey");
+
+
+    //Unique keys for timers
+    private static final Object TIMER_KEY_HCD_STATE = new Object();
+    private static final Object TIMER_KEY_CURRENT_POSITION = new Object();
+    private static final Object TIMER_KEY_HEALTH = new Object();
+    private static final Object TIMER_KEY_DIAGNOSTIC = new Object();
+
+
+    private JLoggerFactory loggerFactory;
+    private CurrentStatePublisher currentStatePublisher;
+    private ILogger log;
+    private TimerScheduler<StatePublisherMessage> timer;
+    private ComponentInfo componentInfo;
+
+    private HCDState hcdState;
+
+
+    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, HCDState hcdState) {
+        this.timer = timer;
+        this.loggerFactory = loggerFactory;
+        this.log = loggerFactory.getLogger(this.getClass());
+        this.currentStatePublisher = currentStatePublisher;
+        this.hcdState = hcdState;
+        this.componentInfo = componentInfo;
+    }
+
+    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, HCDState hcdState) {
+        return Behaviors.withTimers(timers -> {
+            return (MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, componentInfo, currentStatePublisher, loggerFactory, hcdState);
+        });
+    }
+
+    /**
+     * This method receives messages sent to actor.
+     * based on message type it forward message to its dedicated handler method.
+     * @return
+     */
+    @Override
+    public Behaviors.Receive<StatePublisherMessage> createReceive() {
+
+        ReceiveBuilder<StatePublisherMessage> builder = receiveBuilder()
+                .onMessage(StartMessage.class,
+                        command -> {
+                            log.debug(() -> "StartMessage Received");
+                            onStart(command);
+                            return Behaviors.same();
+                        })
+                .onMessage(StopMessage.class,
+                        command -> {
+                            log.debug(() -> "StopMessage Received");
+                            onStop(command);
+                            return Behaviors.same();
+                        })
+                .onMessage(InitializedMessage.class,
+                        message -> {
+                            log.debug(() -> "InitializedMessage Received");
+                            return handleInitializedMessage(message);
+                        })
+                .onMessage(UnInitializedMessage.class,
+                        message -> {
+                            log.debug(() -> "UnInitializedMessage Received");
+                            return handleUnInitializedMessage(message);
+                        })
+                .onMessage(FollowCommandCompletedMessage.class,
+                        message -> {
+                            log.debug(() -> "FollowCommandCompletedMessage Received");
+                            return handleFollowCommandCompletedMessage(message);
+                        })
+                .onMessage(PublishHcdStateMessage.class,
+                        publishHcdStateMessage -> {
+                            log.debug(() -> "PublishHcdStateMessage Received");
+                            publishHcdState();
+                            return Behaviors.same();
+                        })
+                .onMessage(PublishCurrentPositionMessage.class,
+                        publishCurrentPositionMessage -> {
+                            log.debug(() -> "PublishCurrentPositionMessage Received");
+                            publishCurrentPosition();
+                            return Behaviors.same();
+                        })
+                .onMessage(PublishHealthMessage.class,
+                        publishHealthMessage -> {
+                            log.debug(() -> "PublishHealthMessage Received");
+                            publishHealth();
+                            return Behaviors.same();
+                        })
+                .onMessage(PublishDiagnosticMessage.class,
+                        publishDiagnosticMessage -> {
+                            log.debug(() -> "PublishDiagnosticMessage Received");
+                            publishDiagnostic();
+                            return Behaviors.same();
+                        })
+                .onMessage(ReverseCurrentStateMessage.class,
+                        reverseCurrentStateMessage -> {
+                            log.debug(() -> "ReverseCurrentStateMessage Received");
+                            onReverseCurrentStateMessage(reverseCurrentStateMessage);
+                            return Behaviors.same();
+                        });
+        return builder.build();
+    }
+
+    /**
+     * This method will change assembly state to running
+     * @param message
+     * @return
+     */
+    private Behavior<StatePublisherMessage> handleInitializedMessage(InitializedMessage message) {
+        this.hcdState.setLifecycleState(HCDState.LifecycleState.Running);
+        this.hcdState.setOperationalState(HCDState.OperationalState.Ready);
+        return Behaviors.same();
+    }
+
+    /**
+     * This method will change assembly state to initialized
+     * @param message
+     * @return
+     */
+    private Behavior<StatePublisherMessage> handleUnInitializedMessage(UnInitializedMessage message) {
+        this.hcdState.setLifecycleState(HCDState.LifecycleState.Initialized);
+        this.hcdState.setOperationalState(HCDState.OperationalState.Idle);
+        return Behaviors.same();
+    }
+    /**
+     * This method will change assembly state to following
+     * @param message
+     * @return
+     */
+    private Behavior<StatePublisherMessage> handleFollowCommandCompletedMessage(FollowCommandCompletedMessage message) {
+        this.hcdState.setOperationalState(HCDState.OperationalState.Following);
+        return Behaviors.same();
+    }
+
+
+    /**
+     * This method handles reverse current state(Demand state) received from assembly.
+     * It will forward states to subsystem
+     * @param reverseCurrentStateMessage
+     */
+    private void onReverseCurrentStateMessage(ReverseCurrentStateMessage reverseCurrentStateMessage) {
+            CurrentState reverseCurrentState = reverseCurrentStateMessage.reverseCurrentState;
+            switch (reverseCurrentState.stateName().name()) {
+                case DEMAND_POSITIONS:
+                    log.debug(() -> "encdemandpositions - "+reverseCurrentState);
+                    DemandPosition demandPosition = extractDemandPosition(reverseCurrentState);
+                    forwardToSubsystem(demandPosition);//assembly state derivation can be scheduled using timer.
+                    break;
+                default:
+                    log.error("This current state is not handled");
+            }
+    }
+
+    /**
+     * This method forwards demand position to subsystem
+     * @param demandPosition
+     */
+    private void forwardToSubsystem(DemandPosition demandPosition) {
+        SimpleSimulator.getInstance().setDemandPosition(demandPosition);
+    }
+
+    /**
+     * This method create DemandPostion object from CurrentState received from assembly
+     * @param reverseCurrentState
+     * @return
+     */
+    private DemandPosition extractDemandPosition(CurrentState reverseCurrentState) {
+        Parameter<Double> basePosParam  = reverseCurrentState.jGet(DEMAND_POSITIONS_BASE_KEY).get();
+        Parameter<Double> capPosParam  = reverseCurrentState.jGet(DEMAND_POSITIONS_CAP_KEY).get();
+        Parameter<Instant> clientTimestampKey  = reverseCurrentState.jGet(CLIENT_TIMESTAMP_KEY).get();
+        Parameter<Instant> assemblyTimestampKey  = reverseCurrentState.jGet(ASSEMBLY_TIMESTAMP_KEY).get();
+        DemandPosition demandPosition = new DemandPosition(basePosParam.value(0), capPosParam.value(0), clientTimestampKey.value(0), assemblyTimestampKey.value(0), Instant.now());
+        return  demandPosition;
+    }
+
+    private void onStart(StartMessage message) {
+        log.debug(() -> "Start Message Received ");
+        timer.startPeriodicTimer(TIMER_KEY_HCD_STATE, new PublishHcdStateMessage(), Duration.ofMillis(1000/HCD_STATE_PUBLISH_FREQUENCY));
+        timer.startPeriodicTimer(TIMER_KEY_CURRENT_POSITION, new PublishCurrentPositionMessage(), Duration.ofMillis(1000/CURRENT_POSITION_PUBLISH_FREQUENCY));
+        timer.startPeriodicTimer(TIMER_KEY_HEALTH, new PublishHealthMessage(), Duration.ofMillis(1000/HEALTH_PUBLISH_FREQUENCY));
+        timer.startPeriodicTimer(TIMER_KEY_DIAGNOSTIC, new PublishDiagnosticMessage(), Duration.ofMillis(1000/DIAGNOSTIC_PUBLISH_FREQUENCY));
+        log.debug(() -> "start message completed");
+    }
+
+    /**
+     * This method will stop all timers i.e. it will stop publishing all current states from HCD.
+     * @param message
+     */
+    private void onStop(StopMessage message) {
+
+        log.debug(() -> "Stop Message Received ");
+        timer.cancel(TIMER_KEY_HCD_STATE);
+        timer.cancel(TIMER_KEY_CURRENT_POSITION);
+        timer.cancel(TIMER_KEY_HEALTH);
+        timer.cancel(TIMER_KEY_DIAGNOSTIC);
+    }
+
+    /**
+     * This method
+     * publish Hcd lifecycle and operational state as per timer frequency.
+     */
+    private void publishHcdState() {
+        CurrentState currentState = new CurrentState(componentInfo.prefix().prefix(), new StateName(HCD_STATE))
+                .madd(LIFECYCLE_KEY.set(hcdState.getLifecycleState().name()),OPERATIONAL_KEY.set(hcdState.getOperationalState().name()));
+        currentStatePublisher.publish(currentState);
+    }
+    /**
+     * This method get current position from subsystem and
+     * publish it using current state publisher as per timer frequency.
+     */
+    private void publishCurrentPosition() {
+        // example parameters for a current state
+        CurrentPosition currentPosition = SimpleSimulator.getInstance().getCurrentPosition();
+
+        Parameter<Double> basePosParam = BASE_POS_KEY.set(currentPosition.getBase()).withUnits(degree);
+        Parameter<Double> capPosParam = CAP_POS_KEY.set(currentPosition.getCap()).withUnits(degree);
+        //this is the time when subsystem published current position.
+        Parameter<Instant> ecsSubsystemTimestampParam = SUBSYSTEM_TIMESTAMP_KEY.set(Instant.ofEpochMilli(currentPosition.getTime()));
+        //this is the time when ENC HCD processed current position
+        Parameter<Instant> encHcdTimestampParam = HCD_TIMESTAMP_KEY.set(Instant.now());
+
+        CurrentState currentStatePosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(CURRENT_POSITION))
+                .add(basePosParam)
+                .add(capPosParam)
+                .add(ecsSubsystemTimestampParam)
+                .add(encHcdTimestampParam);
+
+        currentStatePublisher.publish(currentStatePosition);
+     }
+
+    /**
+     * This method get current health from subsystem and
+     * publish it using current state publisher as per timer frequency.
+     */
+    private void publishHealth() {
+        Health health = SimpleSimulator.getInstance().getHealth();
+        Parameter<String> healthParam = HEALTH_KEY.set(health.getHealth().name());
+        Parameter<String> healthReasonParam = HEALTH_REASON_KEY.set(health.getReason());
+        Parameter<Instant> healthTimeParam = HEALTH_TIME_KEY.set(Instant.ofEpochMilli(health.getTime()));
+
+        CurrentState currentStateHealth = new CurrentState(componentInfo.prefix().prefix(), new StateName(HEALTH))
+                .add(healthParam)
+                .add(healthReasonParam)
+                .add(healthTimeParam);
+        currentStatePublisher.publish(currentStateHealth);
+    }
+
+
+    /**
+     * This method get diagnostic from subsystem and
+     * publish it using current state publisher as per timer frequency.
+     */
+    private void publishDiagnostic() {
+        Diagnostic diagnostic = SimpleSimulator.getInstance().getDiagnostic();
+        Parameter<ArrayData<Byte>> diagnosticByteParam = DIAGNOSTIC_KEY.set(ArrayData.fromJavaArray(diagnostic.getDummyDiagnostic()));
+        Parameter<Instant> diagnosticTimeParam = DIAGNOSTIC_TIME_KEY.set(Instant.ofEpochMilli(diagnostic.getTime()));
+
+        CurrentState currentStateDiagnostic = new CurrentState(componentInfo.prefix().prefix(), new StateName(DIAGNOSTIC))
+                .add(diagnosticByteParam)
+                .add(diagnosticTimeParam);
+
+        currentStatePublisher.publish(currentStateDiagnostic);
+    }
+
+    //Messages which are accepted by JStatePublisherActor
+
     interface StatePublisherMessage {
     }
 
@@ -59,200 +365,32 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
 
         }
     }
-
+    public static final class PublishHcdStateMessage implements StatePublisherMessage {
+    }
     public static final class PublishCurrentPositionMessage implements StatePublisherMessage {
     }
 
     public static final class PublishHealthMessage implements StatePublisherMessage {
     }
+    public static final class PublishDiagnosticMessage implements StatePublisherMessage {
+    }
+
+    public static final class InitializedMessage implements StatePublisherMessage {
+    }
+    public static final class UnInitializedMessage implements StatePublisherMessage {
+    }
+    public static final class FollowCommandCompletedMessage implements StatePublisherMessage {
+    }
 
     /**
-     * This message is used to change state of HCD
-     * Either Lifecycle state or Operational state can be changed or both.
+     * HCD's JStatePublisherActor receives ReverseCurrentState like demandPositions from assembly.
      */
-    public static final class StateChangeMessage implements StatePublisherMessage {
-
-        public final Optional<JEncHcdHandlers.LifecycleState> lifecycleState;
-        public final Optional<JEncHcdHandlers.OperationalState> operationalState;
-
-        public StateChangeMessage(Optional<JEncHcdHandlers.LifecycleState> lifecycleState, Optional<JEncHcdHandlers.OperationalState> operationalState) {
-            this.lifecycleState = lifecycleState;
-            this.operationalState = operationalState;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof StateChangeMessage)) {
-                return false;
-            }
-            boolean isSame = this.lifecycleState.equals(((StateChangeMessage) obj).lifecycleState) && this.operationalState.equals(((StateChangeMessage) obj).operationalState);
-            return isSame;
+    public static final class ReverseCurrentStateMessage implements StatePublisherMessage {
+        public final CurrentState reverseCurrentState;
+        public ReverseCurrentStateMessage(CurrentState reverseCurrentState) {
+            this.reverseCurrentState = reverseCurrentState;
         }
     }
-
-    private JLoggerFactory loggerFactory;
-    private CurrentStatePublisher currentStatePublisher;
-    private ILogger log;
-    private TimerScheduler<StatePublisherMessage> timer;
-    private ComponentInfo componentInfo;
-
-    JEncHcdHandlers.LifecycleState lifecycleState;
-    JEncHcdHandlers.OperationalState operationalState;
-
-    //Keys to represent lifecycle state and operational state, parameters will be created from these keys
-    private Key<String> lifecycleKey = JKeyTypes.StringKey().make("LifecycleState");
-    private Key<String> operationalKey = JKeyTypes.StringKey().make("OperationalState");
-
-    //keys for current position
-    private Key<Double> basePosKey = JKeyTypes.DoubleKey().make("basePosKey");
-    private Key<Double> capPosKey = JKeyTypes.DoubleKey().make("capPosKey");
-
-    //keys for health
-    private Key<String> healthKey = JKeyTypes.StringKey().make("healthKey");
-    private Key<String> healthReasonKey = JKeyTypes.StringKey().make("healthReasonKey");
-    private Key<Instant> healthTimeKey = JKeyTypes.TimestampKey().make("healthTimeKey");
-
-
-    //this is the time when subsystem sampled the data.
-    private Key<Instant> ecsSubsystemTimestampKey = JKeyTypes.TimestampKey().make("subsystemTimestampKey");
-    //this is the time when ENC HCD processed the data
-    private Key<Instant> encHcdTimestampKey = JKeyTypes.TimestampKey().make("hcdTimestampKey");
-
-
-    private static final Object TIMER_KEY_CURRENT_POSITION = new Object();
-    private static final Object TIMER_KEY_HEALTH = new Object();
-
-    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
-        this.timer = timer;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(this.getClass());
-        this.currentStatePublisher = currentStatePublisher;
-        this.lifecycleState = lifecycleState;
-        this.operationalState = operationalState;
-        this.componentInfo = componentInfo;
-    }
-
-    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, JEncHcdHandlers.LifecycleState lifecycleState, JEncHcdHandlers.OperationalState operationalState) {
-        return Behaviors.withTimers(timers -> {
-            return (MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, componentInfo, currentStatePublisher, loggerFactory, lifecycleState, operationalState);
-        });
-    }
-
-    /**
-     * This method receives messages sent to actor.
-     * based on message type it forward message to its dedicated handler method.
-     * @return
-     */
-    @Override
-    public Behaviors.Receive<StatePublisherMessage> createReceive() {
-
-        ReceiveBuilder<StatePublisherMessage> builder = receiveBuilder()
-                .onMessage(StartMessage.class,
-                        command -> {
-                            log.debug(() -> "StartMessage Received");
-                            onStart(command);
-                            return Behaviors.same();
-                        })
-                .onMessage(StopMessage.class,
-                        command -> {
-                            log.debug(() -> "StopMessage Received");
-                            onStop(command);
-                            return Behaviors.same();
-                        })
-                .onMessage(PublishCurrentPositionMessage.class,
-                        publishCurrentPositionMessage -> {
-                            log.debug(() -> "PublishCurrentPositionMessage Received");
-                            publishCurrentPosition();
-                            return Behaviors.same();
-                        })
-                .onMessage(PublishHealthMessage.class,
-                        publishHealthMessage -> {
-                            log.debug(() -> "PublishCurrentPositionMessage Received");
-                            publishHealth();
-                            return Behaviors.same();
-                        })
-                .onMessage(StateChangeMessage.class,
-                        command -> {
-                            log.debug(() -> "StateChangeMessage Received");
-                            handleStateChange(command);
-                            return Behaviors.same();
-                        });
-        return builder.build();
-    }
-
-    private void onStart(StartMessage message) {
-        log.debug(() -> "Start Message Received ");
-        timer.startPeriodicTimer(TIMER_KEY_CURRENT_POSITION, new PublishCurrentPositionMessage(), Duration.ofMillis(1000/CURRENT_POSITION_PUBLISH_FREQUENCY));
-        timer.startPeriodicTimer(TIMER_KEY_HEALTH, new PublishHealthMessage(), Duration.ofMillis(1000/HEALTH_PUBLISH_FREQUENCY));
-        log.debug(() -> "start message completed");
-    }
-
-    /**
-     * This method will stop all timers i.e. it will stop publishing all current states from HCD.
-     * @param message
-     */
-    private void onStop(StopMessage message) {
-
-        log.debug(() -> "Stop Message Received ");
-        timer.cancel(TIMER_KEY_CURRENT_POSITION);
-        timer.cancel(TIMER_KEY_HEALTH);
-    }
-
-    /**
-     * This method update state of hcd. this changed state is published to assembly.
-     *
-     * @param message
-     */
-    private void handleStateChange(StateChangeMessage message) {
-        //change current state or if state is not present in message then keep it as is.
-        lifecycleState = message.lifecycleState.orElse(lifecycleState);
-        operationalState = message.operationalState.orElse(operationalState);
-        CurrentState currentState = new CurrentState(componentInfo.prefix().prefix(), new StateName(Constants.HCD_STATE))
-                .madd(lifecycleKey.set(lifecycleState.name()),operationalKey.set(operationalState.name()));
-        currentStatePublisher.publish(currentState);
-    }
-
-    /**
-     * This method get current position from subsystem and
-     * publish it using current state publisher as per timer frequency.
-     */
-    private void publishCurrentPosition() {
-        // example parameters for a current state
-        CurrentPosition currentPosition = SimpleSimulator.getInstance().getCurrentPosition();
-
-        Parameter<Double> basePosParam = basePosKey.set(currentPosition.getBase()).withUnits(degree);
-        Parameter<Double> capPosParam = capPosKey.set(currentPosition.getCap()).withUnits(degree);
-        //this is the time when subsystem published current position.
-        Parameter<Instant> ecsSubsystemTimestampParam = ecsSubsystemTimestampKey.set(Instant.ofEpochMilli(currentPosition.getTime()));
-        //this is the time when ENC HCD processed current position
-        Parameter<Instant> encHcdTimestampParam = encHcdTimestampKey.set(Instant.now());
-
-        CurrentState currentStatePosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(Constants.CURRENT_POSITION))
-                .add(basePosParam)
-                .add(capPosParam)
-                .add(ecsSubsystemTimestampParam)
-                .add(encHcdTimestampParam);
-
-        currentStatePublisher.publish(currentStatePosition);
-     }
-
-    /**
-     * This method get current health from subsystem and
-     * publish it using current state publisher as per timer frequency.
-     */
-    private void publishHealth() {
-        Health health = SimpleSimulator.getInstance().getHealth();
-        Parameter<String> healthParam = healthKey.set(health.getHealth().name());
-        Parameter<String> healthReasonParam = healthReasonKey.set(health.getReason());
-        Parameter<Instant> healthTimeParam = healthTimeKey.set(Instant.ofEpochMilli(health.getTime()));
-
-        CurrentState currentStateHealth = new CurrentState(componentInfo.prefix().prefix(), new StateName(Constants.HEALTH))
-                .add(healthParam)
-                .add(healthReasonParam)
-                .add(healthTimeParam);
-        currentStatePublisher.publish(currentStateHealth);
-    }
-
 
 }
 

@@ -12,8 +12,8 @@ import csw.messages.params.models.Prefix;
 import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-
-import java.util.Optional;
+import org.tmt.encsubsystem.enchcd.models.StartupCommand;
+import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 
 public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
@@ -63,20 +63,16 @@ public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
     }
 
     private void handleStartupCommand(ControlCommand controlCommand) {
-        log.debug(() -> "HCD handling starup command = " + controlCommand);
-
-        try {
-            log.debug(() -> "should make connection to enc subsystem");
-            //Serialize command data, submit to subsystem using ethernet ip connection
-            Thread.sleep(500);
-            commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));
-            // get subsystem state from command response and tell state publisher about changed state.
-            statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Running), Optional.of(JEncHcdHandlers.OperationalState.Ready)));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-
+        log.debug(() -> "HCD handling startup command = " + controlCommand);
+            StartupCommand.Response response = SimpleSimulator.getInstance().sendCommand(new StartupCommand());
+            switch (response.getStatus()){
+                case OK:
+                    commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));
+                    statePublisherActor.tell(new JStatePublisherActor.InitializedMessage());
+                    break;
+                case ERROR:
+                    commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Error(controlCommand.runId(), response.getDesc()));
+            }
     }
 
 

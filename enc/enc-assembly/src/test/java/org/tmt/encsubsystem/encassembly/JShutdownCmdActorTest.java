@@ -1,6 +1,7 @@
 package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
+import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
 import csw.messages.commands.CommandName;
 import csw.messages.commands.CommandResponse;
@@ -37,11 +38,12 @@ public class JShutdownCmdActorTest {
 
     JLoggerFactory jLoggerFactory;
     ActorRef<ControlCommand> shutdownCmdActor;
+    TestProbe<JMonitorActor.MonitorMessage> monitorActor;
 
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        shutdownCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory));
+        shutdownCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory, monitorActor.getRef()));
 
     }
 

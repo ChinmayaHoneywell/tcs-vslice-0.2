@@ -1,5 +1,6 @@
 package org.tmt.encsubsystem.encassembly;
 
+import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
 
 
+
     private Prefix templateHcdPrefix = new Prefix("tcs.encA");
 
     private ActorContext<ControlCommand> actorContext;
@@ -30,21 +32,23 @@ public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
     private ILogger log;
     private CommandResponseManager commandResponseManager;
     private Optional<JCommandService> hcdCommandService;
+    private ActorRef<JMonitorActor.MonitorMessage> monitorActor;
 
 
-    private JStartUpCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
+    private JStartUpCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
         this.commandResponseManager = commandResponseManager;
         this.hcdCommandService = hcdCommandService;
+        this.monitorActor = monitorActor;
 
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
         return Behaviors.setup(ctx -> {
             return (MutableBehavior<ControlCommand>) new JStartUpCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
-                    loggerFactory);
+                    loggerFactory, monitorActor);
         });
     }
 
@@ -59,7 +63,7 @@ public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
                         command -> {
-                            log.debug(() -> "Starup Received");
+                            log.debug(() -> "Startup Received");
                             handleSubmitCommand(command);
                             return Behaviors.stopped();// actor stops itself, it is meant to only process one command.
                         });
@@ -77,7 +81,7 @@ public class JStartUpCmdActor extends MutableBehavior<ControlCommand> {
                     ).thenAccept(response -> {
                 log.debug(() -> "received response from hcd");
                 commandResponseManager.addOrUpdateCommand(message.runId(), response);
-
+                monitorActor.tell(new JMonitorActor.InitializedMessage());
             });
 
         } else {

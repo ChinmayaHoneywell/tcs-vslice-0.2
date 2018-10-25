@@ -8,20 +8,26 @@ import akka.util.Timeout;
 import csw.framework.CurrentStatePublisher;
 import csw.framework.javadsl.JComponentHandlers;
 import csw.messages.TopLevelActorMessage;
-import csw.messages.commands.CommandIssue;
 import csw.messages.commands.CommandResponse;
 import csw.messages.commands.ControlCommand;
 import csw.messages.framework.ComponentInfo;
+import csw.messages.location.AkkaLocation;
+import csw.messages.location.LocationRemoved;
+import csw.messages.location.LocationUpdated;
 import csw.messages.location.TrackingEvent;
 import csw.services.alarm.api.javadsl.IAlarmService;
 import csw.services.command.CommandResponseManager;
+import csw.services.command.javadsl.JCommandService;
+import csw.services.command.scaladsl.CurrentStateSubscription;
 import csw.services.config.api.javadsl.IConfigClientService;
 import csw.services.config.client.javadsl.JConfigClientFactory;
 import csw.services.event.api.javadsl.IEventService;
 import csw.services.location.javadsl.ILocationService;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
+import org.tmt.encsubsystem.enchcd.models.HCDState;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -35,14 +41,7 @@ import java.util.concurrent.TimeUnit;
  * You can find more information on this here : https://tmtsoftware.github.io/csw-prod/framework.html
  */
 public class JEncHcdHandlers extends JComponentHandlers {
-    // what should be the initial state when hcd is just deployed, even before the onInitialize hook get called.
-    public enum LifecycleState {
-        Initialized, Running
-    }
 
-    public enum OperationalState {
-        Idle, Ready, Following, InPosition
-    }
 
 
     private ILogger log;
@@ -56,6 +55,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
     ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor;
     ActorRef<JLifecycleActor.LifecycleMessage> lifecycleActor;
+    private Optional<CurrentStateSubscription> subscription = Optional.empty();
 
     JEncHcdHandlers(
             ActorContext<TopLevelActorMessage> ctx,
@@ -75,8 +75,10 @@ public class JEncHcdHandlers extends JComponentHandlers {
         this.locationService = locationService;
         this.eventService = eventService;
         this.componentInfo = componentInfo;
+        HCDState initialHcdState = new HCDState(HCDState.LifecycleState.Initialized, HCDState.OperationalState.Idle);
+
         configClientApi = JConfigClientFactory.clientApi(Adapter.toUntyped(actorContext.getSystem()), locationService);
-        statePublisherActor = ctx.spawnAnonymous(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, loggerFactory, LifecycleState.Initialized, OperationalState.Idle));
+        statePublisherActor = ctx.spawnAnonymous(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, loggerFactory, initialHcdState));
 
         commandHandlerActor = ctx.spawnAnonymous(JCommandHandlerActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
         lifecycleActor = ctx.spawnAnonymous(JLifecycleActor.behavior(commandResponseManager, statePublisherActor, configClientApi, loggerFactory));
@@ -110,7 +112,23 @@ public class JEncHcdHandlers extends JComponentHandlers {
 
     @Override
     public void onLocationTrackingEvent(TrackingEvent trackingEvent) {
-        log.debug(() -> "location changed " + trackingEvent);
+        log.debug(() -> "LocationEvent - " + trackingEvent);
+        if (trackingEvent instanceof LocationUpdated) {
+            AkkaLocation assemblyAkkaLocation = (AkkaLocation) ((LocationUpdated) trackingEvent).location();
+            JCommandService jCommandService= new JCommandService(assemblyAkkaLocation, actorContext.getSystem());
+            // set up Hcd CurrentState subscription to be handled by the monitor actor
+            subscription = Optional.of(jCommandService.subscribeCurrentState(reverseCurrentState -> {
+                        statePublisherActor.tell(new JStatePublisherActor.ReverseCurrentStateMessage(reverseCurrentState));
+                    }
+            ));
+
+            log.debug(() -> "connection to assembly received");
+
+        } else if (trackingEvent instanceof LocationRemoved) {
+            // FIXME: not sure if this is necessary
+            subscription.ifPresent(subscription -> subscription.unsubscribe());
+        }
+
     }
     /**
      * This is a CSW Validation hook. When command is submitted to this component
@@ -120,7 +138,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
      */
     @Override
     public CommandResponse validateCommand(ControlCommand controlCommand) {
-        log.debug(() -> "validating command in enc hcd");
+        log.info(() -> "validating command in enc hcd");
         switch (controlCommand.commandName().name()) {
             case "follow":
                 //Immediate command implementation, on submit hook will not be called.
@@ -138,30 +156,7 @@ public class JEncHcdHandlers extends JComponentHandlers {
     @Override
     public void onSubmit(ControlCommand controlCommand) {
         log.info(() -> "HCD , Command received - " + controlCommand);
-        switch (controlCommand.commandName().name()) {
-            case "startup":
-                log.debug(() -> "handling startup command: " + controlCommand);
-                lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
-                break;
-            case "shutdown":
-                log.debug(() -> "handling shutdown command: " + controlCommand);
-                lifecycleActor.tell(new JLifecycleActor.SubmitCommandMessage(controlCommand));
-                break;
-            case "fastMove":
-                log.debug(() -> "handling fastMove command: " + controlCommand);
-                commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
-                break;
-
-            case "trackOff":
-                log.debug(() -> "handling trackOff command: " + controlCommand);
-                commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
-                break;
-
-            default:
-                log.error("unhandled command in HCD: " + controlCommand);
-                commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Invalid(controlCommand.runId(), new CommandIssue.UnsupportedCommandIssue("Please check command name, it is not supported by ENC HCD")));
-
-        }
+        commandHandlerActor.tell(new JCommandHandlerActor.SubmitCommandMessage(controlCommand));
     }
 
     @Override

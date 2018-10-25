@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.simplesimulator;
+package org.tmt.encsubsystem.enchcd.models;
 
 /**
  * This command is submitted to SimpleSimulator to move enclosure at specified position.

@@ -13,6 +13,11 @@ import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 
+/**
+ * This is a typed mutable actor class
+ * This class acts as a router for commands it routes each command to individual
+ * CommandWorkerActor,
+ */
 public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.CommandMessage> {
 
 
@@ -96,7 +101,20 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     public Behaviors.Receive<CommandMessage> createReceive() {
 
         ReceiveBuilder<CommandMessage> builder = receiveBuilder()
-
+                .onMessage(SubmitCommandMessage.class,
+                        command -> command.controlCommand.commandName().name().equals("startup"),
+                        command -> {
+                            log.debug(() -> "StartUp Received");
+                            handleStartupCommand(command.controlCommand);
+                            return Behaviors.same();
+                        })
+                .onMessage(SubmitCommandMessage.class,
+                        command -> command.controlCommand.commandName().name().equals("shutdown"),
+                        command -> {
+                            log.debug(() -> "Shutdown Received");
+                            handleShutdownCommand(command.controlCommand);
+                            return Behaviors.same();
+                        })
                 .onMessage(SubmitCommandMessage.class,
                         command -> command.controlCommand.commandName().name().equals("fastMove"),
                         command -> {
@@ -111,6 +129,13 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
                             handleTrackOffCommand(command.controlCommand);
                             return Behaviors.same();
                         })
+                .onMessage(SubmitCommandMessage.class,
+                        command -> command.controlCommand.commandName().name().equals("hcdTestCommand"),
+                        command -> {
+                            log.debug(() -> "hcdTestCommand Received");
+                            handleHcdTestCommand(command.controlCommand);
+                            return Behaviors.same();
+                        })
                 .onMessage(ImmediateCommandMessage.class,
                         message -> message.controlCommand.commandName().name().equals("follow"),
                         message -> {
@@ -121,7 +146,42 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
         return builder.build();
     }
 
+    /**
+     * This method create CommandWorkerActor for incoming command
+     * @param controlCommand
+     */
+    private void handleHcdTestCommand(ControlCommand controlCommand) {
+        log.debug(() -> "handleHcdTestCommand = " + controlCommand);
+        ActorRef<ControlCommand> hcdTestCmdActor =
+                actorContext.spawnAnonymous(JHcdTestCmdActor.behavior(commandResponseManager, loggerFactory));
+        hcdTestCmdActor.tell(controlCommand);
+    }
+    /**
+     * This method create CommandWorkerActor for incoming command
+     * @param controlCommand
+     */
+    private void handleStartupCommand(ControlCommand controlCommand) {
+        log.debug(() -> "handle Startup Command = " + controlCommand);
+        ActorRef<ControlCommand> startupCmdActor =
+                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
+        startupCmdActor.tell(controlCommand);
+    }
+    /**
+     * This method create CommandWorkerActor for incoming command
+     * @param controlCommand
+     */
+    private void handleShutdownCommand(ControlCommand controlCommand) {
 
+        log.debug(() -> "handle shutdown Command = " + controlCommand);
+        ActorRef<ControlCommand> shutdownCmdActor =
+                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
+
+        shutdownCmdActor.tell(controlCommand);
+    }
+    /**
+     * This method create CommandWorkerActor for incoming command
+     * @param controlCommand
+     */
     private void handleFastMoveCommand(ControlCommand controlCommand) {
         log.debug(() -> "HCD handling fastMove command = " + controlCommand);
         ActorRef<ControlCommand> fastMoveCmdActor =
@@ -131,14 +191,20 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
 
     }
 
-
+    /**
+     * This method create CommandWorkerActor for incoming command
+     * @param controlCommand
+     */
     private void handleTrackOffCommand(ControlCommand controlCommand) {
         log.debug(() -> "HCD handling trackOff command = " + controlCommand);
         ActorRef<ControlCommand> trackOffCmdActor =
                 actorContext.spawnAnonymous(JTrackOffCmdActor.behavior(commandResponseManager, loggerFactory));
         trackOffCmdActor.tell(controlCommand);
     }
-
+    /**
+     * This method create CommandWorkerActor for incoming command
+     * @param message
+     */
     private void handleFollowCommand(ImmediateCommandMessage message) {
         log.debug(() -> "HCD handling follow command = " + message.controlCommand);
         ActorRef<JFollowCmdActor.FollowMessage> followCmdActor =

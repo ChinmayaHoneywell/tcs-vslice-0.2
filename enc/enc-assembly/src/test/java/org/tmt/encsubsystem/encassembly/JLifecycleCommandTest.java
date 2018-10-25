@@ -38,6 +38,8 @@ public class JLifecycleCommandTest {
     JCommandService hcdCommandService;
     TestInbox<JCommandHandlerActor.CommandMessage> commandHandlerActor;
 
+    TestInbox<JEventHandlerActor.EventMessage> eventHandlerActor;
+
     @Mock
     JLoggerFactory jLoggerFactory;
     @Mock
@@ -50,7 +52,7 @@ public class JLifecycleCommandTest {
     public void setUp() throws Exception {
         when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         commandHandlerActor = TestInbox.create();
-        lifecycleBehaviourKit = BehaviorTestKit.create(JLifecycleActor.behavior(commandResponseManager, Optional.of(hcdCommandService), configClientApi, commandHandlerActor.getRef(), jLoggerFactory));
+        lifecycleBehaviourKit = BehaviorTestKit.create(JLifecycleActor.behavior(commandResponseManager, Optional.of(hcdCommandService), configClientApi, commandHandlerActor.getRef(), eventHandlerActor.getRef(), jLoggerFactory));
     }
 
     @After

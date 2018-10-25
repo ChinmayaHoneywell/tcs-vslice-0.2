@@ -1,4 +1,4 @@
-package org.tmt.encsubsystem.enchcd.simplesimulator;
+package org.tmt.encsubsystem.enchcd.models;
 
 public class Health {
     public enum HealthType {

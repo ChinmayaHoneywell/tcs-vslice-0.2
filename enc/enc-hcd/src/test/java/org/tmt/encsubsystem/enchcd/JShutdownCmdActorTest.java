@@ -81,7 +81,7 @@ public class JShutdownCmdActorTest {
         Setup shutdownCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("shutdown"), Optional.empty());
         shutdownCmdActor.tell(shutdownCmd);
         //checking if statePublisher Actor received state change message
-        statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Initialized), Optional.of(JEncHcdHandlers.OperationalState.Idle)));
+        statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.UnInitializedMessage());
 
         verify(commandResponseManager).addOrUpdateCommand(shutdownCmd.runId(), new CommandResponse.Completed(shutdownCmd.runId()));
     }

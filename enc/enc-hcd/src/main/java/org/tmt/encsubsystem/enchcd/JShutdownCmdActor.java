@@ -12,8 +12,8 @@ import csw.messages.params.models.Prefix;
 import csw.services.command.CommandResponseManager;
 import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
-
-import java.util.Optional;
+import org.tmt.encsubsystem.enchcd.models.ShutdownCommand;
+import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 
 public class JShutdownCmdActor extends MutableBehavior<ControlCommand> {
@@ -63,22 +63,16 @@ public class JShutdownCmdActor extends MutableBehavior<ControlCommand> {
     }
 
     private void handleShutdownCommand(ControlCommand controlCommand) {
-        System.out.println("handling shutdown message");
         log.debug(() -> "HCD handling shutdown command = " + controlCommand);
-        log.debug(() -> "TODO: should park enc and the disconnet with subsystem");
-
-        try {
-            Thread.sleep(500);
-            //Serialize command data, submit to subsystem using ethernet ip connection
-            commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));
-            // get subsystem state from command response and tell state publisher about changed state.
-            statePublisherActor.tell(new JStatePublisherActor.StateChangeMessage(Optional.of(JEncHcdHandlers.LifecycleState.Initialized), Optional.of(JEncHcdHandlers.OperationalState.Idle)));
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        ShutdownCommand.Response response = SimpleSimulator.getInstance().sendCommand(new ShutdownCommand());
+        switch (response.getStatus()){
+            case OK:
+                commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));
+                statePublisherActor.tell(new JStatePublisherActor.UnInitializedMessage());
+                break;
+            case ERROR:
+                commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Error(controlCommand.runId(), response.getDesc()));
         }
-
-
     }
 
 

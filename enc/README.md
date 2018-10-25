@@ -361,3 +361,18 @@ Setup(Prefix(&quot;tcs.encA&quot;), CommandName(&quot;follow&quot;), None)
 #### TrackOffCmdActor
 HCD Actor to handle incoming command
 Setup(Prefix(&quot;tcs.encA&quot;), CommandName(&quot;follow&quot;), None)
+
+
+###Analysis I5
+
+    event.jGet(Key) method not available. This method is available in CurrentState and Command.
+
+    DemandState - Could not use it for DemandPosition forwarding assembly to HCD.
+
+    Passing of event/state data among actors - Event and CurrentState contains set of parameters,
+       when one actor needs to pass this information to other actor what would be the best way like creating pojo for each type of information or passing set<Parameter> directly.
+
+    CurrentState to Event transformation - any short way if one just want to create Event with same parameters as CurrentState
+
+    Should HCD repeat validations which are already done at assembly?
+
