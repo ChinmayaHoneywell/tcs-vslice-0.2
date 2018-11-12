@@ -1,0 +1,84 @@
+package commandpoc;
+
+option java_package = "org.tmt.tcs.mcs.MCShcd.msgTransformers.protos";
+option java_outer_classname = "TcsMcsCommandProtos";
+
+message LifeCycleCommand {
+  enum TransitionType {
+    SYSTEMOFF = 0;
+    REBOOT = 1;
+    STARTUP = 2;
+    SHUTDOWN = 3;
+  }
+
+  required TransitionType transitionType = 1 [default = STARTUP];
+  
+}
+
+enum Axes {
+    AZ = 0;
+    EL = 1;
+    BOTH = 2;
+  }
+
+message FollowCommand {
+  required  Axes axes = 1 [default = BOTH];
+  
+}
+enum operation{
+	on = 0;
+	off = 1;
+}
+message AxisCommand{
+	required Axes axes = 1 [default = BOTH];
+	required operation ops = 2 [default = on];
+}
+message datumCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message pointCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message pointDemandCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message servoOffCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message resetCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message setDiagnosticCommand{
+	required operation ops = 2 [default = on];
+}
+message cancelProcessingCommand{
+}
+message readConfiguration{
+}
+enum direction{
+	in = 0;
+	out = 1;
+}
+message elevationStowLockCommand{
+	required direction dir = 1 [default = in];
+}
+enum position{
+	zero_degree = 0;
+	ninety_degree = 1;
+}
+message elevationStowPositionCommand{
+	required position pos = 1 [default = zero_degree];
+}
+message CommandResponse {
+  enum ErrorState {
+    ILLEGAL_STATE = 0;
+    BUSY = 1;
+    OUT_OF_RANGE = 2;
+    OUT_OF_SPEC = 3;
+    FAILED = 4;
+  }  
+  required string errorState= 1;
+  required ErrorState cmdError = 2 [default = ILLEGAL_STATE];
+  required string errorInfo = 3;
+  required double processedTime = 4;
+}
