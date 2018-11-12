@@ -1,0 +1,91 @@
+package commandpoc;
+
+option java_package = "org.tmt.mcs.subsystem.protos";
+option java_outer_classname = "TcsMcsCommandProtos";
+
+message LifeCycleCommand {
+  enum TransitionType {
+    SYSTEMOFF = 0;
+    REBOOT = 1;
+    STARTUP = 2;
+    SHUTDOWN = 3;
+  }
+
+  required TransitionType transitionType = 1 [default = STARTUP];
+  
+}
+
+enum Axes {
+    AZ = 0;
+    EL = 1;
+    BOTH = 2;
+  }
+message Startup{
+}
+message Shutdown{
+}
+message FollowCommand {
+ }
+enum Operation{
+	on = 0;
+	off = 1;
+}
+message AxisCommand{
+	required Axes axes = 1 [default = BOTH];
+	required Operation ops = 2 [default = on];
+}
+message DatumCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message PointCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message PointDemandCommand{
+	required  double  AZ = 1;
+	required  double  EL = 2;
+}
+message ServoOffCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message ResetCommand{
+	required  Axes axes = 1 [default = BOTH];
+}
+message SetDiagnosticCommand{
+	required Operation ops = 2 [default = on];
+}
+message CancelProcessingCommand{
+}
+message ReadConfiguration{
+}
+enum Direction{
+	in = 0;
+	out = 1;
+}
+message ElevationStowLockCommand{
+	required Direction dir = 1 [default = in];
+}
+enum Position{
+	zero_degree = 0;
+	ninety_degree = 1;
+}
+message ElevationStowPositionCommand{
+	required Position pos = 1 [default = zero_degree];
+}
+message MCSCommandResponse {
+  enum ErrorState {
+    NONE = 0;
+    ILLEGAL_STATE = 1;
+    BUSY = 2;
+    OUT_OF_RANGE = 3;
+    OUT_OF_SPEC = 4;
+    FAILED = 5;
+  }  
+  enum CmdError{
+    OK = 0;
+    ERROR = 1;
+  }
+  required CmdError cmdError= 1 [default = OK];
+  required ErrorState errorState = 2 [default = NONE];
+  required string errorInfo = 3;
+  required double processedTime = 4;
+}
