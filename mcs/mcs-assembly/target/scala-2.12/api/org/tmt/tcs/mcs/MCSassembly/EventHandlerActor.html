@@ -266,7 +266,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">EventHandlerActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>, <span name="hcdLocation">hcdLocation: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="csw.services.command.scaladsl.CommandService">CommandService</span>]</span>, <span name="eventService">eventService: <span class="extype" name="csw.services.event.api.scaladsl.EventService">EventService</span></span>)</span><span class="result"> extends <span class="extype" name="akka.actor.typed.scaladsl.MutableBehavior">MutableBehavior</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>] with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+        <span class="name">EventHandlerActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="eventService">eventService: <span class="extype" name="csw.services.event.api.scaladsl.EventService">EventService</span></span>, <span name="hcdLocation">hcdLocation: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="csw.services.command.scaladsl.CommandService">CommandService</span>]</span>, <span name="eventTransformer">eventTransformer: <a href="msgTransformer/EventTransformerHelper.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper">EventTransformerHelper</a></span>, <span name="currentStatePublisher">currentStatePublisher: <span class="extype" name="csw.framework.CurrentStatePublisher">CurrentStatePublisher</span></span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>)</span><span class="result"> extends <span class="extype" name="akka.actor.typed.scaladsl.MutableBehavior">MutableBehavior</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>] with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
       </span>
       </h4>
 
@@ -322,9 +322,9 @@
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.EventMessage],loggerFactory:csw.services.logging.scaladsl.LoggerFactory,hcdLocation:Option[csw.services.command.scaladsl.CommandService],eventService:csw.services.event.api.scaladsl.EventService):org.tmt.tcs.mcs.MCSassembly.EventHandlerActor"></a><a id="&lt;init&gt;:EventHandlerActor"></a>
+      <a id="&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.EventMessage],eventService:csw.services.event.api.scaladsl.EventService,hcdLocation:Option[csw.services.command.scaladsl.CommandService],eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper,currentStatePublisher:csw.framework.CurrentStatePublisher,loggerFactory:csw.services.logging.scaladsl.LoggerFactory):org.tmt.tcs.mcs.MCSassembly.EventHandlerActor"></a><a id="&lt;init&gt;:EventHandlerActor"></a>
       <span class="permalink">
-      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.EventMessage],loggerFactory:csw.services.logging.scaladsl.LoggerFactory,hcdLocation:Option[csw.services.command.scaladsl.CommandService],eventService:csw.services.event.api.scaladsl.EventService):org.tmt.tcs.mcs.MCSassembly.EventHandlerActor" title="Permalink">
+      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.EventMessage],eventService:csw.services.event.api.scaladsl.EventService,hcdLocation:Option[csw.services.command.scaladsl.CommandService],eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper,currentStatePublisher:csw.framework.CurrentStatePublisher,loggerFactory:csw.services.logging.scaladsl.LoggerFactory):org.tmt.tcs.mcs.MCSassembly.EventHandlerActor" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -333,7 +333,7 @@
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">EventHandlerActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>, <span name="hcdLocation">hcdLocation: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="csw.services.command.scaladsl.CommandService">CommandService</span>]</span>, <span name="eventService">eventService: <span class="extype" name="csw.services.event.api.scaladsl.EventService">EventService</span></span>)</span>
+        <span class="name">EventHandlerActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="eventService">eventService: <span class="extype" name="csw.services.event.api.scaladsl.EventService">EventService</span></span>, <span name="hcdLocation">hcdLocation: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="csw.services.command.scaladsl.CommandService">CommandService</span>]</span>, <span name="eventTransformer">eventTransformer: <a href="msgTransformer/EventTransformerHelper.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper">EventTransformerHelper</a></span>, <span name="currentStatePublisher">currentStatePublisher: <span class="extype" name="csw.framework.CurrentStatePublisher">CurrentStatePublisher</span></span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>)</span>
       </span>
       
       
@@ -451,6 +451,22 @@
       </span>
       
       
+    </li><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#currentStatePublisher" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="currentStatePublisher:csw.framework.CurrentStatePublisher"></a><a id="currentStatePublisher:CurrentStatePublisher"></a>
+      <span class="permalink">
+      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#currentStatePublisher:csw.framework.CurrentStatePublisher" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">val</span>
+      </span>
+      <span class="symbol">
+        <span class="name">currentStatePublisher</span><span class="result">: <span class="extype" name="csw.framework.CurrentStatePublisher">CurrentStatePublisher</span></span>
+      </span>
+      
+      
     </li><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#duration" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="duration:akka.util.Timeout"></a><a id="duration:Timeout"></a>
       <span class="permalink">
@@ -512,6 +528,22 @@
       </span>
       <span class="symbol">
         <span class="name">eventService</span><span class="result">: <span class="extype" name="csw.services.event.api.scaladsl.EventService">EventService</span></span>
+      </span>
+      
+      
+    </li><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#eventTransformer" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper"></a><a id="eventTransformer:EventTransformerHelper"></a>
+      <span class="permalink">
+      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">val</span>
+      </span>
+      <span class="symbol">
+        <span class="name">eventTransformer</span><span class="result">: <a href="msgTransformer/EventTransformerHelper.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper">EventTransformerHelper</a></span>
       </span>
       
       
@@ -728,22 +760,6 @@
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Behavior</dd></dl></div>
-    </li><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#publishEvent" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="publishEvent(event:csw.messages.events.Event):akka.actor.typed.Behavior[org.tmt.tcs.mcs.MCSassembly.EventMessage]"></a><a id="publishEvent(Event):Behavior[EventMessage]"></a>
-      <span class="permalink">
-      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#publishEvent(event:csw.messages.events.Event):akka.actor.typed.Behavior[org.tmt.tcs.mcs.MCSassembly.EventMessage]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">publishEvent</span><span class="params">(<span name="event">event: <span class="extype" name="csw.messages.events.Event">Event</span></span>)</span><span class="result">: <span class="extype" name="akka.actor.typed.Behavior">Behavior</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>
-      </span>
-      
-      
     </li><li name="akka.actor.typed.scaladsl.MutableBehavior#receive" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="receive(ctx:akka.actor.typed.ActorContext[T],msg:T):akka.actor.typed.Behavior[T]"></a><a id="receive(ActorContext[EventMessage],EventMessage):Behavior[EventMessage]"></a>
       <span class="permalink">
@@ -788,10 +804,10 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#subscribeEventMsg" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="subscribeEventMsg():akka.actor.typed.Behavior[org.tmt.tcs.mcs.MCSassembly.EventMessage]"></a><a id="subscribeEventMsg():Behavior[EventMessage]"></a>
+    </li><li name="org.tmt.tcs.mcs.MCSassembly.EventHandlerActor#sendDummyEvent" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="sendDummyEvent():Unit"></a>
       <span class="permalink">
-      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#subscribeEventMsg():akka.actor.typed.Behavior[org.tmt.tcs.mcs.MCSassembly.EventMessage]" title="Permalink">
+      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/EventHandlerActor.html#sendDummyEvent():Unit" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -800,7 +816,7 @@
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">subscribeEventMsg</span><span class="params">()</span><span class="result">: <span class="extype" name="akka.actor.typed.Behavior">Behavior</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>
+        <span class="name">sendDummyEvent</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       
       

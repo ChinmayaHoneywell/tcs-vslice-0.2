@@ -266,7 +266,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">MonitorActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="MonitorMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.MonitorMessage">MonitorMessage</a>]</span>, <span name="assemblyState">assemblyState: <a href="AssemblyLifeCycleState$.html#AssemblyState=org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState">AssemblyState</a></span>, <span name="assemblyMotionState">assemblyMotionState: <a href="AssemblyOperationalState$.html#AssemblyMotionState=org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState">AssemblyMotionState</a></span>, <span name="eventHandlerActor">eventHandlerActor: <span class="extype" name="akka.actor.typed.ActorRef">ActorRef</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>)</span><span class="result"> extends <span class="extype" name="akka.actor.typed.scaladsl.MutableBehavior">MutableBehavior</span>[<a href="MonitorMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.MonitorMessage">MonitorMessage</a>] with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+        <span class="name">MonitorActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="MonitorMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.MonitorMessage">MonitorMessage</a>]</span>, <span name="assemblyState">assemblyState: <a href="AssemblyLifeCycleState$.html#AssemblyState=org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState">AssemblyState</a></span>, <span name="assemblyMotionState">assemblyMotionState: <a href="AssemblyOperationalState$.html#AssemblyMotionState=org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState">AssemblyMotionState</a></span>, <span name="eventHandlerActor">eventHandlerActor: <span class="extype" name="akka.actor.typed.ActorRef">ActorRef</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="eventTransformer">eventTransformer: <a href="msgTransformer/EventTransformerHelper.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper">EventTransformerHelper</a></span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>)</span><span class="result"> extends <span class="extype" name="akka.actor.typed.scaladsl.MutableBehavior">MutableBehavior</span>[<a href="MonitorMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.MonitorMessage">MonitorMessage</a>] with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
       </span>
       </h4>
 
@@ -322,9 +322,9 @@
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="org.tmt.tcs.mcs.MCSassembly.MonitorActor#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.MonitorMessage],assemblyState:org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState,assemblyMotionState:org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState,eventHandlerActor:akka.actor.typed.ActorRef[org.tmt.tcs.mcs.MCSassembly.EventMessage],loggerFactory:csw.services.logging.scaladsl.LoggerFactory):org.tmt.tcs.mcs.MCSassembly.MonitorActor"></a><a id="&lt;init&gt;:MonitorActor"></a>
+      <a id="&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.MonitorMessage],assemblyState:org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState,assemblyMotionState:org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState,eventHandlerActor:akka.actor.typed.ActorRef[org.tmt.tcs.mcs.MCSassembly.EventMessage],eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper,loggerFactory:csw.services.logging.scaladsl.LoggerFactory):org.tmt.tcs.mcs.MCSassembly.MonitorActor"></a><a id="&lt;init&gt;:MonitorActor"></a>
       <span class="permalink">
-      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/MonitorActor.html#&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.MonitorMessage],assemblyState:org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState,assemblyMotionState:org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState,eventHandlerActor:akka.actor.typed.ActorRef[org.tmt.tcs.mcs.MCSassembly.EventMessage],loggerFactory:csw.services.logging.scaladsl.LoggerFactory):org.tmt.tcs.mcs.MCSassembly.MonitorActor" title="Permalink">
+      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/MonitorActor.html#&lt;init&gt;(ctx:akka.actor.typed.scaladsl.ActorContext[org.tmt.tcs.mcs.MCSassembly.MonitorMessage],assemblyState:org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState,assemblyMotionState:org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState,eventHandlerActor:akka.actor.typed.ActorRef[org.tmt.tcs.mcs.MCSassembly.EventMessage],eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper,loggerFactory:csw.services.logging.scaladsl.LoggerFactory):org.tmt.tcs.mcs.MCSassembly.MonitorActor" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -333,7 +333,7 @@
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">MonitorActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="MonitorMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.MonitorMessage">MonitorMessage</a>]</span>, <span name="assemblyState">assemblyState: <a href="AssemblyLifeCycleState$.html#AssemblyState=org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState">AssemblyState</a></span>, <span name="assemblyMotionState">assemblyMotionState: <a href="AssemblyOperationalState$.html#AssemblyMotionState=org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState">AssemblyMotionState</a></span>, <span name="eventHandlerActor">eventHandlerActor: <span class="extype" name="akka.actor.typed.ActorRef">ActorRef</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>)</span>
+        <span class="name">MonitorActor</span><span class="params">(<span name="ctx">ctx: <span class="extype" name="akka.actor.typed.scaladsl.ActorContext">ActorContext</span>[<a href="MonitorMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.MonitorMessage">MonitorMessage</a>]</span>, <span name="assemblyState">assemblyState: <a href="AssemblyLifeCycleState$.html#AssemblyState=org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyLifeCycleState.AssemblyState">AssemblyState</a></span>, <span name="assemblyMotionState">assemblyMotionState: <a href="AssemblyOperationalState$.html#AssemblyMotionState=org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.Value" class="extmbr" name="org.tmt.tcs.mcs.MCSassembly.AssemblyOperationalState.AssemblyMotionState">AssemblyMotionState</a></span>, <span name="eventHandlerActor">eventHandlerActor: <span class="extype" name="akka.actor.typed.ActorRef">ActorRef</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>, <span name="eventTransformer">eventTransformer: <a href="msgTransformer/EventTransformerHelper.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper">EventTransformerHelper</a></span>, <span name="loggerFactory">loggerFactory: <span class="extype" name="csw.services.logging.scaladsl.LoggerFactory">LoggerFactory</span></span>)</span>
       </span>
       
       
@@ -512,6 +512,22 @@
       </span>
       <span class="symbol">
         <span class="name">eventHandlerActor</span><span class="result">: <span class="extype" name="akka.actor.typed.ActorRef">ActorRef</span>[<a href="EventMessage.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.EventMessage">EventMessage</a>]</span>
+      </span>
+      
+      
+    </li><li name="org.tmt.tcs.mcs.MCSassembly.MonitorActor#eventTransformer" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper"></a><a id="eventTransformer:EventTransformerHelper"></a>
+      <span class="permalink">
+      <a href="../../../../../org/tmt/tcs/mcs/MCSassembly/MonitorActor.html#eventTransformer:org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">val</span>
+      </span>
+      <span class="symbol">
+        <span class="name">eventTransformer</span><span class="result">: <a href="msgTransformer/EventTransformerHelper.html" class="extype" name="org.tmt.tcs.mcs.MCSassembly.msgTransformer.EventTransformerHelper">EventTransformerHelper</a></span>
       </span>
       
       
