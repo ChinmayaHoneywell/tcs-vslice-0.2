@@ -65,20 +65,20 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
       //println("Publishing currentPosition : "+mcsCurrentPosition)
       if(pubSocket.sendMore("CurrentPosition")){
-        println("Sent event: CurrentPosition to MCS")
+        //println("Sent event: CurrentPosition to MCS")
         if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
-          println("Sent currentPosition event data")
+        //  println("Sent currentPosition event data")
         }else{
-          println("Error!!!! Unable to send currentPositionEvent Data.")
+          //println("Error!!!! Unable to send currentPositionEvent Data.")
         }
       }else{
-        println("Error --> Unable to send currentPosition event name.")
+        //println("Error --> Unable to send currentPosition event name.")
       }
     }
   }
   //TODO : Change the state as per the command executed
   def startPublishingDriveState() : Unit = {
-    println("Publish Drive State Thread started")
+    //println("Publish Drive State Thread started")
     while(true) {
       Thread.sleep(1000)
       val driveStatus : McsDriveStatus = TcsMcsEventsProtos.McsDriveStatus.newBuilder()
@@ -93,7 +93,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
   def startPublishingDiagnosis() : Unit = {
-    println("Publish Diagnosis Thread STarted")
+    //println("Publish Diagnosis Thread STarted")
     while(true) {
       Thread.sleep(10)
       val diagnosis : MountControlDiags = TcsMcsEventsProtos.MountControlDiags.newBuilder()
@@ -108,7 +108,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
   def startPublishingHealth() : Unit = {
-    println("Publish Health Thread Started")
+    //println("Publish Health Thread Started")
     while(true){
       Thread.sleep(12000)
       val mcsHealth = TcsMcsEventsProtos.McsHealth.newBuilder()
@@ -116,10 +116,10 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         .setReason("All is well")
         .setTime(Instant.now().toEpochMilli)
         .build()
-      println("Publishing Health information.")
+     // println("Publishing Health information.")
       if(pubSocket.sendMore("Health")){
         if(pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)){
-          println("Successfully published health event")
+        //  println("Successfully published health event")
         }
       }
     }
@@ -151,14 +151,14 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     println("Subscribe position Demands thread started")
     while (true) {
       val eventName: String = subSocket.recvStr()
-      println(s"Received : ${eventName} from MCS")
+    //  println(s"Received : ${eventName} from MCS")
       if (subSocket.hasReceiveMore) {
         val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
         val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
-        println(s"*** Received position demands: ${positionDemand} from MCS at:  ${System.currentTimeMillis()} *** ")
+        println(s"*** ${positionDemand} : ${System.currentTimeMillis()} ***")
         setAzPosDemanded(positionDemand.getAzimuth)
         setElPosDemanded(positionDemand.getElevation)
-        demandedTime = positionDemand.getTime
+        //demandedTime = positionDemand.getTime
       }else{
         println("Didn't get any position demands yet.")
       }

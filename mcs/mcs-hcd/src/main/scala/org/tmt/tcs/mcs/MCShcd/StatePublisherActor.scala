@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCShcd
 
+import java.time
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -15,9 +16,10 @@ import csw.services.event.api.scaladsl.{EventService, EventSubscriber}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
-import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
+import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{PublishCurrStateToZeroMQ, PublishEvent}
 import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.{MCSPositionDemand, ParamSetTransformer}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
@@ -136,10 +138,20 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
         StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, eventService, loggerFactory)
       }
       case msg: AssemblyStateChange => {
-        log.info(s"*** Received Assembly position demands : ${msg.currentState} at: ${System.currentTimeMillis()} ***")
-        zeroMQActor = msg.zeroMQProtoActor
-        val event = paramSetTransformer.getMountDemandPositions(msg.currentState)
-        zeroMQActor ! PublishEvent(event)
+        //TODO: Below HCD Event Receival time is temporary it must be removed once performance measurement is done.
+        //log.info(s"Received assembly state change : ${msg}")
+        try {
+          val currentState = msg.currentState
+          val currState    = currentState.add(EventConstants.HcdReceivalTime_Key.set(System.currentTimeMillis()))
+          zeroMQActor = msg.zeroMQProtoActor
+          zeroMQActor ! PublishCurrStateToZeroMQ(currState)
+          log.info(s"Published ${currState} to zeroMQActor")
+        } catch {
+          case ex: Exception => {
+            ex.printStackTrace()
+            log.error("Exception in getting current state in HCD")
+          }
+        }
         Behavior.same
       }
       //TODO : In case later decesion changed to use this message then rewrite publishCurrentPosition case

@@ -86,10 +86,10 @@ object MCSMainApp extends App {
   println(s"Dummy Long Command Response is : ${resp6}")
 
   new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
-  new Thread(new Runnable {
+  /*new Thread(new Runnable {
     override def run(): Unit = startPublishPosDemands()
   }).start()
-
+   */
   def startPublishPosDemands(): Unit = {
     println("Started publishing position demands")
     val eventService = getEventService

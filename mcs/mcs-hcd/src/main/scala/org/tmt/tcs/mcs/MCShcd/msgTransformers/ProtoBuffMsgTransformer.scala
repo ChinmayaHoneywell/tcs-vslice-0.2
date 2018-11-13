@@ -79,6 +79,35 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       }
     }
   }
+  override def encodeCurrentState(currentState: CurrentState): Array[Byte] = {
+    var trackID  = 1
+    var azPos    = 0.0
+    var elPos    = 0.0
+    val sentTime = System.currentTimeMillis() //current time of HCD
+    // log.info(s"Received current state for transformation to events : $currentState")
+    /* if (currentState.exists(EventConstants.TrackIDKey)) {
+      trackID = currentState.get(EventConstants.TrackIDKey).get.head
+    }*/
+    if (currentState.exists(EventConstants.AzPosKey)) {
+      azPos = currentState.get(EventConstants.AzPosKey).get.head
+    }
+    if (currentState.exists(EventConstants.ElPosKey)) {
+      elPos = currentState.get(EventConstants.ElPosKey).get.head
+    }
+    val event: GeneratedMessage =
+      TcsPositionDemandEvent
+        .newBuilder()
+        .setAzimuth(azPos)
+        .setElevation(elPos)
+        .setHcdReceivalTime(currentState.get(EventConstants.HcdReceivalTime_Key).get.head)
+        .setTpkPublishTime(currentState.get(EventConstants.TimeStampKey).get.head)
+        .setAssemblyReceivalTime(currentState.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head)
+        .build()
+    // log.info(s"converted current state to ${event.toByteArray}")
+    event.toByteArray
+  }
+
+  //TODO: Change this method for publishing assembly,hcd receival times
   override def encodeEvent(systemEvent: SystemEvent): Array[Byte] = {
 
     val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
@@ -91,9 +120,9 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     if (systemEvent.exists(EventConstants.ElPosKey)) {
       elParam = systemEvent.get(EventConstants.ElPosKey).get.head
     }
-    var timeSent = Instant.now().toEpochMilli
+    var timeSent = System.currentTimeMillis()
     if (systemEvent.exists(EventConstants.TimeStampKey)) {
-      timeSent = systemEvent.get(EventConstants.TimeStampKey).get.head.toEpochMilli
+      timeSent = systemEvent.get(EventConstants.TimeStampKey).get.head
     }
 
     // val trackID: Int = trackIDOption.get.head
@@ -103,7 +132,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
         .newBuilder()
         .setAzimuth(azParam)
         .setElevation(elParam)
-        .setTime(timeSent)
+        .setTpkPublishTime(timeSent)
         .build()
     event.toByteArray
   }

@@ -6,6 +6,7 @@ import com.typesafe.config.Config
 import csw.messages.commands.{CommandIssue, CommandResponse, ControlCommand}
 import csw.messages.events.SystemEvent
 import csw.messages.params.models.Id
+import csw.messages.params.states.CurrentState
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.EventMessage
 import org.tmt.tcs.mcs.MCShcd.EventMessage.PublishState
@@ -23,8 +24,9 @@ object ZeroMQMessage {
   case class PublishEvent(event: SystemEvent)                                               extends ZeroMQMessage
   case class StartSimulEventSubscr()                                                        extends ZeroMQMessage
 
-  case class SimulatorConnResponse(connected: Boolean) extends ZeroMQMessage
-  case class Disconnect()                              extends ZeroMQMessage
+  case class SimulatorConnResponse(connected: Boolean)            extends ZeroMQMessage
+  case class Disconnect()                                         extends ZeroMQMessage
+  case class PublishCurrStateToZeroMQ(currentState: CurrentState) extends ZeroMQMessage
 
 }
 object ZeroMQProtocolActor {
@@ -35,12 +37,13 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
                                statePublisherActor: ActorRef[EventMessage],
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[ZeroMQMessage] {
-  private val log: Logger                              = loggerFactory.getLogger
-  private val zmqContext: ZMQ.Context                  = ZMQ.context(1)
-  private val pushSocket: ZMQ.Socket                   = zmqContext.socket(ZMQ.PUSH) //55579
-  private val pullSocket: ZMQ.Socket                   = zmqContext.socket(ZMQ.PULL) //55578
-  private val subscribeSocket: ZMQ.Socket              = zmqContext.socket(ZMQ.SUB) //55580
-  private val pubSocket: ZMQ.Socket                    = zmqContext.socket(ZMQ.PUB) //55581
+  private val log: Logger                 = loggerFactory.getLogger
+  private val zmqContext: ZMQ.Context     = ZMQ.context(1)
+  private val pushSocket: ZMQ.Socket      = zmqContext.socket(ZMQ.PUSH) //55579
+  private val pullSocket: ZMQ.Socket      = zmqContext.socket(ZMQ.PULL) //55578
+  private val pubSocket: ZMQ.Socket       = zmqContext.socket(ZMQ.PUB) //55581
+  private val subscribeSocket: ZMQ.Socket = zmqContext.socket(ZMQ.SUB) //55580
+
   private val addr: String                             = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer  = ProtoBuffMsgTransformer.create(loggerFactory)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
@@ -52,7 +55,10 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private var zeroMQPushSocketStr: String              = ""
   private var zeroMQSubScribeSocketStr: String         = ""
   private var zeroMQPubSocketStr: String               = ""
-
+  /*
+  1. PublishEvent is used when positionDemand is propagated from Assembly to HCD using CSW EventService.
+  2. PublishCurrStateToZeroMQ is used when positionDemand is propagated from Assembly to HCD using CSW CurrentState.
+   */
   override def onMessage(msg: ZeroMQMessage): Behavior[ZeroMQMessage] = {
     msg match {
 
@@ -74,6 +80,22 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         val positionDemands: Array[Byte] = messageTransformer.encodeEvent(msg.event)
         if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
           pubSocket.send(positionDemands)
+        }
+
+        Behavior.same
+      }
+      case msg: PublishCurrStateToZeroMQ => {
+        try {
+          val positionDemands: Array[Byte] = messageTransformer.encodeCurrentState(msg.currentState)
+          if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
+            pubSocket.send(positionDemands)
+          }
+          //log.info(s"published position demands : ${msg.currentState} to MCS subsystem")
+        } catch {
+          case ex: Exception => {
+            ex.printStackTrace()
+            log.error("Exception in converting current state to byte array")
+          }
         }
 
         Behavior.same

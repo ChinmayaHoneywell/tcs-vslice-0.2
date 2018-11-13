@@ -47,3 +47,36 @@ Before running any components, follow below steps:
  - Run `sbt MCS-deploy/universal:packageBin`, this will create self contained zip in target/universal directory
  - Unzip generate zip and enter into bin directory
  - Run container cmd script or host config app script
+
+Running MCS POC
+go to folder : mcs-deply/target/universal/stage/bin
+./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf
+
+Running PK POC
+./pk-container-cmd-app --local ../../../../src/main/resources/PkContainer.conf 
+
+
+starting  all services: 
+go to csw/target/universal/stage/bin folder and run below command:
+./csw-services.sh start
+
+for starting config service 1st time on machine:
+./csw-cluster-seed --clusterPort 5552
+./csw-config-server --initRepo
+
+checking port is open or not:
+netstat -na|grep 5552
+killing service on port
+kill -9 processID
+
+for saving mcs assembly file on config server:
+curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
+curl -X POST --data 'tmt{tcs{mcs{zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf
+
+for getting mcs_assembly file from config server:
+curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
+curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf
+
+/root/.ivy2/cache/
+
+

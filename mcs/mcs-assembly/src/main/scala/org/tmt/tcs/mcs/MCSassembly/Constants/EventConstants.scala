@@ -1,26 +1,27 @@
 package org.tmt.tcs.mcs.MCSassembly.Constants
 
 object EventConstants {
-  val MOUNT_DEMAND_POSITION     = "MountDemandPosition"
-  val TPK_PREFIX                = "TCS.PK.PKA"
-  val POITNTING_KERNEL_TRACK_ID = "trackID"
-  val POINTING_KERNEL_AZ_POS    = "az_pos"
-  val POINTING_KERNEL_EL_POS    = "el_pos"
+  val MOUNT_DEMAND_POSITION     = "mcsdemandpositions"
+  val TPK_PREFIX                = "tcs.pk"
+  val POITNTING_KERNEL_TRACK_ID = "mcs.trackID"
+  val POINTING_KERNEL_AZ_POS    = "mcs.az"
+  val POINTING_KERNEL_EL_POS    = "mcs.el"
   val LIFECYLE_STATE_KEY        = "LifecycleState"
   val lIFECYLE_STATE_PREFIX     = "tmt.tcs.mcs.state"
   val OPERATIONAL_STATE_KEY     = "OperationalState"
   val ASSEMBLY_STATE_EVENT      = "AssemblyState"
 
   //HCDLifecycleState currentState constants
-  val HCDLifecycleState: String = "HCDLifecycleState"
-  val HCDState_Off: String      = "Off"
-  val HCDState_Running: String  = "Running"
-  val HCDState_Initialized      = "Initialized"
-  val AZ_InPosition: String     = "azInPositionKey"
-  val EL_InPosition: String     = "elInPositionKey"
-  val AZ_POS_ERROR: String      = "azPosErrorKey"
-  val EL_POS_ERROR: String      = "elPosErrorKey"
-  val TIMESTAMP: String         = "timeStamp"
+  val HCDLifecycleState: String      = "HCDLifecycleState"
+  val HCDState_Off: String           = "Off"
+  val HCDState_Running: String       = "Running"
+  val HCDState_Initialized           = "Initialized"
+  val AZ_InPosition: String          = "azInPositionKey"
+  val EL_InPosition: String          = "elInPositionKey"
+  val AZ_POS_ERROR: String           = "azPosErrorKey"
+  val EL_POS_ERROR: String           = "elPosErrorKey"
+  val TIMESTAMP: String              = "timeStamp"
+  val ASSEMBLY_RECEIVAL_TIME: String = "assemblyReceivalTime"
 
   //MCS Simulator currentPosition state
   val CURRENT_POSITION: String = "CurrentPosition"

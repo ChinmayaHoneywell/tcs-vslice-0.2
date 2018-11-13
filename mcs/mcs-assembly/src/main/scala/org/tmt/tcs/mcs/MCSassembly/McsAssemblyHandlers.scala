@@ -96,9 +96,10 @@ class McsAssemblyHandlers(
   3. sends  StartPublishingEvents  and StartEventSubscription msg to EventHandlerActor
    */
   override def initialize(): Future[Unit] = Future {
-    //log.info(msg = "Initializing MCS Assembly")
+    log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
-    eventHandlerActor ! StartPublishingDummyEvent()
+    //eventHandlerActor ! StartPublishingDummyEvent()
+    eventHandlerActor ! StartEventSubscription()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
   /*

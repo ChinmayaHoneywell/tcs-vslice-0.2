@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCSassembly
 
+import java.time.Instant
 import java.util.Calendar
 
 import akka.actor.typed.Behavior
@@ -99,7 +100,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    * using CSW EventService
    */
   private def subscribeEventMsg(): Behavior[EventMessage] = {
-    log.info(msg = s"Started subscribing events Received from ClientApp.")
+    log.info(msg = s"Started subscribing events Received from tpkAssembly.")
     eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey, event => sendEventByAssemblyCurrentState(event))
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
@@ -107,12 +108,17 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     This function publishes position demands by using currentStatePublisher
    */
   private def sendEventByAssemblyCurrentState(msg: Event): Future[_] = {
-    log.info(s"** Received position demands: $msg  at :${System.currentTimeMillis()}  ***")
     msg match {
       case systemEvent: SystemEvent => {
-        val currentState = eventTransformer.getCurrentState(systemEvent)
+        //TODO : This time difference addition code is temporary it must removed once performance measurement is done
+        val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
+        //log.info(s"** Received position demands to mcs Assmebly at : ${event}")
+        val currentState = eventTransformer.getCurrentState(event)
         currentStatePublisher.publish(currentState)
-        //log.info(s"Published currentState : $currentState from assembly CurrentStatePublisher")
+        log.info(s"Published demands current state : ${currentState}")
+      }
+      case _ => {
+        log.error(s"Unable to map received position demands from tpk assembly to systemEvent: $msg")
       }
     }
     Future.successful("Successfully sent positionDemand by CurrentStatePublisher")

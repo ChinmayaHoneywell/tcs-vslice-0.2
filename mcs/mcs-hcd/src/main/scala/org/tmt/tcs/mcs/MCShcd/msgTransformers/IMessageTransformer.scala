@@ -12,4 +12,6 @@ trait IMessageTransformer {
   def encodeMessage(controlCommand: ControlCommand): Array[Byte]
   def decodeEvent(eventName: String, encodedEventData: Array[Byte]): CurrentState
   def encodeEvent(event: SystemEvent): Array[Byte]
+  def encodeCurrentState(currentState: CurrentState): Array[Byte]
+
 }

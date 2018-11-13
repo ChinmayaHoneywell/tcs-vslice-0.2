@@ -151,10 +151,11 @@ class McsHcdHandlers(
   var assemblyLocation: Option[CommandService]                    = None
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    log.info(msg = "** Assembly Location changed **")
+    // log.error(msg = "** Assembly Location changed **")
     trackingEvent match {
       case LocationUpdated(location) => {
         assemblyLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
+        //log.error(s"Published assembly current state to HCD : ")
         assemblyDemandsSubscriber = Some(
           assemblyLocation.get.subscribeCurrentState(statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, _))
         )
