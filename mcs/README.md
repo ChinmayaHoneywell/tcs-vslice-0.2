@@ -48,11 +48,14 @@ Before running any components, follow below steps:
  - Unzip generate zip and enter into bin directory
  - Run container cmd script or host config app script
 
-Running MCS POC
+Running MCS POC 
 go to folder : mcs-deply/target/universal/stage/bin
+
 ./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf
 
 Running PK POC
+go to folder : pk-deply/target/universal/stage/bin
+
 ./pk-container-cmd-app --local ../../../../src/main/resources/PkContainer.conf 
 
 
