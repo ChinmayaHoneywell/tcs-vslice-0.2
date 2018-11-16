@@ -67,6 +67,9 @@ object MCSMainApp extends App {
 
   val prefix = Prefix("tmt.tcs.McsAssembly-Client")
 
+  val resp0 = Await.result(sendSimulationModeCommand, 10.seconds)
+  println(s"SimulationMode command response is : $resp0")
+
   val resp1 = Await.result(sendStartupCommand, 30.seconds)
   println(s"Startup command response is : $resp1")
 
@@ -86,33 +89,7 @@ object MCSMainApp extends App {
   println(s"Dummy Long Command Response is : ${resp6}")
 
   new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
-  /*new Thread(new Runnable {
-    override def run(): Unit = startPublishPosDemands()
-  }).start()
-   */
-  def startPublishPosDemands(): Unit = {
-    println("Started publishing position demands")
-    val eventService = getEventService
-    val publisher    = eventService.defaultPublisher
-    var azpos        = 125
-    var elpos        = 57
-    while (true) {
-      Thread.sleep(10000)
-      val trackID     = DeployConstants.TrackIDKey.set(100)
-      val azPosDemand = DeployConstants.AzPosKey.set(azpos)
-      val elPosDemand = DeployConstants.ElPosKey.set(elpos)
-      val sentTime    = DeployConstants.TimeStampKey.set(Instant.now)
-      val event = SystemEvent(DeployConstants.PositionDemandPref, DeployConstants.PositionDemandEventName)
-        .add(trackID)
-        .add(azPosDemand)
-        .add(elPosDemand)
-        .add(sentTime)
-      println(s"*** Publishing event: ${event} from ClientApp at time : ${System.currentTimeMillis()} ***")
-      publisher.publish(event)
-      azpos += 1
-      elpos += 1
-    }
-  }
+
   def startSubscribingEvents(): Unit = {
     println(" ** Started subscribing Events from Assembly ** ")
     val eventService = getEventService
@@ -144,6 +121,7 @@ object MCSMainApp extends App {
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
   }
+
   def sendDummyImmediateCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
     getAssembly.flatMap {
       case Some(commandService) => {
@@ -199,6 +177,14 @@ object MCSMainApp extends App {
         commandService.submitAndSubscribe(setup)
       case None =>
         Future.successful(Error(Id(), "Can't locate TcsTemplateAssembly"))
+    }
+  }
+  def sendSimulationModeCommand(): Future[CommandResponse] = {
+    getAssembly.flatMap {
+      case Some(commandService) => {
+        val setup = Setup(prefix, CommandName("setSimulationMode"), None)
+        commandService.submitAndSubscribe(setup)
+      }
     }
   }
   def sendMoveCommand(): Future[CommandResponse] = {

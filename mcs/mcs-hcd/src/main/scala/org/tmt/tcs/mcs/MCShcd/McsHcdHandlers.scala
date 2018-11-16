@@ -35,7 +35,7 @@ import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
 import csw.services.event.api.scaladsl.EventService
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{Disconnect, StartSimulEventSubscr}
-import org.tmt.tcs.mcs.MCShcd.Protocol.{ZeroMQMessage, ZeroMQProtocolActor}
+import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, SimpleSimulator, ZeroMQMessage, ZeroMQProtocolActor}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.ParamSetTransformer
 import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
 
@@ -72,6 +72,7 @@ class McsHcdHandlers(
 
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
+  private var simulatorMode: String         = Commands.REAL_SIMULATOR
 
   private val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, locationService, loggerFactory), "LifeCycleActor")
@@ -82,18 +83,29 @@ class McsHcdHandlers(
                                      HCDLifeCycleState.Off,
                                      HCDOperationalState.DrivePowerOff,
                                      eventService,
+                                     simulatorMode,
                                      loggerFactory),
     "StatePublisherActor"
   )
-  //private val subSystemManager: SubsystemManager = SubsystemManager.create(simulator, loggerFactory)
+
   private val zeroMQProtoActor: ActorRef[ZeroMQMessage] =
     ctx.spawn(ZeroMQProtocolActor.create(statePublisherActor, loggerFactory), "ZeroMQActor")
+  private val simpleSimActor: ActorRef[SimpleSimMsg] = ctx.spawn(SimpleSimulator.create(loggerFactory), "SimpleSimulator")
+
   private val commandHandlerActor: ActorRef[HCDCommandMessage] =
-    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, zeroMQProtoActor, loggerFactory),
-              "CommandHandlerActor")
+    ctx.spawn(
+      CommandHandlerActor.createObject(commandResponseManager,
+                                       lifeCycleActor,
+                                       zeroMQProtoActor,
+                                       simpleSimActor,
+                                       simulatorMode,
+                                       loggerFactory),
+      "CommandHandlerActor"
+    )
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   private val positionDemandActor: ActorRef[ControlCommand] =
-    ctx.spawn(PositionDemandActor.create(loggerFactory, zeroMQProtoActor, paramSetTransformer), "PositionDemandEventActor")
+    ctx.spawn(PositionDemandActor.create(loggerFactory, zeroMQProtoActor, simpleSimActor, simulatorMode, paramSetTransformer),
+              "PositionDemandEventActor")
   /*
   This function initializes HCD, uses configuration object to initialize Protocol and
   sends updated states tp state publisher actor for publishing
@@ -157,7 +169,9 @@ class McsHcdHandlers(
         assemblyLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
         //log.error(s"Published assembly current state to HCD : ")
         assemblyDemandsSubscriber = Some(
-          assemblyLocation.get.subscribeCurrentState(statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, _))
+          assemblyLocation.get.subscribeCurrentState(
+            statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, simpleSimActor, _)
+          )
         )
       }
       case LocationRemoved(_) => {
@@ -195,11 +209,24 @@ class McsHcdHandlers(
         log.info(s"** Position Demands Validate loop is executed")
         CommandResponse.Accepted(controlCommand.runId)
       }
+      case Commands.SET_SIMULATION_MODE => {
+        validateSetSimulationMode(controlCommand)
+      }
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
-
+  private def validateSetSimulationMode(cmd: ControlCommand): CommandResponse = {
+    val modeParam: Parameter[_] = cmd.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
+    val param                   = modeParam.head
+    if (param == Commands.REAL_SIMULATOR) {
+      simulatorMode = Commands.REAL_SIMULATOR
+    }
+    if (param == Commands.SIMPLE_SIMULATOR) {
+      simulatorMode = Commands.SIMPLE_SIMULATOR
+    }
+    CommandResponse.Completed(cmd.runId)
+  }
   /*
      This functions validates point demand command based upon paramters and hcd state
    */

@@ -2,10 +2,9 @@ package org.tmt.tcs.mcs.MCShcd.workers
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-
 import csw.messages.commands.ControlCommand
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
+import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, ZeroMQMessage}
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.{MCSPositionDemand, ParamSetTransformer}
 
@@ -13,8 +12,12 @@ object PositionDemandActor {
 
   def create(loggerFactory: LoggerFactory,
              zeroMQProtoActor: ActorRef[ZeroMQMessage],
+             simpleSimActor: ActorRef[SimpleSimMsg],
+             simulatorMode: String,
              paramSetTransformer: ParamSetTransformer): Behavior[ControlCommand] =
-    Behaviors.setup(ctx => PositionDemandActor(ctx, loggerFactory, zeroMQProtoActor, paramSetTransformer))
+    Behaviors.setup(
+      ctx => PositionDemandActor(ctx, loggerFactory, zeroMQProtoActor, simpleSimActor, simulatorMode, paramSetTransformer)
+    )
 }
 
 /*
@@ -25,6 +28,8 @@ It converts control command into MCSPositionDemands and sends the same to the Ze
 case class PositionDemandActor(ctx: ActorContext[ControlCommand],
                                loggerFactory: LoggerFactory,
                                zeroMQProtoActor: ActorRef[ZeroMQMessage],
+                               simpleSimActor: ActorRef[SimpleSimMsg],
+                               simulatorMode: String,
                                paramSetTransformer: ParamSetTransformer)
     extends MutableBehavior[ControlCommand] {
   private val log = loggerFactory.getLogger

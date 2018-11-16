@@ -157,6 +157,9 @@ class McsAssemblyHandlers(
       case Commands.SHUTDOWN => {
         CommandResponse.Accepted(controlCommand.runId)
       }
+      case Commands.SET_SIMULATION_MODE => {
+        executeSimModeAndSendResp(controlCommand)
+      }
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
@@ -183,6 +186,25 @@ class McsAssemblyHandlers(
         controlCommand.runId,
         UnsupportedCommandInStateIssue(s" Follow command is not allowed if assembly is not in Running state")
       )
+    }
+  }
+
+  private def executeSimModeAndSendResp(controlCommand: ControlCommand): CommandResponse = {
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+    val immediateResponse: CommandMessage = Await.result(commandHandlerActor ? { ref: ActorRef[CommandMessage] =>
+      CommandMessage.ImmediateCommand(ref, controlCommand)
+    }, 5.seconds)
+    immediateResponse match {
+      case msg: ImmediateCommandResponse => {
+        msg.commandResponse
+      }
+      case _ => {
+        CommandResponse.NotAllowed(
+          controlCommand.runId,
+          UnsupportedCommandInStateIssue(s" Unable to setup simulation mode.")
+        )
+      }
     }
   }
   /*

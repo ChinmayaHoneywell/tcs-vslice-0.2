@@ -86,6 +86,9 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       case Commands.FOLLOW => {
         handleFollowCommand(msg)
       }
+      case Commands.SET_SIMULATION_MODE => {
+        handleSimulationModeCmd(msg)
+      }
     }
   }
   /*
@@ -163,6 +166,15 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     val followCommandActor: ActorRef[ImmediateCommand] =
       ctx.spawn(FollowCommandActor.createObject(hcdLocation, loggerFactory), "FollowCommandActor")
     followCommandActor ! msg
+  }
+  def handleSimulationModeCmd(command: CommandMessage.ImmediateCommand) = {
+    hcdLocation match {
+      case Some(commandService) => {
+        val response = Await.result(commandService.submit(command.controlCommand), 3.seconds)
+        log.info(msg = s" updating simulation mode command : ${command.controlCommand.runId} with response : ${response} ")
+        command.sender ! ImmediateCommandResponse(response)
+      }
+    }
   }
 
 }
