@@ -3,6 +3,7 @@ package org.tmt.tcs.mcs.MCShcd
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandResponse, ControlCommand}
+import csw.messages.params.generics.Parameter
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import org.tmt.tcs.mcs.MCShcd.workers.{
@@ -91,17 +92,6 @@ case class CommandHandlerActor(ctx: ActorContext[HCDCommandMessage],
 
       case Commands.STARTUP => {
         log.info("Starting MCS HCD")
-
-        /* val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
-          LifeCycleMessage.GetConfig(ref)
-        }, 3.seconds)
-
-        var config: Config = null
-        lifecycleMsg match {
-          case x: LifeCycleMessage.HCDConfig => {
-            config = x.config
-          }
-        }*/
         val startupCmdActor: ActorRef[ControlCommand] =
           ctx.spawn(
             StartupCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory),
@@ -109,6 +99,17 @@ case class CommandHandlerActor(ctx: ActorContext[HCDCommandMessage],
           )
         startupCmdActor ! cmdMessage.controlCommand
         Behavior.same
+      }
+      case Commands.SET_SIMULATION_MODE => {
+        val modeParam: Parameter[_] = cmdMessage.controlCommand.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
+        val param: Any              = modeParam.head
+        log.info(s"Changing commandHandlers simulation mode from: $simulatorMode to ${param.toString}")
+        CommandHandlerActor.createObject(commandResponseManager,
+                                         lifeCycleActor,
+                                         zeroMQProtoActor,
+                                         simpleSimActor,
+                                         param.toString,
+                                         loggerFactory)
       }
       case Commands.SHUTDOWN => {
         log.info("ShutDown MCS HCD")

@@ -1,6 +1,5 @@
 package org.tmt.tcs.mcs.MCSassembly
 
-import java.time.Instant
 import java.util.Calendar
 
 import akka.actor.typed.Behavior
@@ -112,11 +111,9 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
       case systemEvent: SystemEvent => {
         //TODO : This time difference addition code is temporary it must removed once performance measurement is done
         val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
-        log.info(
-          s"** Received position demands to mcs Assmebly at : ${event.get(EventHandlerConstants.TimeStampKey).get.head}, ${System.currentTimeMillis()}"
-        )
-        //val currentState = eventTransformer.getCurrentState(event)
-        //currentStatePublisher.publish(currentState)
+        // log.info(s"** Received position demands to mcs Assmebly at : ${event.get(EventHandlerConstants.TimeStampKey).get.head}, ${System.currentTimeMillis()}"   )
+        val currentState = eventTransformer.getCurrentState(event)
+        currentStatePublisher.publish(currentState)
         //log.info(s"Published demands current state : ${currentState}")
       }
       case _ => {

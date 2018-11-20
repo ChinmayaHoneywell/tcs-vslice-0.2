@@ -16,12 +16,7 @@ import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, Tr
 import csw.messages.params.generics.Parameter
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.EventMessage.{
-  AssemblyStateChange,
-  HCDOperationalStateChangeMsg,
-  StartEventSubscription,
-  StateChangeMsg
-}
+import org.tmt.tcs.mcs.MCShcd.EventMessage._
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 import akka.actor.typed.scaladsl.AskPattern._
@@ -33,7 +28,7 @@ import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
 import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
 import csw.services.event.api.scaladsl.EventService
-import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
+import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.{submitCommand, ImmediateCommandResponse}
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{Disconnect, StartSimulEventSubscr}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, SimpleSimulator, ZeroMQMessage, ZeroMQProtocolActor}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.ParamSetTransformer
@@ -225,6 +220,8 @@ class McsHcdHandlers(
     if (param == Commands.SIMPLE_SIMULATOR) {
       simulatorMode = Commands.SIMPLE_SIMULATOR
     }
+    commandHandlerActor ! submitCommand(cmd)
+    statePublisherActor ! SimulationModeChange(simulatorMode)
     CommandResponse.Completed(cmd.runId)
   }
   /*

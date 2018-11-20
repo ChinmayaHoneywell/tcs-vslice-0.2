@@ -45,6 +45,7 @@ object EventMessage {
                                  simpleSimActor: ActorRef[SimpleSimMsg],
                                  currentState: CurrentState)
       extends EventMessage
+  case class SimulationModeChange(simMode: String) extends EventMessage
 }
 
 object HCDLifeCycleState extends Enumeration {
@@ -93,7 +94,8 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   private var zeroMQActor: ActorRef[ZeroMQMessage]     = null
   private var simpleSimActor: ActorRef[SimpleSimMsg]   = null
-  implicit val ec: ExecutionContextExecutor            = ctx.executionContext
+
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
 
   /*
 
@@ -157,6 +159,15 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                          simulatorMode,
                                          loggerFactory)
       }
+      case msg: SimulationModeChange => {
+        log.info(s"Changing Simulation mode in StatePublisherActor from : $simulatorMode to ${msg.simMode}")
+        StatePublisherActor.createObject(currentStatePublisher,
+                                         lifeCycleState,
+                                         operationalState,
+                                         eventService,
+                                         msg.simMode,
+                                         loggerFactory)
+      }
       case msg: AssemblyStateChange => {
         //TODO: Below HCD Event Receival time is temporary it must be removed once performance measurement is done.
         //log.info(s"Received assembly state change : ${msg}")
@@ -164,13 +175,15 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
           val currentState = msg.currentState
           val currState    = currentState.add(EventConstants.HcdReceivalTime_Key.set(System.currentTimeMillis()))
           if (simulatorMode == Commands.REAL_SIMULATOR) {
+            // log.info(s"Sending demands to Real Simulator")
             zeroMQActor = msg.zeroMQProtoActor
             zeroMQActor ! PublishCurrStateToZeroMQ(currState)
-            log.info(s"Published ${currState} to zeroMQActor")
+            //log.info(s"Published ${currState} to zeroMQActor")
           } else {
+            //log.info(s"Sending demands to Simple Simulator")
             simpleSimActor = msg.simpleSimActor
-            simpleSimActor ! ProcCurrStateDemand(currentState)
-            log.info(s"Published ${currState} to simpleSimulator")
+            simpleSimActor ! ProcCurrStateDemand(currState)
+            //log.info(s"Published ${currState} to simpleSimulator")
           }
 
         } catch {

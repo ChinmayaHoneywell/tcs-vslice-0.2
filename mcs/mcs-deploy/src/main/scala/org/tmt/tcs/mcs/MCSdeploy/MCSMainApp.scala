@@ -180,9 +180,11 @@ object MCSMainApp extends App {
     }
   }
   def sendSimulationModeCommand(): Future[CommandResponse] = {
+    val simulationModeKey: Key[String] = KeyType.StringKey.make("SimulationMode")
     getAssembly.flatMap {
       case Some(commandService) => {
-        val setup = Setup(prefix, CommandName("setSimulationMode"), None)
+        val simulModeParam: Parameter[String] = simulationModeKey.set("SimpleSimulator")
+        val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
         commandService.submitAndSubscribe(setup)
       }
     }

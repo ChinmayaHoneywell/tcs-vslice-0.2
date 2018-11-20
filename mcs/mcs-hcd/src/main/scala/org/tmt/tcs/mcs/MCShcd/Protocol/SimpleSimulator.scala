@@ -7,6 +7,7 @@ import csw.messages.events.SystemEvent
 import csw.messages.params.states.CurrentState
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg._
+import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
 
 sealed trait SimpleSimMsg
 object SimpleSimMsg {
@@ -40,7 +41,14 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg], loggerFactory: Logge
         Behavior.same
       }
       case msg: ProcCurrStateDemand => {
-        log.info(s"${msg.currState},${System.currentTimeMillis()}")
+        val cs               = msg.currState
+        val simpleSimRecTime = System.currentTimeMillis()
+        val assemblyRecTime  = cs.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
+        val hcdRecTime       = cs.get(EventConstants.HcdReceivalTime_Key).get.head
+        val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
+        val azPos            = cs.get(EventConstants.AzPosKey).get.head
+        val elPos            = cs.get(EventConstants.ElPosKey).get.head
+        log.info(s"Received currentState :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
         Behavior.same
       }
       case msg: StartPublishingEvent => {
