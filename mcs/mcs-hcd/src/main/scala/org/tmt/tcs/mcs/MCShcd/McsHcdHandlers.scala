@@ -134,7 +134,7 @@ class McsHcdHandlers(
     implicit val scheduler         = ctx.system.scheduler
     lifecycleMsg match {
       case x: LifeCycleMessage.HCDConfig => {
-        log.info(msg = s"Sending initialize message to zeroMQActor, config from configuration service is : ${x.config}")
+        //  log.info(msg = s"Sending initialize message to zeroMQActor, config from configuration service is : ${x.config}")
 
         val zeroMQMsg = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
           ZeroMQMessage.InitializeSimulator(ref, x.config)
@@ -196,7 +196,7 @@ class McsHcdHandlers(
       }
       case Commands.POSITION_DEMANDS => {
         // position demands command is used during one way command tpk position demands
-        log.info(s"** Position Demands Validate loop is executed")
+        //log.info(s"** Position Demands Validate loop is executed")
         CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.STARTUP => {
@@ -541,7 +541,7 @@ class McsHcdHandlers(
   }
 
   override def onOneway(controlCommand: ControlCommand): Unit = {
-    log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
+    // log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
     val hcdRecTime      = System.currentTimeMillis()
     val setup           = Setup(Prefix(Subsystem.MCS.toString), CommandName(Commands.POSITION_DEMANDS), None)
     val azPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get

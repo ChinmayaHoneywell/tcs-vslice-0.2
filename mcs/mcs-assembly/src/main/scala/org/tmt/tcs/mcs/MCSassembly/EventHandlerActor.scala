@@ -145,32 +145,32 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    */
   private def sendEventByOneWayCommand(msg: Event, hcdLocation: Option[CommandService]): Future[_] = {
 
-    log.info(
+    /* log.info(
       s"*** Received positionDemand event: ${msg} to EventHandler OneWay ControlCommand at : ${System.currentTimeMillis()} ***"
-    )
+    )*/
 
     msg match {
       case systemEvent: SystemEvent => {
         val event                          = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
         val controlCommand: ControlCommand = eventTransformer.getOneWayCommandObject(event)
-        log.info(s"Transformed oneWay command object is: $controlCommand")
+        //log.info(s"Transformed oneWay command object is: $controlCommand")
         hcdLocation match {
           case Some(commandService) => {
             val response = Await.result(commandService.oneway(controlCommand), 5.seconds)
-            log.info(
+            /*log.info(
               s"*** Successfully submitted positionDemand Event : ${controlCommand} via oneWayCommand, " +
               s"response is : ${response} at time :${System.currentTimeMillis()} ***"
-            )
+            )*/
             Future.successful(s"Successfully submitted positionDemand Event, response for the same is : ${msg}")
           }
           case None => {
-            log.error("Unable to match hcdLocation to commandService")
+            // log.error("Unable to match hcdLocation to commandService")
             Future.failed(new Exception("Unable to send event to assembly through oneWay command"))
           }
         }
       }
       case _ => {
-        log.error(s"Unable to get systemEvent from incoming event")
+        //log.error(s"Unable to get systemEvent from incoming event")
         Future.failed(new Exception("Unable to send event to assembly through oneWay command"))
       }
     }

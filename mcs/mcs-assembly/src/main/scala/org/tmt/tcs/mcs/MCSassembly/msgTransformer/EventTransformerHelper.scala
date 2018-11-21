@@ -28,7 +28,7 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
    */
   def getAssemblyEvent(assemblyState: AssemblyCurrentState): Event = {
 
-    log.info("Transforming state : ${assemblyState}  to systemEvent")
+    // log.info("Transforming state : ${assemblyState}  to systemEvent")
 
     val lifeCycleKey        = EventHandlerConstants.LifecycleStateKey
     val operationalStateKey = EventHandlerConstants.OperationalStateKey
@@ -145,7 +145,7 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
   for sending to HCD as oneWayCommand
    */
   def getOneWayCommandObject(systemEvent: SystemEvent): ControlCommand = {
-    log.info(s"Input one way command object is: $systemEvent")
+    //log.info(s"Input one way command object is: $systemEvent")
     val sentTimeOption: Option[Parameter[Long]]     = systemEvent.get(EventHandlerConstants.TimeStampKey) //tpk publish time
     val assemblyRecTimeOpt: Option[Parameter[Long]] = systemEvent.get(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY)
     val azParam: Option[Parameter[Double]]          = systemEvent.get(EventHandlerConstants.AzPosKey)
@@ -156,7 +156,7 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
       .add(elParamOption.get)
       .add(assemblyRecTimeOpt.get)
       .add(sentTimeOption.get)
-    log.info(s"Transformed one way command object is : $setup")
+    // log.info(s"Transformed one way command object is : $setup")
     setup
   }
   /*

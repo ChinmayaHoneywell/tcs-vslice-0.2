@@ -4,6 +4,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.messages.events.SystemEvent
+import csw.messages.params.generics.Parameter
 import csw.messages.params.states.CurrentState
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg._
@@ -33,7 +34,20 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg], loggerFactory: Logge
         Behavior.same
       }
       case msg: ProcOneWayDemand => {
-        log.info(s"Received position demands from MCSH : ${msg.command}, at : ${System.currentTimeMillis()}")
+        //log.info(s"Received position demands from MCSH :")
+        val paramSet                         = msg.command.paramSet
+        val azPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
+        val elPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
+        //  val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
+        val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
+
+        //val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
+        val azPos           = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
+        val elPos           = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
+        val sentTime        = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
+        val assemblyRecTime = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
+        val hcdRecTime      = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
+        log.info(s"${azPos.head}, ${elPos.head}, ${sentTime.head}, ${assemblyRecTime.head}, ${hcdRecTime.head}")
         Behavior.same
       }
       case msg: ProcEventDemand => {

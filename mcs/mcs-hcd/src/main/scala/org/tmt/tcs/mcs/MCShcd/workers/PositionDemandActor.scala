@@ -37,7 +37,7 @@ case class PositionDemandActor(ctx: ActorContext[ControlCommand],
     extends MutableBehavior[ControlCommand] {
   private val log = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
-    log.info(s"Sending position demands: ${msg} to ZeroMQActor for publishing")
+    //log.info(s"Sending position demands: ${msg} to ZeroMQActor for publishing")
     msg.commandName.name match {
       case Commands.SET_SIMULATION_MODE => {
         val modeParam: Parameter[_] = msg.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
@@ -54,11 +54,11 @@ case class PositionDemandActor(ctx: ActorContext[ControlCommand],
   private def processPositionDemands(msg: ControlCommand) = {
     simulatorMode match {
       case Commands.REAL_SIMULATOR => {
-        log.info(s"Sending position demands via one way command to RealSimulator")
+        //log.info(s"Sending position demands via one way command to RealSimulator")
         zeroMQProtoActor ! PublishEvent(paramSetTransformer.getMountDemandPositions(msg))
       }
       case Commands.SIMPLE_SIMULATOR => {
-        log.info(s"Sending position demands via one way command to SimpleSimulator")
+        //log.info(s"Sending position demands via one way command to SimpleSimulator")
         simpleSimActor ! ProcOneWayDemand(msg)
       }
     }
