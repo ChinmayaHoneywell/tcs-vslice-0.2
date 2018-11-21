@@ -110,7 +110,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   //TODO: Change this method for publishing assembly,hcd receival times
   override def encodeEvent(systemEvent: SystemEvent): Array[Byte] = {
 
-    val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
+    //   val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
 
     var azParam = 0.0
     if (systemEvent.exists(EventConstants.AzPosKey)) {
@@ -120,20 +120,17 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     if (systemEvent.exists(EventConstants.ElPosKey)) {
       elParam = systemEvent.get(EventConstants.ElPosKey).get.head
     }
-    var timeSent = System.currentTimeMillis()
-    if (systemEvent.exists(EventConstants.TimeStampKey)) {
-      timeSent = systemEvent.get(EventConstants.TimeStampKey).get.head
-    }
 
     // val trackID: Int = trackIDOption.get.head
 
-    val event: GeneratedMessage =
-      TcsPositionDemandEvent
-        .newBuilder()
-        .setAzimuth(azParam)
-        .setElevation(elParam)
-        .setTpkPublishTime(timeSent)
-        .build()
+    val event = TcsPositionDemandEvent
+      .newBuilder()
+      .setAzimuth(azParam)
+      .setElevation(elParam)
+      .setHcdReceivalTime(systemEvent.get(EventConstants.HcdReceivalTime_Key).get.head)
+      .setTpkPublishTime(systemEvent.get(EventConstants.TimeStampKey).get.head)
+      .setAssemblyReceivalTime(systemEvent.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head)
+      .build()
     event.toByteArray
   }
 

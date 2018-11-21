@@ -146,17 +146,16 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
    */
   def getOneWayCommandObject(systemEvent: SystemEvent): ControlCommand = {
     log.info(s"Input one way command object is: $systemEvent")
-    val azParam: Option[Parameter[Double]]       = systemEvent.get(EventHandlerConstants.AzPosKey)
-    val elParamOption: Option[Parameter[Double]] = systemEvent.get(EventHandlerConstants.ElPosKey)
-    val trackIDOption: Option[Parameter[Int]]    = systemEvent.get(EventHandlerConstants.TrackIDKey)
-    val sentTimeOption: Option[Parameter[Long]]  = systemEvent.get(EventHandlerConstants.TimeStampKey)
+    val sentTimeOption: Option[Parameter[Long]]     = systemEvent.get(EventHandlerConstants.TimeStampKey) //tpk publish time
+    val assemblyRecTimeOpt: Option[Parameter[Long]] = systemEvent.get(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY)
+    val azParam: Option[Parameter[Double]]          = systemEvent.get(EventHandlerConstants.AzPosKey)
+    val elParamOption: Option[Parameter[Double]]    = systemEvent.get(EventHandlerConstants.ElPosKey)
 
     val setup = Setup(EventHandlerConstants.mcsHCDPrefix, CommandName(Commands.POSITION_DEMANDS), None)
       .add(azParam.get)
       .add(elParamOption.get)
-      .add(trackIDOption.get)
+      .add(assemblyRecTimeOpt.get)
       .add(sentTimeOption.get)
-
     log.info(s"Transformed one way command object is : $setup")
     setup
   }

@@ -31,41 +31,47 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
     val paramSet = msg.paramSet
     //paramSet: Set[Parameter[_]]
 
-    val azPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
-    val elPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
-    val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
+    val azPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
+    val elPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
+    //  val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
     val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
 
-    val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
-    val azPos    = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
-    val elPos    = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
-    val sentTime = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
+    //val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
+    val azPos           = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
+    val elPos           = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
+    val sentTime        = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
+    val assemblyRecTime = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
+    val hcdRecTime      = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
 
     SystemEvent(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
-      .add(trackID)
+    /*.add(trackID)*/
       .add(azPos)
       .add(elPos)
       .add(sentTime)
+      .add(assemblyRecTime)
+      .add(hcdRecTime)
 
   }
   def getMountDemandPositions(currentState: CurrentState): SystemEvent = {
 
-    val trackIDOption  = currentState.get(EventConstants.TrackIDKey)
+    // val trackIDOption  = currentState.get(EventConstants.TrackIDKey)
     val azPosOption    = currentState.get(EventConstants.AzPosKey)
     val elPosOption    = currentState.get(EventConstants.ElPosKey)
     val sentTimeOption = currentState.get(EventConstants.TimeStampKey)
 
-    val trackID  = trackIDOption.getOrElse(EventConstants.TrackIDKey.set(0))
+    //val trackID  = trackIDOption.getOrElse(EventConstants.TrackIDKey.set(0))
     val azPos    = azPosOption.getOrElse(EventConstants.AzPosKey.set(0.0))
     val elPos    = elPosOption.getOrElse(EventConstants.ElPosKey.set(0.0))
     val sentTime = sentTimeOption.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
 
     val event = SystemEvent(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
-      .add(trackID)
+    /*  .add(trackID)*/
       .add(azPos)
       .add(elPos)
       .add(sentTime)
-
+      .add(currentState.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get)
+      .add(currentState.get(EventConstants.HcdReceivalTime_Key).get)
+    //     .add(currentState.get(EventConstants.)
     event
   }
   /* def getMountDemandPositions(systemEvent: SystemEvent): MCSPositionDemand = {

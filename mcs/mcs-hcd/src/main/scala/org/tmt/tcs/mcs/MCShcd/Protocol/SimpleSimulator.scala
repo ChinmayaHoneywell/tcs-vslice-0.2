@@ -33,7 +33,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg], loggerFactory: Logge
         Behavior.same
       }
       case msg: ProcOneWayDemand => {
-        log.info(s"${msg.command},${System.currentTimeMillis()}")
+        log.info(s"Received position demands from MCSH : ${msg.command}, at : ${System.currentTimeMillis()}")
         Behavior.same
       }
       case msg: ProcEventDemand => {

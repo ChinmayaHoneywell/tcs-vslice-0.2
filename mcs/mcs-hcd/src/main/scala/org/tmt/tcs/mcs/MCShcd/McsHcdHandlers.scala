@@ -4,7 +4,7 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
 import csw.framework.scaladsl.ComponentHandlers
-import csw.messages.commands.{CommandResponse, ControlCommand}
+import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
 import csw.messages.commands.CommandIssue.{
   UnsupportedCommandInStateIssue,
   UnsupportedCommandIssue,
@@ -18,11 +18,12 @@ import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
-import org.tmt.tcs.mcs.MCShcd.constants.Commands
+import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
+import csw.messages.params.models.{Prefix, Subsystem}
 import csw.messages.params.states.CurrentState
 import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
@@ -190,7 +191,13 @@ class McsHcdHandlers(
         validatePointCommand(controlCommand)
       }
       case Commands.POINT_DEMAND => {
+        // point demand is in case of Move command splitting at assembly level.
         validatePointDemandCommand(controlCommand)
+      }
+      case Commands.POSITION_DEMANDS => {
+        // position demands command is used during one way command tpk position demands
+        log.info(s"** Position Demands Validate loop is executed")
+        CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.STARTUP => {
         log.info(msg = s"validating startup command in HCD")
@@ -200,10 +207,7 @@ class McsHcdHandlers(
         log.info(msg = s"validating shutdown command in HCD")
         CommandResponse.Accepted(controlCommand.runId)
       }
-      case Commands.POSITION_DEMANDS => {
-        log.info(s"** Position Demands Validate loop is executed")
-        CommandResponse.Accepted(controlCommand.runId)
-      }
+
       case Commands.SET_SIMULATION_MODE => {
         validateSetSimulationMode(controlCommand)
       }
@@ -222,6 +226,7 @@ class McsHcdHandlers(
     }
     commandHandlerActor ! submitCommand(cmd)
     statePublisherActor ! SimulationModeChange(simulatorMode)
+    positionDemandActor ! cmd
     CommandResponse.Completed(cmd.runId)
   }
   /*
@@ -537,7 +542,16 @@ class McsHcdHandlers(
 
   override def onOneway(controlCommand: ControlCommand): Unit = {
     log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
-    positionDemandActor ! controlCommand
+    val hcdRecTime      = System.currentTimeMillis()
+    val setup           = Setup(Prefix(Subsystem.MCS.toString), CommandName(Commands.POSITION_DEMANDS), None)
+    val azPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
+    val elPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
+    val timeStamp       = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
+    val assemblyRecTime = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
+    val hcdRecParam     = EventConstants.HcdReceivalTime_Key.set(hcdRecTime)
+
+    val cmd = setup.add(azPosParam).add(elPosParam).add(timeStamp).add(assemblyRecTime).add(hcdRecParam)
+    positionDemandActor ! cmd
   }
 
   override def onShutdown(): Future[Unit] = Future {

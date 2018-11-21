@@ -100,7 +100,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    */
   private def subscribeEventMsg(): Behavior[EventMessage] = {
     log.info(msg = s"Started subscribing events Received from tpkAssembly.")
-    eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey, event => sendEventByAssemblyCurrentState(event))
+    eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey,
+                                      event => sendEventByOneWayCommand(event, hcdLocation))
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -150,8 +151,9 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     msg match {
       case systemEvent: SystemEvent => {
-        val controlCommand: ControlCommand = eventTransformer.getOneWayCommandObject(systemEvent)
-        log.info(s"Transformed oneWay command object is $controlCommand")
+        val event                          = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
+        val controlCommand: ControlCommand = eventTransformer.getOneWayCommandObject(event)
+        log.info(s"Transformed oneWay command object is: $controlCommand")
         hcdLocation match {
           case Some(commandService) => {
             val response = Await.result(commandService.oneway(controlCommand), 5.seconds)
@@ -171,9 +173,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
         log.error(s"Unable to get systemEvent from incoming event")
         Future.failed(new Exception("Unable to send event to assembly through oneWay command"))
       }
-
     }
-
   }
   private def publishDummyEventFromAssembly(): Unit = {
 
