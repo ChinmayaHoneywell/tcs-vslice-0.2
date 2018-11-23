@@ -1,0 +1,617 @@
+2018-11-23T06:08:40.704Z INFO   - Saw 1 messages before logger start
+[33m2018-11-23T06:08:40.421Z WARN :akka  - Don't use auto-down feature of Akka Cluster in production. See 'Auto-downing (DO NOT USE)' section of Akka Cluster documentation.[0m
+2018-11-23T06:08:44.452Z INFO  mcs-container-cmd-app (ContainerCmd.scala 82) - Component is successfully created with actor actorRef Actor[akka://csw-cluster/user/system/McsContainer#-164610848]
+2018-11-23T06:08:44.454Z INFO  mcs-container-cmd-app (ContainerCmd.scala 61) - Component is successfully created with actor actorRef Actor[akka://csw-cluster/user/system/McsContainer#-164610848]
+2018-11-23T06:08:44.461Z INFO  location-service-lib (LocationServiceImpl.scala 45) - Registering connection: [McsContainer-container-akka] with location: [akka.tcp://csw-cluster@192.168.122.1:41464/user/system/McsContainer]
+2018-11-23T06:08:44.461Z INFO  McsContainer (ContainerBehavior.scala 164) - Container is creating following components :[McsAssembly, McsHcd]
+2018-11-23T06:08:44.467Z INFO  location-service-lib (ActorSystemFactory.scala 34) - Creating remote actor system with name McsAssembly-system
+2018-11-23T06:08:44.549Z INFO  location-service-lib (LocationServiceImpl.scala 79) - Successfully registered connection: [McsContainer-container-akka] with location [akka.tcp://csw-cluster@192.168.122.1:41464/user/system/McsContainer]
+2018-11-23T06:08:44.550Z INFO  McsContainer (ContainerBehavior.scala 189) - Container Registration successful with connection: [AkkaConnection(ComponentId(McsContainer,Container))]
+2018-11-23T06:08:44.557Z INFO  location-service-lib (ActorSystemFactory.scala 34) - Creating remote actor system with name McsHcd-system
+2018-11-23T06:08:44.608Z INFO  McsAssembly (SupervisorBehavior.scala 313) - Starting InitializeTimer for 40 seconds
+2018-11-23T06:08:44.609Z INFO  McsHcd (SupervisorBehavior.scala 313) - Starting InitializeTimer for 40 seconds
+2018-11-23T06:08:44.615Z INFO  McsContainer (ContainerBehavior.scala 147) - Container created following supervisors :[Actor[akka://McsAssembly-system/user/system/McsAssembly#1889595026],Actor[akka://McsHcd-system/user/system/McsHcd#-94783883]]
+2018-11-23T06:08:44.623Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [EventServer-service-tcp] within 5 seconds
+2018-11-23T06:08:44.624Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [EventServer-service-tcp]
+2018-11-23T06:08:44.627Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [EventServer-service-tcp] within 5 seconds
+2018-11-23T06:08:44.628Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [EventServer-service-tcp]
+2018-11-23T06:08:44.639Z INFO  McsAssembly (ComponentBehavior.scala 115) - Invoking lifecycle handler's initialize hook
+2018-11-23T06:08:44.640Z INFO  McsAssembly (McsAssemblyHandlers.scala 99) - Initializing MCS Assembly
+2018-11-23T06:08:44.642Z INFO  McsAssembly (EventHandlerActor.scala 102) - Started subscribing events Received from tpkAssembly.
+2018-11-23T06:08:44.642Z INFO  McsAssembly (MonitorActor.scala 95) - Successfully changed monitor assembly lifecycle state to Initalized
+2018-11-23T06:08:44.648Z INFO  location-service-lib (LocationServiceImpl.scala 227) - Subscribing to connection: [McsHcd-hcd-akka]
+2018-11-23T06:08:44.799Z INFO  McsHcd (ComponentBehavior.scala 115) - Invoking lifecycle handler's initialize hook
+2018-11-23T06:08:44.802Z INFO  McsHcd (McsHcdHandlers.scala 110) - Initializing MCS HCD
+2018-11-23T06:08:44.802Z INFO  event-service-lib (RedisSubscriber.scala 51) - Subscribing to event keys: Set(tcs.pk.mcsdemandpositions)
+2018-11-23T06:08:44.803Z INFO  McsHcd (LifeCycleActor.scala 75) -  Initializing MCS HCD with the help of Config Server
+2018-11-23T06:08:44.804Z INFO  McsHcd (LifeCycleActor.scala 92) -  Loading config file : org/tmt/tcs/mcs_hcd.conf from config server
+2018-11-23T06:08:44.811Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [ConfigServer-service-http] within 5 seconds
+2018-11-23T06:08:44.811Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [ConfigServer-service-http] within 5 seconds
+2018-11-23T06:08:44.811Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [ConfigServer-service-http]
+2018-11-23T06:08:44.811Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [ConfigServer-service-http]
+2018-11-23T06:08:44.819Z INFO  event-service-lib (RedisSubscriber.scala 113) - Fetching event key: tcs.pk.mcsdemandpositions
+2018-11-23T06:08:44.948Z INFO  McsAssembly (SupervisorBehavior.scala 363) - Received Running message from component within timeout, cancelling InitializeTimer
+2018-11-23T06:08:44.950Z INFO  location-service-lib (LocationServiceImpl.scala 45) - Registering connection: [McsAssembly-assembly-akka] with location: [akka.tcp://McsAssembly-system@192.168.122.1:46130/user/system/McsAssembly]
+2018-11-23T06:08:44.974Z INFO  location-service-lib (LocationServiceImpl.scala 79) - Successfully registered connection: [McsAssembly-assembly-akka] with location [akka.tcp://McsAssembly-system@192.168.122.1:46130/user/system/McsAssembly]
+2018-11-23T06:08:45.018Z INFO  ConfigClient (ConfigClient.scala 205) - Sending HTTP request
+2018-11-23T06:08:45.024Z INFO  ConfigClient (ConfigClient.scala 205) - Sending HTTP request
+[31m2018-11-23T06:08:45.184Z ERROR McsAssembly (McsAssemblyHandlers.scala 125) - Removing HCD Location registered with assembly[0m
+[31m2018-11-23T06:08:45.185Z ERROR McsAssembly (McsAssemblyHandlers.scala 130) - Sending hcdLocation:None to eventHandlerActor[0m
+[31m2018-11-23T06:08:45.185Z ERROR McsAssembly (MonitorActor.scala 251) - Assembly got disconnected from HCD[0m
+2018-11-23T06:08:45.185Z INFO  McsAssembly (EventHandlerActor.scala 102) - Started subscribing events Received from tpkAssembly.
+2018-11-23T06:08:45.186Z INFO  event-service-lib (RedisSubscriber.scala 51) - Subscribing to event keys: Set(tcs.pk.mcsdemandpositions)
+2018-11-23T06:08:45.197Z INFO  event-service-lib (RedisSubscriber.scala 113) - Fetching event key: tcs.pk.mcsdemandpositions
+2018-11-23T06:08:46.111Z INFO  McsHcd (LifeCycleActor.scala 96) -  Successfully loaded config file : org/tmt/tcs/mcs_hcd.conf from config server
+2018-11-23T06:08:46.119Z INFO  McsHcd (LifeCycleActor.scala 78) - zeroMQPushSocket from config file : mcs_hcd.conf is 55579
+2018-11-23T06:08:46.122Z INFO  McsHcd (ZeroMQProtocolActor.scala 178) - config object is :Config(SimpleConfigObject({"tmt":{"tcs":{"mcs":{"zeroMQPub":55581,"zeroMQPull":55578,"zeroMQPush":55579,"zeroMQSub":55580}}}}))
+2018-11-23T06:08:46.130Z INFO  McsHcd (ZeroMQProtocolActor.scala 181) - ZeroMQ push socket is : tcp://localhost:55579 and connection : true
+2018-11-23T06:08:46.137Z INFO  McsHcd (ZeroMQProtocolActor.scala 185) - ZeroMQ pull socket is : tcp://localhost:55578 and connection : true
+2018-11-23T06:08:46.144Z INFO  McsHcd (ZeroMQProtocolActor.scala 191) - ZeroMQ subscribe socket is : tcp://localhost:55580 and connection is : true
+2018-11-23T06:08:46.146Z INFO  McsHcd (ZeroMQProtocolActor.scala 195) - ZeroMQ pub socket is : tcp://localhost:55581 and connection is : true
+2018-11-23T06:08:46.148Z INFO  McsHcd (ZeroMQProtocolActor.scala 67) - CONNECTION ESTABLISHED WITH MCS SIMULATOR
+2018-11-23T06:08:46.150Z INFO  location-service-lib (LocationServiceImpl.scala 227) - Subscribing to connection: [McsAssembly-assembly-akka]
+2018-11-23T06:08:46.150Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [EventServer-service-tcp] within 5 seconds
+2018-11-23T06:08:46.150Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [EventServer-service-tcp]
+2018-11-23T06:08:46.150Z INFO  McsHcd (StatePublisherActor.scala 139) - Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber
+2018-11-23T06:08:46.151Z INFO  event-service-lib (RedisSubscriber.scala 51) - Subscribing to event keys: Set(tcs.pk.mcsdemandpositions)
+2018-11-23T06:08:46.151Z INFO  event-service-lib (RedisSubscriber.scala 113) - Fetching event key: tcs.pk.mcsdemandpositions
+2018-11-23T06:08:46.152Z INFO  McsHcd (SupervisorBehavior.scala 363) - Received Running message from component within timeout, cancelling InitializeTimer
+2018-11-23T06:08:46.152Z INFO  location-service-lib (LocationServiceImpl.scala 45) - Registering connection: [McsHcd-hcd-akka] with location: [akka.tcp://McsHcd-system@192.168.122.1:36319/user/system/McsHcd]
+2018-11-23T06:08:46.155Z INFO  McsHcd (StatePublisherActor.scala 146) - Changed lifecycle state of MCS HCD is : Initialized and publishing the same to the MCS Assembly
+2018-11-23T06:08:46.157Z INFO  McsHcd (StatePublisherActor.scala 149) - Successfully published state :CurrentState([BAD, MCS](HCDLifecycleState((Initialized)NoUnits), timeStamp((1542953326155)NoUnits))) to ASSEMBLY
+2018-11-23T06:08:46.166Z INFO  McsHcd (ZeroMQProtocolActor.scala 107) - Started subscribing to events from Simulator.
+2018-11-23T06:08:46.204Z INFO  location-service-lib (LocationServiceImpl.scala 79) - Successfully registered connection: [McsHcd-hcd-akka] with location [akka.tcp://McsHcd-system@192.168.122.1:36319/user/system/McsHcd]
+[31m2018-11-23T06:08:46.673Z ERROR McsAssembly (McsAssemblyHandlers.scala 130) - Sending hcdLocation:Some(csw.services.command.scaladsl.CommandService@3dcda172) to eventHandlerActor[0m
+2018-11-23T06:08:46.673Z INFO  McsAssembly (EventHandlerActor.scala 102) - Started subscribing events Received from tpkAssembly.
+2018-11-23T06:08:46.673Z INFO  event-service-lib (RedisSubscriber.scala 51) - Subscribing to event keys: Set(tcs.pk.mcsdemandpositions)
+2018-11-23T06:08:46.673Z INFO  event-service-lib (RedisSubscriber.scala 113) - Fetching event key: tcs.pk.mcsdemandpositions
+[33m2018-11-23T06:09:02.956Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2166] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:02.968Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2174 millis[0m
+[33m2018-11-23T06:09:02.968Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2174 millis[0m
+[33m2018-11-23T06:09:02.968Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2177 millis[0m
+[33m2018-11-23T06:09:02.972Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2178 millis[0m
+[33m2018-11-23T06:09:07.803Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2011 millis[0m
+[33m2018-11-23T06:09:07.806Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2014 millis[0m
+[33m2018-11-23T06:09:07.806Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2015 millis[0m
+[33m2018-11-23T06:09:07.810Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2019 millis[0m
+[33m2018-11-23T06:09:13.058Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2268] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:13.065Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2274 millis[0m
+[33m2018-11-23T06:09:13.065Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2274 millis[0m
+[33m2018-11-23T06:09:13.066Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2275 millis[0m
+[33m2018-11-23T06:09:13.067Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2274 millis[0m
+[33m2018-11-23T06:09:20.317Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3511] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:20.343Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3545 millis[0m
+[33m2018-11-23T06:09:20.343Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3546 millis[0m
+[33m2018-11-23T06:09:20.344Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3547 millis[0m
+[33m2018-11-23T06:09:20.359Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3562 millis[0m
+[33m2018-11-23T06:09:25.495Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3690] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:25.508Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3697 millis[0m
+[33m2018-11-23T06:09:25.508Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3698 millis[0m
+[33m2018-11-23T06:09:25.509Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3701 millis[0m
+[33m2018-11-23T06:09:25.509Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3699 millis[0m
+[33m2018-11-23T06:09:25.516Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3708 millis[0m
+[33m2018-11-23T06:09:30.132Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [4342] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:30.169Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 4376 millis[0m
+[33m2018-11-23T06:09:30.169Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 4377 millis[0m
+[33m2018-11-23T06:09:30.171Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 4379 millis[0m
+[33m2018-11-23T06:09:30.173Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 4382 millis[0m
+[33m2018-11-23T06:09:30.179Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 4388 millis[0m
+[33m2018-11-23T06:09:32.572Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2411] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:32.576Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2378 millis[0m
+[33m2018-11-23T06:09:32.589Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2383 millis[0m
+[33m2018-11-23T06:09:32.594Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2396 millis[0m
+[33m2018-11-23T06:09:32.596Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2389 millis[0m
+[33m2018-11-23T06:09:32.602Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2405 millis[0m
+[33m2018-11-23T06:09:36.471Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3681] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:36.478Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3685 millis[0m
+[33m2018-11-23T06:09:36.478Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3687 millis[0m
+[33m2018-11-23T06:09:36.479Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3688 millis[0m
+[33m2018-11-23T06:09:36.491Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3700 millis[0m
+[33m2018-11-23T06:09:36.509Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3716 millis[0m
+[33m2018-11-23T06:09:39.417Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2927] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:39.426Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2910 millis[0m
+[33m2018-11-23T06:09:39.426Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2919 millis[0m
+[33m2018-11-23T06:09:39.426Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2919 millis[0m
+[33m2018-11-23T06:09:39.426Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2918 millis[0m
+[33m2018-11-23T06:09:39.430Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2922 millis[0m
+[33m2018-11-23T06:09:42.294Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2856] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:42.298Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2854 millis[0m
+[33m2018-11-23T06:09:42.298Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2860 millis[0m
+[33m2018-11-23T06:09:42.305Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2860 millis[0m
+[33m2018-11-23T06:09:42.316Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2872 millis[0m
+[33m2018-11-23T06:09:42.318Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2878 millis[0m
+[33m2018-11-23T06:09:45.329Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3019] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:45.340Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3026 millis[0m
+[33m2018-11-23T06:09:45.340Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3023 millis[0m
+[33m2018-11-23T06:09:45.340Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3024 millis[0m
+[33m2018-11-23T06:09:45.341Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3024 millis[0m
+[33m2018-11-23T06:09:45.342Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3029 millis[0m
+[33m2018-11-23T06:09:47.692Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2351] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:47.702Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2344 millis[0m
+[33m2018-11-23T06:09:47.702Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2344 millis[0m
+[33m2018-11-23T06:09:47.706Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2351 millis[0m
+[33m2018-11-23T06:09:47.706Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2348 millis[0m
+[33m2018-11-23T06:09:47.721Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2366 millis[0m
+[33m2018-11-23T06:09:50.680Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2889] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:50.714Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2923 millis[0m
+[33m2018-11-23T06:09:50.715Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2922 millis[0m
+[33m2018-11-23T06:09:50.716Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2925 millis[0m
+[33m2018-11-23T06:09:50.725Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2933 millis[0m
+[33m2018-11-23T06:09:50.747Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2954 millis[0m
+[33m2018-11-23T06:09:53.154Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2363] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:53.161Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2369 millis[0m
+[33m2018-11-23T06:09:53.162Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2369 millis[0m
+[33m2018-11-23T06:09:53.165Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2372 millis[0m
+[33m2018-11-23T06:09:53.168Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2376 millis[0m
+[33m2018-11-23T06:09:53.169Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2377 millis[0m
+[33m2018-11-23T06:09:55.592Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2432] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:55.595Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2416 millis[0m
+[33m2018-11-23T06:09:55.596Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2416 millis[0m
+[33m2018-11-23T06:09:55.598Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2422 millis[0m
+[33m2018-11-23T06:09:55.598Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2423 millis[0m
+[33m2018-11-23T06:09:55.598Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2423 millis[0m
+[33m2018-11-23T06:09:58.525Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2734] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:09:58.533Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2741 millis[0m
+[33m2018-11-23T06:09:58.536Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2744 millis[0m
+[33m2018-11-23T06:09:58.537Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2745 millis[0m
+[33m2018-11-23T06:09:58.539Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2747 millis[0m
+[33m2018-11-23T06:09:58.545Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2754 millis[0m
+[33m2018-11-23T06:10:01.228Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2438] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:01.238Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2446 millis[0m
+[33m2018-11-23T06:10:01.241Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2448 millis[0m
+[33m2018-11-23T06:10:01.241Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2448 millis[0m
+[33m2018-11-23T06:10:01.241Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2449 millis[0m
+[33m2018-11-23T06:10:01.245Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2453 millis[0m
+[33m2018-11-23T06:10:04.194Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2963] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:04.200Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2953 millis[0m
+[33m2018-11-23T06:10:04.204Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2951 millis[0m
+[33m2018-11-23T06:10:04.206Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2954 millis[0m
+[33m2018-11-23T06:10:04.206Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2954 millis[0m
+[33m2018-11-23T06:10:04.212Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2964 millis[0m
+[33m2018-11-23T06:10:06.664Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2462] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:06.665Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2451 millis[0m
+[33m2018-11-23T06:10:06.666Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2455 millis[0m
+[33m2018-11-23T06:10:06.669Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2457 millis[0m
+[33m2018-11-23T06:10:06.669Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2456 millis[0m
+[33m2018-11-23T06:10:06.669Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2454 millis[0m
+[33m2018-11-23T06:10:09.282Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2502] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:09.286Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2506 millis[0m
+[33m2018-11-23T06:10:09.286Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2503 millis[0m
+[33m2018-11-23T06:10:09.286Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2503 millis[0m
+[33m2018-11-23T06:10:09.286Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2505 millis[0m
+[33m2018-11-23T06:10:09.292Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2511 millis[0m
+[33m2018-11-23T06:10:11.674Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2375] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:11.681Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2376 millis[0m
+[33m2018-11-23T06:10:11.681Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2381 millis[0m
+[33m2018-11-23T06:10:11.681Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2376 millis[0m
+[33m2018-11-23T06:10:11.681Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2381 millis[0m
+[33m2018-11-23T06:10:11.686Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2385 millis[0m
+[33m2018-11-23T06:10:14.219Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2428] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:14.226Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2435 millis[0m
+[33m2018-11-23T06:10:14.228Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2436 millis[0m
+[33m2018-11-23T06:10:14.228Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2436 millis[0m
+[33m2018-11-23T06:10:14.228Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2436 millis[0m
+[33m2018-11-23T06:10:14.248Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2457 millis[0m
+[33m2018-11-23T06:10:16.624Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2402] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:16.626Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2399 millis[0m
+[33m2018-11-23T06:10:16.626Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2375 millis[0m
+[33m2018-11-23T06:10:16.628Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2399 millis[0m
+[33m2018-11-23T06:10:16.629Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2402 millis[0m
+[33m2018-11-23T06:10:16.629Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2401 millis[0m
+[33m2018-11-23T06:10:18.955Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2324] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:18.958Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2313 millis[0m
+[33m2018-11-23T06:10:18.958Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2323 millis[0m
+[33m2018-11-23T06:10:18.958Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2325 millis[0m
+[33m2018-11-23T06:10:18.961Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2328 millis[0m
+[33m2018-11-23T06:10:18.961Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2328 millis[0m
+[33m2018-11-23T06:10:21.513Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2542] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:21.525Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2547 millis[0m
+[33m2018-11-23T06:10:21.525Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2541 millis[0m
+[33m2018-11-23T06:10:21.527Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2548 millis[0m
+[33m2018-11-23T06:10:21.527Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2549 millis[0m
+[33m2018-11-23T06:10:21.539Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2560 millis[0m
+[33m2018-11-23T06:10:24.069Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2547] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:24.083Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2552 millis[0m
+[33m2018-11-23T06:10:24.083Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2553 millis[0m
+[33m2018-11-23T06:10:24.087Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2556 millis[0m
+[33m2018-11-23T06:10:24.087Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2560 millis[0m
+[33m2018-11-23T06:10:24.087Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2546 millis[0m
+[33m2018-11-23T06:10:26.489Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2416] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:26.493Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2403 millis[0m
+[33m2018-11-23T06:10:26.494Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2404 millis[0m
+[33m2018-11-23T06:10:26.494Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2404 millis[0m
+[33m2018-11-23T06:10:26.494Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2404 millis[0m
+[33m2018-11-23T06:10:26.494Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2406 millis[0m
+[33m2018-11-23T06:10:29.098Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2598] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:29.101Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2599 millis[0m
+[33m2018-11-23T06:10:29.101Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2600 millis[0m
+[33m2018-11-23T06:10:29.103Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2602 millis[0m
+[33m2018-11-23T06:10:29.104Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2602 millis[0m
+[33m2018-11-23T06:10:29.122Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2620 millis[0m
+[33m2018-11-23T06:10:31.837Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2737] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:31.840Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2736 millis[0m
+[33m2018-11-23T06:10:31.840Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2735 millis[0m
+[33m2018-11-23T06:10:31.840Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2737 millis[0m
+[33m2018-11-23T06:10:31.842Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2720 millis[0m
+[33m2018-11-23T06:10:31.863Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2762 millis[0m
+[33m2018-11-23T06:10:35.103Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3251] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:35.114Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3260 millis[0m
+[33m2018-11-23T06:10:35.115Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3252 millis[0m
+[33m2018-11-23T06:10:35.116Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3261 millis[0m
+[33m2018-11-23T06:10:35.117Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3263 millis[0m
+[33m2018-11-23T06:10:35.119Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3264 millis[0m
+[33m2018-11-23T06:10:37.886Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2764] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:37.888Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2757 millis[0m
+[33m2018-11-23T06:10:37.889Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2751 millis[0m
+[33m2018-11-23T06:10:37.889Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2752 millis[0m
+[33m2018-11-23T06:10:37.891Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2758 millis[0m
+[33m2018-11-23T06:10:37.895Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2758 millis[0m
+[33m2018-11-23T06:10:41.056Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3155] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:41.068Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3158 millis[0m
+[33m2018-11-23T06:10:41.068Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3163 millis[0m
+[33m2018-11-23T06:10:41.068Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3161 millis[0m
+[33m2018-11-23T06:10:41.068Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3164 millis[0m
+[33m2018-11-23T06:10:41.087Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3183 millis[0m
+[33m2018-11-23T06:10:44.634Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3563] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:44.634Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3546 millis[0m
+[33m2018-11-23T06:10:44.637Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3560 millis[0m
+[33m2018-11-23T06:10:44.637Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3560 millis[0m
+[33m2018-11-23T06:10:44.646Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3569 millis[0m
+[33m2018-11-23T06:10:44.646Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3569 millis[0m
+[33m2018-11-23T06:10:47.509Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2859] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:47.519Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 2858 millis[0m
+[33m2018-11-23T06:10:47.519Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2850 millis[0m
+[33m2018-11-23T06:10:47.522Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 2852 millis[0m
+[33m2018-11-23T06:10:47.522Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2853 millis[0m
+[33m2018-11-23T06:10:47.522Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2857 millis[0m
+[33m2018-11-23T06:10:51.380Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3860] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:51.388Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3862 millis[0m
+[33m2018-11-23T06:10:51.388Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3864 millis[0m
+[33m2018-11-23T06:10:51.392Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3868 millis[0m
+[33m2018-11-23T06:10:51.392Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3868 millis[0m
+[33m2018-11-23T06:10:51.392Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3866 millis[0m
+[33m2018-11-23T06:10:54.625Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3222] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:54.632Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3228 millis[0m
+[33m2018-11-23T06:10:54.632Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3224 millis[0m
+[33m2018-11-23T06:10:54.632Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3228 millis[0m
+[33m2018-11-23T06:10:54.634Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3230 millis[0m
+[33m2018-11-23T06:10:54.634Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3230 millis[0m
+[33m2018-11-23T06:10:58.192Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3552] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:10:58.196Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3552 millis[0m
+[33m2018-11-23T06:10:58.198Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3555 millis[0m
+[33m2018-11-23T06:10:58.199Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3558 millis[0m
+[33m2018-11-23T06:10:58.199Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3558 millis[0m
+[33m2018-11-23T06:11:02.159Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3949] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:02.165Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3963 millis[0m
+[33m2018-11-23T06:11:02.165Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3958 millis[0m
+[33m2018-11-23T06:11:02.165Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 7524 millis[0m
+[33m2018-11-23T06:11:02.170Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3962 millis[0m
+[33m2018-11-23T06:11:02.171Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3969 millis[0m
+[33m2018-11-23T06:11:05.064Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2904] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:05.074Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2909 millis[0m
+[33m2018-11-23T06:11:05.074Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2909 millis[0m
+[33m2018-11-23T06:11:05.075Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2910 millis[0m
+[33m2018-11-23T06:11:08.195Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3120] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:08.195Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3121 millis[0m
+[33m2018-11-23T06:11:08.195Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3120 millis[0m
+[33m2018-11-23T06:11:08.195Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3121 millis[0m
+[33m2018-11-23T06:11:08.198Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 6028 millis[0m
+[33m2018-11-23T06:11:08.199Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 6028 millis[0m
+[33m2018-11-23T06:11:11.777Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3582 millis[0m
+[33m2018-11-23T06:11:11.777Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3582 millis[0m
+[33m2018-11-23T06:11:11.777Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3570 millis[0m
+[33m2018-11-23T06:11:11.777Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3572 millis[0m
+[33m2018-11-23T06:11:11.777Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3572 millis[0m
+[33m2018-11-23T06:11:11.790Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3590] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:15.297Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3496] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:15.303Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3499 millis[0m
+[33m2018-11-23T06:11:15.303Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3499 millis[0m
+[33m2018-11-23T06:11:15.303Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3520 millis[0m
+[33m2018-11-23T06:11:18.821Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3518] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:18.828Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 7045 millis[0m
+[33m2018-11-23T06:11:18.829Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3527 millis[0m
+[33m2018-11-23T06:11:18.831Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 7027 millis[0m
+[33m2018-11-23T06:11:18.846Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3540 millis[0m
+[33m2018-11-23T06:11:18.846Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3540 millis[0m
+[33m2018-11-23T06:11:21.951Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 3120 millis[0m
+[33m2018-11-23T06:11:21.952Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3123 millis[0m
+[33m2018-11-23T06:11:21.954Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 3123 millis[0m
+[33m2018-11-23T06:11:21.955Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 3108 millis[0m
+[33m2018-11-23T06:11:21.958Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3112 millis[0m
+[33m2018-11-23T06:11:25.528Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [6687] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:27.659Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2129] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:27.667Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 5714 millis[0m
+[33m2018-11-23T06:11:27.671Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 5711 millis[0m
+[33m2018-11-23T06:11:31.039Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://PkAssembly-system@192.168.122.1:43690: 9074 millis[0m
+[33m2018-11-23T06:11:31.039Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 9085 millis[0m
+[33m2018-11-23T06:11:31.039Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:5552: 3368 millis[0m
+[33m2018-11-23T06:11:31.039Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 3373 millis[0m
+[33m2018-11-23T06:11:31.039Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 9079 millis[0m
+[33m2018-11-23T06:11:31.040Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3368] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:31.042Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 9076 millis[0m
+[33m2018-11-23T06:11:33.131Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2088] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:33.135Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 2096 millis[0m
+[33m2018-11-23T06:11:33.135Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 2096 millis[0m
+[33m2018-11-23T06:11:33.136Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:44777: 2091 millis[0m
+[33m2018-11-23T06:11:36.779Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3647] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:38.875Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [2095] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:38.880Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 5744 millis[0m
+[33m2018-11-23T06:11:42.794Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3918] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:42.794Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 11748 millis[0m
+[33m2018-11-23T06:11:42.795Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:5552, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:11:46.423Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:33817, status = Up), Member(address = akka.tcp://csw-cluster@192.168.122.1:44777, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:11:46.424Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://PkAssembly-system@192.168.122.1:43690: 15378 millis[0m
+[33m2018-11-23T06:11:50.017Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 9672 millis[0m
+[33m2018-11-23T06:11:50.017Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 7209 millis[0m
+[33m2018-11-23T06:11:50.017Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [7212] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:50.017Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 7223 millis[0m
+[33m2018-11-23T06:11:50.017Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 11138 millis[0m
+[33m2018-11-23T06:11:57.399Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [7378] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:11:57.400Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:5552, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:11:57.406Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:43631: 7388 millis[0m
+[33m2018-11-23T06:11:57.406Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:45629: 7388 millis[0m
+[33m2018-11-23T06:11:57.412Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://csw-cluster@192.168.122.1:33817: 7394 millis[0m
+[33m2018-11-23T06:11:57.412Z WARN :akka  - heartbeat interval is growing too large for address akka.tcp://PkAssembly-system@192.168.122.1:43690: 10989 millis[0m
+[33m2018-11-23T06:12:00.645Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3245] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:12:08.298Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [7652] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:12:08.298Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:44777, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:12:10.517Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:5552, status = Up), Member(address = akka.tcp://csw-cluster@192.168.122.1:45629, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:12:25.192Z WARN :akka  - Detected unreachable: [akka.tcp://PkAssembly-system@192.168.122.1:43690][0m
+[33m2018-11-23T06:12:28.707Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:33817, status = Up), Member(address = akka.tcp://csw-cluster@192.168.122.1:43631, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:13:06.205Z WARN :akka  - Remote connection to [/192.168.122.1:56982] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:06.205Z WARN :akka  - Remote connection to [/192.168.122.1:57888] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:06.207Z WARN :akka  - Remote connection to [/192.168.122.1:57888] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:06.212Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:10.238Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [61940] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:13:10.239Z WARN :akka  - Remote connection to [/192.168.122.1:42378] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.830Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [3589] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:13.832Z WARN :akka  - Remote connection to [/192.168.122.1:42390] failed with java.io.IOException: Broken pipe[0m
+[33m2018-11-23T06:13:18.537Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [4706] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[31m2018-11-23T06:13:18.540Z ERROR event-service-lib (EventPublisherUtil.scala 46) - Publishing failed for [SystemEvent(eventId=Id(ed74183f-d3f8-4b39-9f2d-addec3570fbb), source=Prefix(tcs.pk), eventName=mcsdemandpositions, eventTime=2018-11-23T06:09:08.632Z, paramSet=Set(mcs.az((44.127987692323074)NoUnits), mcs.el((-54.48032731862967)NoUnits), timeStamp((1542874618172)NoUnits), assemblyReceivalTime((1542953348632)NoUnits)))] [Stacktrace] csw.services.event.api.exceptions.PublishFailure: Publishing failed for [SystemEvent(eventId=Id(ed74183f-d3f8-4b39-9f2d-addec3570fbb), source=Prefix(tcs.pk), eventName=mcsdemandpositions, eventTime=2018-11-23T06:09:08.632Z, paramSet=Set(mcs.az((44.127987692323074)NoUnits), mcs.el((-54.48032731862967)NoUnits), timeStamp((1542874618172)NoUnits), assemblyReceivalTime((1542953348632)NoUnits)))]
+	at csw.services.event.internal.redis.RedisPublisher$$anonfun$publish$3.applyOrElse(RedisPublisher.scala:50)
+	at csw.services.event.internal.redis.RedisPublisher$$anonfun$publish$3.applyOrElse(RedisPublisher.scala:48)
+	at scala.runtime.AbstractPartialFunction.apply(AbstractPartialFunction.scala:34)
+	at scala.util.Failure.recover(Try.scala:230)
+	at scala.concurrent.Future.$anonfun$recover$1(Future.scala:391)
+	at scala.concurrent.impl.Promise.liftedTree1$1(Promise.scala:29)
+	at scala.concurrent.impl.Promise.$anonfun$transform$1(Promise.scala:29)
+	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:60)
+	at akka.dispatch.BatchingExecutor$AbstractBatch.processBatch(BatchingExecutor.scala:55)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.$anonfun$run$1(BatchingExecutor.scala:91)
+	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.java:12)
+	at scala.concurrent.BlockContext$.withBlockContext(BlockContext.scala:81)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.run(BatchingExecutor.scala:91)
+	at akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:40)
+	at akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinTask.exec(ForkJoinExecutorConfigurator.scala:44)
+	at akka.dispatch.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)
+	at akka.dispatch.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)
+	at akka.dispatch.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)
+	at akka.dispatch.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)
+Caused by: io.netty.handler.codec.EncoderException: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at io.netty.handler.codec.MessageToByteEncoder.write(MessageToByteEncoder.java:125)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeWrite0(AbstractChannelHandlerContext.java:738)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeWrite(AbstractChannelHandlerContext.java:730)
+	at io.netty.channel.AbstractChannelHandlerContext.write(AbstractChannelHandlerContext.java:816)
+	at io.netty.channel.AbstractChannelHandlerContext.write(AbstractChannelHandlerContext.java:723)
+	at io.lettuce.core.protocol.CommandHandler.writeSingleCommand(CommandHandler.java:366)
+	at io.lettuce.core.protocol.CommandHandler.write(CommandHandler.java:334)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeWrite0(AbstractChannelHandlerContext.java:738)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeWrite(AbstractChannelHandlerContext.java:730)
+	at io.netty.channel.AbstractChannelHandlerContext.access$1900(AbstractChannelHandlerContext.java:38)
+	at io.netty.channel.AbstractChannelHandlerContext$AbstractWriteTask.write(AbstractChannelHandlerContext.java:1081)
+	at io.netty.channel.AbstractChannelHandlerContext$WriteAndFlushTask.write(AbstractChannelHandlerContext.java:1128)
+	at io.netty.channel.AbstractChannelHandlerContext$AbstractWriteTask.run(AbstractChannelHandlerContext.java:1070)
+	at io.netty.util.concurrent.AbstractEventExecutor.safeExecute(AbstractEventExecutor.java:163)
+	at io.netty.util.concurrent.SingleThreadEventExecutor.runAllTasks(SingleThreadEventExecutor.java:404)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:463)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$5.run(SingleThreadEventExecutor.java:884)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at java.nio.ByteBuffer.allocate(ByteBuffer.java:335)
+	at io.lettuce.core.codec.StringCodec.encodeAndAllocateBuffer(StringCodec.java:169)
+	at io.lettuce.core.codec.StringCodec.encodeKey(StringCodec.java:149)
+	at romaine.codec.RomaineByteCodec$$anon$1.toBytes(RomaineByteCodec.scala:16)
+	at romaine.codec.RomaineRedisCodec.encodeKey(RomaineRedisCodec.scala:10)
+	at io.lettuce.core.protocol.CommandArgs$KeyArgument.encode(CommandArgs.java:662)
+	at io.lettuce.core.protocol.CommandArgs.encode(CommandArgs.java:344)
+	at io.lettuce.core.protocol.Command.encode(Command.java:119)
+	at io.lettuce.core.protocol.AsyncCommand.encode(AsyncCommand.java:183)
+	at io.lettuce.core.protocol.CommandEncoder.encode(CommandEncoder.java:90)
+	at io.lettuce.core.protocol.CommandEncoder.encode(CommandEncoder.java:75)
+	at io.netty.handler.codec.MessageToByteEncoder.write(MessageToByteEncoder.java:107)
+	... 18 more
+[0m
+[33m2018-11-23T06:13:23.297Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [4756] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:13:23.297Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:41893, status = Up), Member(address = akka.tcp://csw-cluster@192.168.122.1:44777, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:13:18.541Z WARN :slf4j  (Slf4JLogger.java 141) - null Unexpected exception during request: java.lang.OutOfMemoryError: GC overhead limit exceeded [Stacktrace] java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at scala.collection.immutable.VectorBuilder.<init>(Vector.scala:640)
+	at scala.collection.immutable.Vector$.newBuilder(Vector.scala:21)
+	at csw_protobuf.parameter_types.LongItems.mergeFrom(ParameterTypesProto.scala:1024)
+	at csw_protobuf.parameter_types.LongItems.mergeFrom(ParameterTypesProto.scala:992)
+	at scalapb.LiteParser$.readMessage(LiteParser.scala:15)
+	at csw_protobuf.parameter.PbParameter.mergeFrom(ParameterProto.scala:254)
+	at csw_protobuf.parameter.PbParameter.mergeFrom(ParameterProto.scala:12)
+	at scalapb.LiteParser$.readMessage(LiteParser.scala:15)
+	at csw_protobuf.events.PbEvent.mergeFrom(PbEvent.scala:95)
+	at csw_protobuf.events.PbEvent.mergeFrom(PbEvent.scala:10)
+	at scalapb.LiteParser$.parseFrom(LiteParser.scala:9)
+	at scalapb.GeneratedMessageCompanion.parseFrom(GeneratedMessageCompanion.scala:188)
+	at scalapb.GeneratedMessageCompanion.parseFrom$(GeneratedMessageCompanion.scala:188)
+	at csw_protobuf.events.PbEvent$.parseFrom(PbEvent.scala:158)
+	at scalapb.GeneratedMessageCompanion.parseFrom(GeneratedMessageCompanion.scala:204)
+	at scalapb.GeneratedMessageCompanion.parseFrom$(GeneratedMessageCompanion.scala:204)
+	at csw_protobuf.events.PbEvent$.parseFrom(PbEvent.scala:158)
+	at csw.services.event.internal.redis.EventRomaineCodecs$EventRomaineCodec$.fromBytes(EventRomaineCodecs.scala:29)
+	at csw.services.event.internal.redis.EventRomaineCodecs$EventRomaineCodec$.fromBytes(EventRomaineCodecs.scala:20)
+	at romaine.codec.RomaineRedisCodec.decodeValue(RomaineRedisCodec.scala:8)
+	at io.lettuce.core.pubsub.PubSubOutput.handleOutput(PubSubOutput.java:91)
+	at io.lettuce.core.pubsub.PubSubOutput.set(PubSubOutput.java:75)
+	at io.lettuce.core.protocol.RedisStateMachine.safeSet(RedisStateMachine.java:373)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:177)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:77)
+	at io.lettuce.core.protocol.CommandHandler.decode(CommandHandler.java:656)
+	at io.lettuce.core.pubsub.PubSubCommandHandler.decode(PubSubCommandHandler.java:100)
+	at io.lettuce.core.protocol.CommandHandler.channelRead(CommandHandler.java:508)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+[0m
+[33m2018-11-23T06:13:32.211Z WARN :slf4j  (Slf4JLogger.java 141) - null Unexpected exception during request: io.lettuce.core.RedisException: Invalid first byte: 10 [Stacktrace] io.lettuce.core.RedisException: Invalid first byte: 10
+	at io.lettuce.core.protocol.RedisStateMachine.readReplyType(RedisStateMachine.java:233)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:113)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:77)
+	at io.lettuce.core.protocol.CommandHandler.decode(CommandHandler.java:656)
+	at io.lettuce.core.pubsub.PubSubCommandHandler.decode(PubSubCommandHandler.java:100)
+	at io.lettuce.core.protocol.CommandHandler.channelRead(CommandHandler.java:508)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1434)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:965)
+	at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:163)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:645)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:580)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:497)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:459)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$5.run(SingleThreadEventExecutor.java:884)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.lang.Thread.run(Thread.java:748)
+[0m
+[33m2018-11-23T06:13:32.211Z WARN :slf4j  (Slf4JLogger.java 141) - null Unexpected exception during request: io.lettuce.core.RedisException: Invalid first byte: 6 [Stacktrace] io.lettuce.core.RedisException: Invalid first byte: 6
+	at io.lettuce.core.protocol.RedisStateMachine.readReplyType(RedisStateMachine.java:233)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:113)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:77)
+	at io.lettuce.core.protocol.CommandHandler.decode(CommandHandler.java:656)
+	at io.lettuce.core.pubsub.PubSubCommandHandler.decode(PubSubCommandHandler.java:100)
+	at io.lettuce.core.protocol.CommandHandler.channelRead(CommandHandler.java:508)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1434)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:965)
+	at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:163)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:645)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:580)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:497)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:459)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$5.run(SingleThreadEventExecutor.java:884)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.lang.Thread.run(Thread.java:748)
+[0m
+[31m2018-11-23T06:13:36.373Z ERROR event-service-lib (EventPublisherUtil.scala 46) - Publishing failed for [SystemEvent(eventId=Id(20afff0c-92b7-407e-8178-447375bdb878), source=Prefix(tcs.pk), eventName=mcsdemandpositions, eventTime=2018-11-23T06:09:08.636Z, paramSet=Set(mcs.az((44.127987692323074)NoUnits), mcs.el((-54.48032731862967)NoUnits), timeStamp((1542874618172)NoUnits), assemblyReceivalTime((1542953348636)NoUnits)))] [Stacktrace] csw.services.event.api.exceptions.PublishFailure: Publishing failed for [SystemEvent(eventId=Id(20afff0c-92b7-407e-8178-447375bdb878), source=Prefix(tcs.pk), eventName=mcsdemandpositions, eventTime=2018-11-23T06:09:08.636Z, paramSet=Set(mcs.az((44.127987692323074)NoUnits), mcs.el((-54.48032731862967)NoUnits), timeStamp((1542874618172)NoUnits), assemblyReceivalTime((1542953348636)NoUnits)))]
+	at csw.services.event.internal.redis.RedisPublisher$$anonfun$publish$3.applyOrElse(RedisPublisher.scala:50)
+	at csw.services.event.internal.redis.RedisPublisher$$anonfun$publish$3.applyOrElse(RedisPublisher.scala:48)
+	at scala.runtime.AbstractPartialFunction.apply(AbstractPartialFunction.scala:34)
+	at scala.util.Failure.recover(Try.scala:230)
+	at scala.concurrent.Future.$anonfun$recover$1(Future.scala:391)
+	at scala.concurrent.impl.Promise.liftedTree1$1(Promise.scala:29)
+	at scala.concurrent.impl.Promise.$anonfun$transform$1(Promise.scala:29)
+	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:60)
+	at akka.dispatch.BatchingExecutor$AbstractBatch.processBatch(BatchingExecutor.scala:55)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.$anonfun$run$1(BatchingExecutor.scala:91)
+	at scala.runtime.java8.JFunction0$mcV$sp.apply(JFunction0$mcV$sp.java:12)
+	at scala.concurrent.BlockContext$.withBlockContext(BlockContext.scala:81)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.run(BatchingExecutor.scala:91)
+	at akka.dispatch.TaskInvocation.run(AbstractDispatcher.scala:40)
+	at akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinTask.exec(ForkJoinExecutorConfigurator.scala:44)
+	at akka.dispatch.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)
+	at akka.dispatch.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)
+	at akka.dispatch.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)
+	at akka.dispatch.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)
+Caused by: java.util.concurrent.ExecutionException: Boxed Error
+	at scala.concurrent.impl.Promise$.resolver(Promise.scala:83)
+	at scala.concurrent.impl.Promise$.scala$concurrent$impl$Promise$$resolveTry(Promise.scala:75)
+	at scala.concurrent.impl.Promise$DefaultPromise.tryComplete(Promise.scala:280)
+	at scala.concurrent.Promise.complete(Promise.scala:49)
+	at scala.concurrent.Promise.complete$(Promise.scala:48)
+	at scala.concurrent.impl.Promise$DefaultPromise.complete(Promise.scala:183)
+	at csw.services.event.internal.redis.RedisPublisher$stateMachine$macro$22$1.apply(RedisPublisher.scala:44)
+	at csw.services.event.internal.redis.RedisPublisher$stateMachine$macro$22$1.apply(RedisPublisher.scala:44)
+	... 12 more
+Caused by: java.lang.OutOfMemoryError: GC overhead limit exceeded
+	at java.util.Arrays.copyOf(Arrays.java:3332)
+	at java.lang.AbstractStringBuilder.ensureCapacityInternal(AbstractStringBuilder.java:124)
+	at java.lang.AbstractStringBuilder.append(AbstractStringBuilder.java:448)
+	at java.lang.StringBuilder.append(StringBuilder.java:136)
+	at java.lang.StringBuilder.append(StringBuilder.java:131)
+	at csw.messages.events.EventKey.<init>(EventKey.scala:13)
+	at csw.messages.events.Event.eventKey(events.scala:62)
+	at csw.messages.events.Event.eventKey$(events.scala:62)
+	at csw.messages.events.SystemEvent.eventKey(events.scala:147)
+	at csw.services.event.internal.redis.RedisPublisher.csw$services$event$internal$redis$RedisPublisher$$set(RedisPublisher.scala:70)
+	at csw.services.event.internal.redis.RedisPublisher$stateMachine$macro$22$1.apply(RedisPublisher.scala:46)
+	at csw.services.event.internal.redis.RedisPublisher$stateMachine$macro$22$1.apply(RedisPublisher.scala:44)
+	at scala.concurrent.impl.CallbackRunnable.run(Promise.scala:60)
+	at akka.dispatch.BatchingExecutor$AbstractBatch.processBatch(BatchingExecutor.scala:55)
+	at akka.dispatch.BatchingExecutor$BlockableBatch.$anonfun$run$1(BatchingExecutor.scala:91)
+	at akka.dispatch.BatchingExecutor$BlockableBatch$$Lambda$290/1948307013.apply$mcV$sp(Unknown Source)
+	... 9 more
+[0m
+[33m2018-11-23T06:13:36.374Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [13077] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:13:36.380Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Marking node(s) as UNREACHABLE [Member(address = akka.tcp://csw-cluster@192.168.122.1:33817, status = Up), Member(address = akka.tcp://csw-cluster@192.168.122.1:43631, status = Up)]. Node roles [dc-default][0m
+[33m2018-11-23T06:13:40.554Z WARN :akka  - Cluster Node [akka.tcp://csw-cluster@192.168.122.1:41464] - Scheduled sending of heartbeat was delayed. Previous heartbeat was sent [4180] ms ago, expected interval is [1000] ms. This may cause failure detection to mark members as unreachable. The reason can be thread starvation, e.g. by running blocking tasks on the default dispatcher, CPU overload, or GC.[0m
+[33m2018-11-23T06:13:40.556Z WARN :slf4j  (Slf4JLogger.java 141) - null Unexpected exception during request: io.lettuce.core.RedisException: Invalid first byte: 109 [Stacktrace] io.lettuce.core.RedisException: Invalid first byte: 109
+	at io.lettuce.core.protocol.RedisStateMachine.readReplyType(RedisStateMachine.java:233)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:113)
+	at io.lettuce.core.protocol.RedisStateMachine.decode(RedisStateMachine.java:77)
+	at io.lettuce.core.protocol.CommandHandler.decode(CommandHandler.java:656)
+	at io.lettuce.core.pubsub.PubSubCommandHandler.decode(PubSubCommandHandler.java:100)
+	at io.lettuce.core.protocol.CommandHandler.channelRead(CommandHandler.java:508)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.ChannelInboundHandlerAdapter.channelRead(ChannelInboundHandlerAdapter.java:86)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:340)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1434)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:348)
+	at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:965)
+	at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:163)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:645)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:580)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:497)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:459)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$5.run(SingleThreadEventExecutor.java:884)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.lang.Thread.run(Thread.java:748)
+[0m
