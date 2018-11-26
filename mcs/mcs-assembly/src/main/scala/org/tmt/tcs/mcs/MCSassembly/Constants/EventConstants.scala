@@ -12,16 +12,18 @@ object EventConstants {
   val ASSEMBLY_STATE_EVENT      = "AssemblyState"
 
   //HCDLifecycleState currentState constants
-  val HCDLifecycleState: String      = "HCDLifecycleState"
-  val HCDState_Off: String           = "Off"
-  val HCDState_Running: String       = "Running"
-  val HCDState_Initialized           = "Initialized"
-  val AZ_InPosition: String          = "azInPositionKey"
-  val EL_InPosition: String          = "elInPositionKey"
-  val AZ_POS_ERROR: String           = "azPosErrorKey"
-  val EL_POS_ERROR: String           = "elPosErrorKey"
-  val TIMESTAMP: String              = "timeStamp"
-  val ASSEMBLY_RECEIVAL_TIME: String = "assemblyReceivalTime"
+  val HCDLifecycleState: String            = "HCDLifecycleState"
+  val HCDState_Off: String                 = "Off"
+  val HCDState_Running: String             = "Running"
+  val HCDState_Initialized                 = "Initialized"
+  val AZ_InPosition: String                = "azInPositionKey"
+  val EL_InPosition: String                = "elInPositionKey"
+  val AZ_POS_ERROR: String                 = "azPosErrorKey"
+  val EL_POS_ERROR: String                 = "elPosErrorKey"
+  val TIMESTAMP: String                    = "timeStamp"
+  val ASSEMBLY_RECEIVAL_TIME: String       = "assemblyReceivalTime"
+  val HCD_EVENT_RECEIVAL_TIME: String      = "HCDEventReceivalTime"
+  val ASSEMBLY_EVENT_RECEIVAL_TIME: String = "AssemblyEventReceivalTime"
 
   //MCS Simulator currentPosition state
   val CURRENT_POSITION: String = "CurrentPosition"

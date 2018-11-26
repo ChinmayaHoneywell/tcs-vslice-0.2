@@ -118,12 +118,12 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
       val eventName: String = subscribeSocket.recvStr()
       //log.info(s"Received event: ${eventName} from Simulator")
       if (subscribeSocket.hasReceiveMore) {
-        val eventData    = subscribeSocket.recv(ZMQ.DONTWAIT)
-        val currentState = messageTransformer.decodeEvent(eventName, eventData)
-        /*log.info(
-          s"Time required for transforming: ${eventName} into current State is: ${System.currentTimeMillis() - receivedTime}"
-        )*/
-        statePublisherActor ! PublishState(currentState)
+        val eventData       = subscribeSocket.recv(ZMQ.DONTWAIT)
+        val hcdReceivalTime = System.currentTimeMillis()
+        val currentState    = messageTransformer.decodeEvent(eventName, eventData)
+        val currState       = currentState.add(EventConstants.hcdEventReceivalTime_Key.set(hcdReceivalTime))
+        log.info(s"Publishing event: $currState from HCD.")
+        statePublisherActor ! PublishState(currState)
       } else {
         log.error(s"No event data is received for event: ${eventName}")
       }

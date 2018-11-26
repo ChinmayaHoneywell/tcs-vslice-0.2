@@ -86,7 +86,8 @@ class McsHcdHandlers(
 
   private val zeroMQProtoActor: ActorRef[ZeroMQMessage] =
     ctx.spawn(ZeroMQProtocolActor.create(statePublisherActor, loggerFactory), "ZeroMQActor")
-  private val simpleSimActor: ActorRef[SimpleSimMsg] = ctx.spawn(SimpleSimulator.create(loggerFactory), "SimpleSimulator")
+  private val simpleSimActor: ActorRef[SimpleSimMsg] =
+    ctx.spawn(SimpleSimulator.create(loggerFactory, statePublisherActor), "SimpleSimulator")
 
   private val commandHandlerActor: ActorRef[HCDCommandMessage] =
     ctx.spawn(
@@ -116,12 +117,12 @@ class McsHcdHandlers(
     val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
       LifeCycleMessage.InitializeMsg(ref)
     }, 10.seconds)
+    //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
 
     if (connectToSimulator(lifecycleMsg)) {
-      //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
-      //statePublisherActor ! StartEventSubscription()
+      statePublisherActor ! StartEventSubscription(zeroMQProtoActor, simpleSimActor)
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
-      zeroMQProtoActor ! StartSimulEventSubscr()
+      //zeroMQProtoActor ! StartSimulEventSubscr()
     } else {
       log.error(msg = s"Unable to connect with MCS Simulator")
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.Disconnected)
@@ -225,7 +226,7 @@ class McsHcdHandlers(
       simulatorMode = Commands.SIMPLE_SIMULATOR
     }
     commandHandlerActor ! submitCommand(cmd)
-    statePublisherActor ! SimulationModeChange(simulatorMode)
+    statePublisherActor ! SimulationModeChange(simulatorMode, simpleSimActor, zeroMQProtoActor)
     positionDemandActor ! cmd
     CommandResponse.Completed(cmd.runId)
   }

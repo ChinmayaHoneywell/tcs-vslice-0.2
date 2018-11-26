@@ -104,19 +104,34 @@ object MCSMainApp extends App {
   }
   def processHealth(event: Event): Future[_] = {
     // println(s"*** Received health event: ${event} from assembly at time : ${Calendar.getInstance().getTime} *** ")
+    val clientAppRecTime = System.currentTimeMillis()
+    event match {
+      case systemEvent: SystemEvent => {
+        val params                               = systemEvent.paramSet
+        val simulatorSentTimeParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
+        val simulatorPublishTime                 = simulatorSentTimeParam.head
+        val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
+        val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
+        // println(s"Health, ${simulatorPublishTime}, ${hcdReceiveTime}, ${assemblyRecTime}, ${clientAppRecTime}")
+      }
+    }
     Future.successful[String]("Successfully processed Health event from assembly")
   }
   def processCurrentPosition(event: Event): Future[_] = {
-    val today = Calendar.getInstance().getTime()
+    val clientAppRecTime = System.currentTimeMillis()
     // println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
     event match {
       case systemEvent: SystemEvent => {
         val params                               = systemEvent.paramSet
         val azPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
+        val elPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
         val simulatorSentTimeParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
-        //println(s"Received azPosParam is  : ${azPosParam.head}")
-        // println(s"Current Position send by Simulator at : ${simulatorSentTimeParam.head}")
-
+        val simulatorPublishTime                 = simulatorSentTimeParam.head
+        val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
+        val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
+        println(
+          s"CurrentPosition:, ${azPosParam}, ${elPosParam},  ${simulatorPublishTime},${hcdReceiveTime}, ${assemblyRecTime},${clientAppRecTime}"
+        )
       }
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
@@ -183,7 +198,7 @@ object MCSMainApp extends App {
     val simulationModeKey: Key[String] = KeyType.StringKey.make("SimulationMode")
     getAssembly.flatMap {
       case Some(commandService) => {
-        val simulModeParam: Parameter[String] = simulationModeKey.set("SimpleSimulator")
+        val simulModeParam: Parameter[String] = simulationModeKey.set("RealSimulator")
         val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
         commandService.submitAndSubscribe(setup)
       }

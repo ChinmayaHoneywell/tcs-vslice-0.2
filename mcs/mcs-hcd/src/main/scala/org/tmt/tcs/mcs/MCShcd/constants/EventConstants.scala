@@ -40,8 +40,11 @@ object EventConstants {
   val ASSEMBLY_RECEIVAL_TIME_KEY: Key[Long] = KeyType.LongKey.make(ASSEMBLY_RECEIVAL_TIME)
 
   //LifecycleState currentState
-  val HCDLifecycleState: String = "HCDLifecycleState"
-  val LifeCycleStateKey         = KeyType.StringKey.make(HCDLifecycleState)
+  val HCDLifecycleState: String     = "HCDLifecycleState"
+  val HCD_EventReceivalTime: String = "HCDEventReceivalTime"
+  val LifeCycleStateKey             = KeyType.StringKey.make(HCDLifecycleState)
+
+  val hcdEventReceivalTime_Key: Key[Long] = KeyType.LongKey.make(HCD_EventReceivalTime)
 
   //MCS Simulator currentPosition state
   val CURRENT_POSITION: String = "CurrentPosition"

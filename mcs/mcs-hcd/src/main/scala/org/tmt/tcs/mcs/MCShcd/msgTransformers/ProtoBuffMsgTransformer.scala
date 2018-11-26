@@ -50,7 +50,20 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
         paramSetTransformer.getMCSDriveStatus(driveState)
       }
       case EventConstants.HEALTH_STATE => {
-        val healthState: McsHealth = McsHealth.parseFrom(encodedEventData)
+        var healthState: McsHealth = null
+        try {
+          healthState = McsHealth.parseFrom(encodedEventData)
+        } catch {
+          case e: Exception => {
+            healthState = McsHealth
+              .newBuilder()
+              .setHealth(McsHealth.Health.Good)
+              .setReason("All is well")
+              .setTime(Instant.now().toEpochMilli)
+              .build()
+            e.printStackTrace()
+          }
+        }
         paramSetTransformer.getMCSHealth(healthState)
       }
     }
@@ -122,6 +135,10 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     }
 
     // val trackID: Int = trackIDOption.get.head
+    var assemblySentTime = System.currentTimeMillis()
+    if (systemEvent.exists(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY)) {
+      assemblySentTime = systemEvent.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
+    }
 
     val event = TcsPositionDemandEvent
       .newBuilder()
@@ -129,9 +146,10 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       .setElevation(elParam)
       .setHcdReceivalTime(systemEvent.get(EventConstants.HcdReceivalTime_Key).get.head)
       .setTpkPublishTime(systemEvent.get(EventConstants.TimeStampKey).get.head)
-      .setAssemblyReceivalTime(systemEvent.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head)
+      .setAssemblyReceivalTime(assemblySentTime)
       .build()
     event.toByteArray
+
   }
 
   def getFollowCommandBytes: Array[Byte] = {

@@ -92,6 +92,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   private def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
     eventPublisher.publish(event, 40.seconds)
+    log.info(s"Published event : ${event}")
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -100,8 +101,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    */
   private def subscribeEventMsg(): Behavior[EventMessage] = {
     log.info(msg = s"Started subscribing events Received from tpkAssembly.")
-    eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey,
-                                      event => sendEventByOneWayCommand(event, hcdLocation))
+    eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey, event => sendEventByAssemblyCurrentState(event))
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -127,12 +127,11 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   This function publishes event by using EventPublisher to the HCD
    */
   private def sendEventByEventPublisher(msg: Event): Future[_] = {
-
-    log.info(s" *** Received positionDemand event: $msg to EventHandler at : ${System.currentTimeMillis()} *** ")
-
     msg match {
       case systemEvent: SystemEvent => {
-        eventPublisher.publish(systemEvent)
+        val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
+        log.info(s" *** publishing positionDemand event: $msg from EventHandlerActor *** ")
+        eventPublisher.publish(event)
       }
     }
     Future.successful("Successfully sent positionDemand by event publisher")

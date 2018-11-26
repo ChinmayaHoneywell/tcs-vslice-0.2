@@ -2,11 +2,12 @@ package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import csw.messages.events.SystemEvent
 import csw.messages.params.generics.{KeyType, Parameter}
 import csw.messages.params.states.CurrentState
 import csw.services.command.scaladsl.CommandService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCSassembly.Constants.EventConstants
+import org.tmt.tcs.mcs.MCSassembly.Constants.{EventConstants, EventHandlerConstants}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage._
 import org.tmt.tcs.mcs.MCSassembly.Constants.EventConstants.HCDState_Off
 import org.tmt.tcs.mcs.MCSassembly.Constants.EventConstants.HCDState_Initialized
@@ -114,6 +115,8 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
 
     val currentState: CurrentState = x.currentState
     //log.info(msg = s"Received currentState from HCD")
+    val assemblyEventRecvTime = System.currentTimeMillis()
+
     currentState.stateName.name match {
       case HCDLifecycleState => {
         //log.info("Received life cycle state change message from HCD updating state of assembly corresponding to change")
@@ -122,26 +125,26 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
       case CURRENT_POSITION => {
 
         //processMCSCurrentPositionEvent(currentState)
-        val currentPosition = eventTransformer.getCurrentPositionEvent(currentState)
-        //log.info(s"** Processing currentPosition received from HCD to : ${eventHandlerActor}**")
+        val currentPosition: SystemEvent = eventTransformer.getCurrentPositionEvent(currentState, assemblyEventRecvTime)
         eventHandlerActor ! PublishHCDState(currentPosition)
+        log.info(s"** Publishing currentPosition: $currentPosition received from HCD ")
         MonitorActor.createObject(assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
       }
       case DIAGNOSIS_STATE => {
-        eventHandlerActor ! PublishHCDState(eventTransformer.getDiagnosisEvent(currentState))
+        eventHandlerActor ! PublishHCDState(eventTransformer.getDiagnosisEvent(currentState, assemblyEventRecvTime))
         Behavior.same
       }
       case HEALTH_STATE => {
 
-        val health = eventTransformer.getHealthEvent(currentState)
-
-        //log.info(s"** Processing health received from HCD to : ${eventHandlerActor}**")
+        val health = eventTransformer.getHealthEvent(currentState, assemblyEventRecvTime)
         eventHandlerActor ! PublishHCDState(health)
-
+        log.info(s"** Publishing health : $health received from HCD ")
         MonitorActor.createObject(assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
       }
       case DRIVE_STATE => {
-        eventHandlerActor ! PublishHCDState(eventTransformer.getDriveState(currentState))
+        val driveState = eventTransformer.getDriveState(currentState, assemblyEventRecvTime)
+        eventHandlerActor ! PublishHCDState(driveState)
+        log.info(s"** Publishing DriveState : $driveState received from HCD ")
         Behavior.same
       }
     }

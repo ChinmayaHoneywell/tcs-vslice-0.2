@@ -40,12 +40,12 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   def startPublishingCurrPos(): Unit ={
     println("Publish Current position thread started")
     while(true){
-      Thread.sleep(11000)
+      Thread.sleep(10)
       updateCurrentAzPos()
       updateCurrentElPos()
       val mcsCurrentPosition : McsCurrentPositionEvent =  TcsMcsEventsProtos.McsCurrentPositionEvent.newBuilder()
-        .setAzPos(AzCurrPos)
-        .setElPos(ElCurrPos)
+        .setAzPos(updateCurrentAzPos)
+        .setElPos(updateCurrentElPos)
         .setAzPosError(AzPosDemanded - AzCurrPos)
         .setElPosError(ElPosDemanded - ElCurrPos)
         .setAzInPosition(true)
@@ -67,7 +67,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
       if(pubSocket.sendMore("CurrentPosition")){
         //println("Sent event: CurrentPosition to MCS")
         if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
-        //  println("Sent currentPosition event data")
+          println(s"Published currentPosition: ${mcsCurrentPosition} event data")
         }else{
           //println("Error!!!! Unable to send currentPositionEvent Data.")
         }
@@ -110,7 +110,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   def startPublishingHealth() : Unit = {
     //println("Publish Health Thread Started")
     while(true){
-      Thread.sleep(12000)
+      Thread.sleep(1000)
       val mcsHealth = TcsMcsEventsProtos.McsHealth.newBuilder()
         .setHealth(TcsMcsEventsProtos.McsHealth.Health.Good)
         .setReason("All is well")
@@ -119,7 +119,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
      // println("Publishing Health information.")
       if(pubSocket.sendMore("Health")){
         if(pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)){
-        //  println("Successfully published health event")
+         println(s"Successfully published health event: $mcsHealth")
         }
       }
     }
