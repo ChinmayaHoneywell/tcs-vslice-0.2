@@ -185,7 +185,7 @@ public class JEncAssemblyHandlersTest {
         when(hcdService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
         //assemblyHandlers.getMonitorActor().tell(new JMonitorActor.LocationEventMessage(Optional.of(hcdService)));
         assemblyHandlers.getCommandHandlerActor().tell(new JCommandHandlerActor.UpdateTemplateHcdMessage(Optional.of(hcdService)));
-        assemblyHandlers.getMonitorActor().tell(new JMonitorActor.CurrentStateMessage(TestConstants.getReadyState()));
+        assemblyHandlers.getMonitorActor().tell(new JMonitorActor.InitializedMessage());
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         CommandResponse commandResponse=assemblyHandlers.validateCommand(followCommand);
         assertEquals(commandResponse, new CommandResponse.Completed(followCommand.runId()));

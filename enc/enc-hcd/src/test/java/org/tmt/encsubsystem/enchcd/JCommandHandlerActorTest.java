@@ -54,6 +54,34 @@ public class JCommandHandlerActorTest {
     }
 
     /**
+     * given HCD is initialized,
+     * when startup command as message is send to LifecycleActor,
+     * then one Command Worker Actor (JStartUpCmdActor) should be created
+     * and command should be send to newly created actor to process.
+     */
+    @Test
+    public void handleStartupCommandTest() throws InterruptedException {
+        Setup startupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("startup"), Optional.empty());
+        commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(startupCmd));
+        TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(startupCmd);
+    }
+
+    /**
+     * given HCD is initialized,
+     * when shutdown command as message is send to LifecycleActor,
+     * then one Command Worker Actor (JShutdownCmdActor) should be created
+     * and command should be send to newly created actor to process.
+     */
+    @Test
+    public void handleShutdownCommandTest() {
+        Setup shutdownCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("shutdown"), Optional.empty());
+        commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(shutdownCmd));
+        TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(shutdownCmd);
+    }
+
+    /**
      * given HCD is running,
      * when fastMove command as message is send to CommandHandlerActor,
      * then one Command Worker Actor (JFastMoveCmdActor) should be created

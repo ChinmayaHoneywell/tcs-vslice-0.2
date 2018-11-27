@@ -2,6 +2,7 @@ package org.tmt.encsubsystem.enchcd.simplesimulator;
 
 import org.tmt.encsubsystem.enchcd.models.*;
 
+import java.io.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
@@ -28,11 +29,23 @@ public class SimpleSimulator {
 
     private boolean following=false;
 
+    private PrintStream printStream;
+
     private SimpleSimulator() {
         this.currentPosition = new CurrentPosition(0.12, 0.06, Instant.now().toEpochMilli());
+        this.demandPosition = new DemandPosition(0.0,0.0, Instant.now(), Instant.now(), Instant.now());
         this.health = new Health(Health.HealthType.GOOD, "good", Instant.now().toEpochMilli());
         Byte[] dummyData = {5,6,7,8,9,5,3,2,1,2,3,5,6,7,8};
         this.diagnostic = new Diagnostic(dummyData, Instant.now().toEpochMilli());
+        try {
+            File file = new File("DemandPosition_SimpleSimulator_Logs_"+Instant.now().toString()+"__.txt");
+            file.createNewFile();
+            this.printStream = new PrintStream(new FileOutputStream(file));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static SimpleSimulator getInstance(){
@@ -158,6 +171,8 @@ public class SimpleSimulator {
         long clientToHcdDuration = Duration.between(demandPosition.getClientTime(), demandPosition.getHcdTime()).toMillis();
         long clientTosubsystemDuration = Duration.between(demandPosition.getClientTime(), subsystemTime).toMillis();
         long assemblyToHcdDuration = Duration.between(demandPosition.getAssemblyTime(), demandPosition.getHcdTime()).toMillis();
+        this.printStream.println("Event=Demand Position "+", "+ "Base="+demandPosition.getBase() + ", "+ "Cap="+demandPosition.getCap() + ", " + "Pointing Kernel Time="+demandPosition.getClientTime() + ", " +"Assembly Time=" + demandPosition.getAssemblyTime()+ ", " +"HCD Time="+ demandPosition.getHcdTime() + ", " + "Subsystem Time ="+ subsystemTime + ", " + "Client to HCD duration = "+ clientToHcdDuration + "ms, " + "Client to Subsystem Duration = "+ clientTosubsystemDuration + "ms, " + "Assembly to HCD duration = " + assemblyToHcdDuration+"ms");
         System.out.println("Event=Demand Position "+", "+ "Base="+demandPosition.getBase() + ", "+ "Cap="+demandPosition.getCap() + ", " + "Pointing Kernel Time="+demandPosition.getClientTime() + ", " +"Assembly Time=" + demandPosition.getAssemblyTime()+ ", " +"HCD Time="+ demandPosition.getHcdTime() + ", " + "Subsystem Time ="+ subsystemTime + ", " + "Client to HCD duration = "+ clientToHcdDuration + "ms, " + "Client to Subsystem Duration = "+ clientTosubsystemDuration + "ms, " + "Assembly to HCD duration = " + assemblyToHcdDuration+"ms");
-        }
+
+    }
 }

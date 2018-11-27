@@ -2,7 +2,6 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.testkit.typed.javadsl.BehaviorTestKit;
 import akka.actor.testkit.typed.javadsl.TestInbox;
-import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.javadsl.ActorContext;
 import csw.messages.commands.CommandName;
 import csw.messages.commands.ControlCommand;
@@ -41,7 +40,8 @@ public class JCommandHandlerActorTest {
 
     @Mock
     JCommandService hcdCommandService;
-    TestProbe<JMonitorActor.MonitorMessage> monitorActor;
+
+    TestInbox<JMonitorActor.MonitorMessage> monitorActor;
 
 
     BehaviorTestKit<JCommandHandlerActor.CommandMessage> commandHandlerBehaviourKit;
@@ -52,11 +52,43 @@ public class JCommandHandlerActorTest {
     public void setUp() throws Exception {
         when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         replyTo = TestInbox.create();
+        monitorActor= TestInbox.create();
         commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, Optional.of(hcdCommandService), true, jLoggerFactory, Optional.empty(), monitorActor.getRef()));
     }
 
     @After
     public void tearDown() throws Exception {
+    }
+
+    /**
+     * given assembly is initialized,
+     * when startup command as message is send to CommandHandlerActor,
+     * then one Command Worker Actor (JStartUpCmdActor) should be created
+     * and command should be send to newly created actor to process.
+     */
+    @Test
+    public void handleStartupCommandTest() {
+        Setup startupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("startup"), Optional.empty());
+        commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(startupCmd));
+        TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(startupCmd);
+
+
+    }
+
+    /**
+     * given assembly is initialized,
+     * when shutdown command as message is send to CommandHandlerActor,
+     * then one Command Worker Actor (JShutdownCmdActor) should be created
+     * and command should be send to newly created actor to process.
+     */
+    @Test
+    public void handleShutdownCommandTest() {
+        Setup shutdownCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("shutdown"), Optional.empty());
+        commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(shutdownCmd));
+        TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
+        TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(shutdownCmd);
+
     }
 
     /**

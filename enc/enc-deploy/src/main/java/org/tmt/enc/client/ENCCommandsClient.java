@@ -28,6 +28,9 @@ import csw.services.logging.javadsl.JLoggerFactory;
 import csw.services.logging.javadsl.JLoggingSystemFactory;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.time.Instant;
@@ -48,11 +51,16 @@ public class ENCCommandsClient {
     Optional<JCommandService> commandServiceOptional;
     IEventService eventService;
 
+    PrintStream printStream;
+
     public ENCCommandsClient(Prefix source, ActorSystem system, ILocationService locationService) throws Exception {
         this.source = source;
         this.system = system;
         this.locationService = locationService;
         commandServiceOptional = getAssemblyBlocking();
+        File file = new File("Commmands_SimpleSimulator_Logs_"+Instant.now().toString()+"__.txt");
+        file.createNewFile();
+        this.printStream = new PrintStream(new FileOutputStream(file));
     }
 
 
@@ -366,6 +374,10 @@ public class ENCCommandsClient {
                     + ", Time taken by HCD command(ms)=" + hcdCommandDuration.toMillis()
                     + ", Time taken by shutdown command(ms)=" + shutdownCommandDuration.toMillis());
 
+            this.printStream.println("Time taken by startup command(ms)="+ startupCommandDuration.toMillis()
+                    + ", Time taken by assembly command(ms)=" + assemblyCommandDuration.toMillis()
+                    + ", Time taken by HCD command(ms)=" + hcdCommandDuration.toMillis()
+                    + ", Time taken by shutdown command(ms)=" + shutdownCommandDuration.toMillis());
         }
     }
 }
