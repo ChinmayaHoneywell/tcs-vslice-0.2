@@ -44,7 +44,7 @@ case class FollowCommandActor(ctx: ActorContext[ImmediateCommand],
     hcdLocation match {
       case Some(commandService) => {
         val response = Await.result(commandService.submit(command.controlCommand), 3.seconds)
-        log.info(msg = s" updating follow command : ${command.controlCommand.runId} with response : ${response} ")
+        log.info(msg = s" Updating follow command : ${command.controlCommand.runId} with response : ${response} ")
         command.sender ! ImmediateCommandResponse(response)
         //commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
         endTime = Calendar.getInstance().getTimeInMillis

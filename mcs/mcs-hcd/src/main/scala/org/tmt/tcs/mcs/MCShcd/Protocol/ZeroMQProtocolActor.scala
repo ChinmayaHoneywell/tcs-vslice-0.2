@@ -122,7 +122,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         val hcdReceivalTime = System.currentTimeMillis()
         val currentState    = messageTransformer.decodeEvent(eventName, eventData)
         val currState       = currentState.add(EventConstants.hcdEventReceivalTime_Key.set(hcdReceivalTime))
-        log.info(s"Publishing event: $currState from HCD.")
+        // log.info(s"Publishing event: $currState from HCD.")
         statePublisherActor ! PublishState(currState)
       } else {
         log.error(s"No event data is received for event: ${eventName}")

@@ -67,31 +67,48 @@ object MCSMainApp extends App {
 
   val prefix = Prefix("tmt.tcs.McsAssembly-Client")
 
-  val resp0 = Await.result(sendSimulationModeCommand, 10.seconds)
-  println(s"SimulationMode command response is : $resp0")
+//  var count: Integer = 0
+  var simulationMode = "SimpleSimulator"
 
-  val resp1 = Await.result(sendStartupCommand, 30.seconds)
-  println(s"Startup command response is : $resp1")
+  var simulCmdSentTime: Long = System.currentTimeMillis()
+  val resp0                  = Await.result(sendSimulationModeCommand(simulationMode), 10.seconds)
+  println(s"SimulationMode command response is : $resp0 total time taken is : ${System.currentTimeMillis() - simulCmdSentTime}")
 
-  val resp2 = Await.result(sendDatumCommand, 200.seconds)
-  println(s"Datum command response is : $resp2")
+  var startupSentTime: Long = System.currentTimeMillis()
+  val resp1                 = Await.result(sendStartupCommand, 30.seconds)
+  println(s"Startup command response is : $resp1 total time taken is : ${System.currentTimeMillis() - startupSentTime}")
 
-  val resp3 = Await.result(sendFollowCommand, 200.seconds)
-  println(s"Follow command response is : $resp3")
+  var datumCommandSentTime: Long = System.currentTimeMillis()
+  val resp2                      = Await.result(sendDatumCommand, 200.seconds)
+  println(s"Datum command response is : $resp2 total time taken is : ${System.currentTimeMillis() - datumCommandSentTime}")
+
+  var followCmdSentTime: Long = System.currentTimeMillis()
+  val resp3                   = Await.result(sendFollowCommand, 200.seconds)
+  println(s"Follow command response is : $resp3 total time taken is : ${System.currentTimeMillis() - followCmdSentTime}")
 
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
-  //println(s"Move command response is : $resp4")
+  //println(s"Move command response is : $resp4 at : ${System.currentTimeMillis()}")
 
-  val resp5 = Await.result(sendDummyImmediateCommand, 200.seconds)
-  println(s"Dummy immediate command Response is : ${resp5}")
+  var dummyImmCmd: Long = System.currentTimeMillis()
+  val resp5             = Await.result(sendDummyImmediateCommand, 200.seconds)
+  println(s"Dummy immediate command Response is : ${resp5} total time taken is : ${System.currentTimeMillis() - dummyImmCmd}")
 
-  val resp6 = Await.result(sendDummyLongCommand, 200.seconds)
-  println(s"Dummy Long Command Response is : ${resp6}")
+  var dummyLongCmd: Long = System.currentTimeMillis()
+  val resp6              = Await.result(sendDummyLongCommand, 200.seconds)
+  println(s"Dummy Long Command Response is : ${resp6} total time taken is : ${System.currentTimeMillis() - dummyLongCmd}")
+
+  var shutdownCmd: Long = System.currentTimeMillis()
+  val resp7             = Await.result(sendShutDownCmd, 30.seconds)
+  println(s"Shutdown Command Response is : ${resp7} total time taken is : ${System.currentTimeMillis() - shutdownCmd}")
+
+  println(
+    s"===========================================Command set completed ============================================================================="
+  )
 
   new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
 
   def startSubscribingEvents(): Unit = {
-    println(" ** Started subscribing Events from Assembly ** ")
+    // println(" ** Started subscribing Events from Assembly ** ")
     val eventService = getEventService
     val subscriber   = eventService.defaultSubscriber
     subscriber.subscribeCallback(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
@@ -129,9 +146,9 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        println(
+        /*println(
           s"CurrentPosition:, ${azPosParam}, ${elPosParam},  ${simulatorPublishTime},${hcdReceiveTime}, ${assemblyRecTime},${clientAppRecTime}"
-        )
+        )*/
       }
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
@@ -171,6 +188,17 @@ object MCSMainApp extends App {
       }
     }
   }
+  def sendShutDownCmd()(implicit ec: ExecutionContext): Future[CommandResponse] = {
+    getAssembly.flatMap {
+      case Some(commandService) => {
+        val setup = Setup(prefix, CommandName("ShutDown"), None)
+        commandService.submit(setup)
+      }
+      case None => {
+        Future.successful(Error(Id(), "Can't locate MCSAssembly"))
+      }
+    }
+  }
   def sendDatumCommand(): Future[CommandResponse] = {
     val datumParam: Parameter[String] = axesKey.set("BOTH")
     getAssembly.flatMap {
@@ -194,13 +222,14 @@ object MCSMainApp extends App {
         Future.successful(Error(Id(), "Can't locate TcsTemplateAssembly"))
     }
   }
-  def sendSimulationModeCommand(): Future[CommandResponse] = {
+  def sendSimulationModeCommand(simulationMode: String): Future[CommandResponse] = {
     val simulationModeKey: Key[String] = KeyType.StringKey.make("SimulationMode")
     getAssembly.flatMap {
       case Some(commandService) => {
-        val simulModeParam: Parameter[String] = simulationModeKey.set("RealSimulator")
+        val simulModeParam: Parameter[String] = simulationModeKey.set(simulationMode)
         val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
         commandService.submitAndSubscribe(setup)
+
       }
     }
   }
@@ -215,6 +244,7 @@ object MCSMainApp extends App {
           .add(axesParam)
           .add(azParam)
           .add(elParam)
+        //println("Move command sent time : " + System.currentTimeMillis())
         commandService.submitAndSubscribe(setup)
       case None =>
         Future.successful(Error(Id(), "Can't locate TcsTemplateAssembly"))

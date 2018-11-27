@@ -68,14 +68,14 @@ case class DatumCmdActor(ctx: ActorContext[ControlCommand],
 
   private def submitToRealSim(msg: ControlCommand) = {
     //log.info(s"Submitting datum command with id : ${msg.runId} to Simulator")
-    implicit val duration: Timeout = 20 seconds
+    implicit val duration: Timeout = 40 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
       ZeroMQMessage.SubmitCommand(ref, msg)
-    }, 10.seconds)
+    }, 30.seconds)
     response match {
       case x: ZeroMQMessage.MCSResponse => {
-        //    log.info(s"Response from MCS for command runID : ${msg.runId} is : ${x}")
+        log.info(s"Response from MCS for command runID : ${msg.runId}  and command Name : ${msg.commandName} is : ${x}")
         commandResponseManager.addOrUpdateCommand(msg.runId, x.commandResponse)
       }
       case _ => {

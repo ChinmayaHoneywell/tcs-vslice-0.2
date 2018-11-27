@@ -31,12 +31,13 @@ case class DatumCommandActor(ctx: ActorContext[ControlCommand],
   private val log                           = loggerFactory.getLogger
   private val mcsHCDPrefix                  = Prefix(Subsystem.MCS.toString)
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
-  implicit val duration: Timeout            = 30 seconds
+  implicit val duration: Timeout            = 60 seconds
   override def onMessage(controlCommand: ControlCommand): Behavior[ControlCommand] = {
     val axes: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
     hcdLocation match {
       case Some(commandService) => {
-        val response = Await.result(commandService.submitAndSubscribe(controlCommand), 20.seconds)
+        val response = Await.result(commandService.submitAndSubscribe(controlCommand), 50.seconds)
+        log.info(s"Response for Datum command in Assembly is : ${response}")
         commandResponseManager.addOrUpdateCommand(controlCommand.runId, response)
         Behavior.stopped
       }

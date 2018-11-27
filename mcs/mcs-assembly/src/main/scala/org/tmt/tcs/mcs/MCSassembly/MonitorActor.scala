@@ -127,7 +127,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
         //processMCSCurrentPositionEvent(currentState)
         val currentPosition: SystemEvent = eventTransformer.getCurrentPositionEvent(currentState, assemblyEventRecvTime)
         eventHandlerActor ! PublishHCDState(currentPosition)
-        log.info(s"** Publishing currentPosition: $currentPosition received from HCD ")
+        // log.info(s"** Publishing currentPosition: $currentPosition received from HCD ")
         MonitorActor.createObject(assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
       }
       case DIAGNOSIS_STATE => {
@@ -138,7 +138,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
 
         val health = eventTransformer.getHealthEvent(currentState, assemblyEventRecvTime)
         eventHandlerActor ! PublishHCDState(health)
-        log.info(s"** Publishing health : $health received from HCD ")
+        //  log.info(s"** Publishing health : $health received from HCD ")
         MonitorActor.createObject(assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
       }
       case DRIVE_STATE => {

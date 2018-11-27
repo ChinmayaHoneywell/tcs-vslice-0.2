@@ -119,9 +119,10 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     val setup = Setup(mcsHCDPrefix, CommandName(Commands.SHUTDOWN), msg.controlCommand.maybeObsId)
     hcdLocation match {
       case Some(commandService) => {
-        val response = Await.result(commandService.submit(setup), 3.seconds)
+        val response = Await.result(commandService.submit(setup), 5.seconds)
         log.info(msg = s" Result of shutdown command is : $response")
-        commandResponseManager.addOrUpdateCommand(msg.controlCommand.runId, response)
+        commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
+        commandResponseManager.updateSubCommand(response.runId, response)
       }
       case None => {
         log.error(msg = s" Error in finding HCD instance ")

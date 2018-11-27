@@ -133,7 +133,7 @@ class McsAssemblyHandlers(
   }
 
   override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
-    //log.info(msg = s" validating command ----> ${controlCommand.commandName}")
+    log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
 
       case Commands.FOLLOW => {
@@ -155,6 +155,7 @@ class McsAssemblyHandlers(
         CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.SHUTDOWN => {
+        //log.info
         CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.SET_SIMULATION_MODE => {
@@ -222,6 +223,7 @@ class McsAssemblyHandlers(
         if (msg.commandResponse.toString.equals("Completed")) {
           monitorActor ! AssemblyOperationalStateChangeMsg(AssemblyOperationalState.Slewing)
         }
+        log.info(s"Follow command response is : ${msg.commandResponse}")
         msg.commandResponse
       }
       case _ => {
@@ -308,21 +310,23 @@ class McsAssemblyHandlers(
   private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
     // check hcd is in running state
     if (validateParams(controlCommand)) {
-      implicit val duration: Timeout = 20 seconds
+      implicit val duration: Timeout = 40 seconds
       implicit val scheduler         = ctx.system.scheduler
       val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
         MonitorMessage.GetCurrentState(ref)
-      }, 3.seconds)
-      //log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
+      }, 30.seconds)
+      log.info(msg = s"Response from monitor actor, while validating datum command  is : ${assemblyCurrentState}")
       if (validateAssemblyState(assemblyCurrentState)) {
         CommandResponse.Accepted(controlCommand.runId)
       } else {
+        log.error(s"Unable to pass datum command as assembly current state is : ${assemblyCurrentState}")
         CommandResponse.NotAllowed(
           controlCommand.runId,
           UnsupportedCommandInStateIssue(s" Datum command is not allowed if assembly is not in Running state")
         )
       }
     } else {
+      log.error(s"Incorrect parameters provided for Datum command ")
       CommandResponse.Invalid(controlCommand.runId,
                               WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }

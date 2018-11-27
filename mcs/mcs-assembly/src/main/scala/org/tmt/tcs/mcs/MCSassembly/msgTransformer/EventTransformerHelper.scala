@@ -77,7 +77,7 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
     This function converts currentPosition from HCD wrapped in  currentState to systemEvent
    */
   def getCurrentPositionEvent(currentState: CurrentState, assemblyEventRecvTime: Long): SystemEvent = {
-    log.info(s"Received event : $currentState from simulator")
+    // log.info(s"Received event : $currentState from simulator")
     val azPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.AzPosKey)
     val elPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.ElPosKey)
     val azPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)

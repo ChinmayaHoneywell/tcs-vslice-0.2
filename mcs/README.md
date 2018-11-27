@@ -80,6 +80,4 @@ for getting mcs_assembly file from config server:
 curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
 curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf
 
-/root/.ivy2/cache/
-
-
+curl -X GET http://192.168.1.13:4000/config/org/tmt/tcs/enc/enc_assembly.conf

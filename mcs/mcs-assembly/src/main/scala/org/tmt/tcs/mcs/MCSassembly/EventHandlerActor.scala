@@ -92,7 +92,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   private def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
     eventPublisher.publish(event, 40.seconds)
-    log.info(s"Published event : ${event}")
+    //log.info(s"Published event : ${event}")
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
