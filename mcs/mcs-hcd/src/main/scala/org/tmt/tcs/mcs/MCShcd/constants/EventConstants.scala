@@ -7,11 +7,11 @@ import csw.messages.params.generics.{Key, KeyType}
 import csw.messages.params.models.Prefix
 
 object EventConstants {
-  val MOUNT_DEMAND_POSITION: String     = "MountDemandPosition"
-  val TPK_PREFIX: String                = "TCS.PK.PKA"
-  val POITNTING_KERNEL_TRACK_ID: String = "trackID"
-  val POINTING_KERNEL_AZ_POS: String    = "az_pos"
-  val POINTING_KERNEL_EL_POS: String    = "el_pos"
+  val MOUNT_DEMAND_POSITION: String     = "mcsdemandpositions"
+  val TPK_PREFIX: String                = "tcs.pk"
+  val POITNTING_KERNEL_TRACK_ID: String = "mcs.trackID"
+  val POINTING_KERNEL_AZ_POS: String    = "mcs.az"
+  val POINTING_KERNEL_EL_POS: String    = "mcs.el"
 
   val PositionDemandKey: Set[EventKey] = Set(EventKey(Prefix(TPK_PREFIX), EventName(MOUNT_DEMAND_POSITION)))
 
@@ -32,12 +32,19 @@ object EventConstants {
   val EL_InPosition_Key: Key[Boolean] = KeyType.BooleanKey.make(EL_InPosition)
 
   // used by all currentStates published by StatePublisherActor
-  val TIMESTAMP: String          = "timeStamp"
-  val TimeStampKey: Key[Instant] = KeyType.TimestampKey.make(TIMESTAMP)
+  val TIMESTAMP: String                     = "timeStamp"
+  val HCD_ReceivalTime: String              = "HcdReceivalTime"
+  val ASSEMBLY_RECEIVAL_TIME: String        = "assemblyReceivalTime"
+  val TimeStampKey: Key[Long]               = KeyType.LongKey.make(TIMESTAMP)
+  val HcdReceivalTime_Key: Key[Long]        = KeyType.LongKey.make(HCD_ReceivalTime)
+  val ASSEMBLY_RECEIVAL_TIME_KEY: Key[Long] = KeyType.LongKey.make(ASSEMBLY_RECEIVAL_TIME)
 
   //LifecycleState currentState
-  val HCDLifecycleState: String = "HCDLifecycleState"
-  val LifeCycleStateKey         = KeyType.StringKey.make(HCDLifecycleState)
+  val HCDLifecycleState: String     = "HCDLifecycleState"
+  val HCD_EventReceivalTime: String = "HCDEventReceivalTime"
+  val LifeCycleStateKey             = KeyType.StringKey.make(HCDLifecycleState)
+
+  val hcdEventReceivalTime_Key: Key[Long] = KeyType.LongKey.make(HCD_EventReceivalTime)
 
   //MCS Simulator currentPosition state
   val CURRENT_POSITION: String = "CurrentPosition"

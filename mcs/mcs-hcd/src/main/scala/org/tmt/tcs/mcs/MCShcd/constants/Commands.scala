@@ -16,6 +16,11 @@ object Commands {
   val ELEVATION_STOW_POSITION = "ElevationStowPosition"
 
   val STARTUP          = "Startup"
-  val SHUTDOWN         = "Shutdown"
+  val SHUTDOWN         = "ShutDown"
   val POSITION_DEMANDS = "MountPositionDemands"
+
+  val SET_SIMULATION_MODE = "setSimulationMode"
+  val SIMULATION_MODE     = "SimulationMode"
+  val REAL_SIMULATOR      = "RealSimulator"
+  val SIMPLE_SIMULATOR    = "SimpleSimulator"
 }

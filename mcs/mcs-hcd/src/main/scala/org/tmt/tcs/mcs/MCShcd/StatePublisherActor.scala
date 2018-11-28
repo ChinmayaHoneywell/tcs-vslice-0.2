@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCShcd
 
+import java.time
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -14,10 +15,12 @@ import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.event.api.scaladsl.{EventService, EventSubscriber}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
-import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
-import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
-import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
+import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg.{ProcCurrStateDemand, ProcEventDemand, StartPublishingEvent}
+import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, SimpleSimulator, ZeroMQMessage}
+import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{PublishCurrStateToZeroMQ, PublishEvent, StartSimulEventSubscr}
+import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.{MCSPositionDemand, ParamSetTransformer}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
@@ -35,10 +38,15 @@ object EventMessage {
                              operationalState: HCDOperationalState.operationalState)
       extends EventMessage
   // case class StartPublishing() extends EventMessage
-  case class StartEventSubscription(zeroMQProtoActor: ActorRef[ZeroMQMessage])                          extends EventMessage
-  case class PublishState(currentState: CurrentState)                                                   extends EventMessage
-  case class AssemblyStateChange(zeroMQProtoActor: ActorRef[ZeroMQMessage], currentState: CurrentState) extends EventMessage
-
+  case class StartEventSubscription(zeroMQProtoActor: ActorRef[ZeroMQMessage], simpleSimActor: ActorRef[SimpleSimMsg])
+      extends EventMessage
+  case class PublishState(currentState: CurrentState) extends EventMessage
+  case class AssemblyStateChange(zeroMQProtoActor: ActorRef[ZeroMQMessage],
+                                 simpleSimActor: ActorRef[SimpleSimMsg],
+                                 currentState: CurrentState)
+      extends EventMessage
+  case class SimulationModeChange(simMode: String, simpleSimActor: ActorRef[SimpleSimMsg], zeroMQActor: ActorRef[ZeroMQMessage])
+      extends EventMessage
 }
 
 object HCDLifeCycleState extends Enumeration {
@@ -55,9 +63,17 @@ object StatePublisherActor {
                    lifeCycleState: HCDLifeCycleState.lifeCycleState,
                    operationalState: HCDOperationalState.operationalState,
                    eventService: EventService,
+                   simulatorMode: String,
                    loggerFactory: LoggerFactory): Behavior[EventMessage] =
     Behaviors.setup(
-      ctx => StatePublisherActor(ctx, currentStatePublisher, lifeCycleState, operationalState, eventService, loggerFactory)
+      ctx =>
+        StatePublisherActor(ctx,
+                            currentStatePublisher,
+                            lifeCycleState,
+                            operationalState,
+                            eventService,
+                            simulatorMode,
+                            loggerFactory)
     )
 
 }
@@ -71,24 +87,33 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                lifeCycleState: HCDLifeCycleState.lifeCycleState,
                                operationalState: HCDOperationalState.operationalState,
                                eventService: EventService,
+                               simulatorMode: String,
                                loggerFactory: LoggerFactory)
     extends MutableBehavior[EventMessage] {
   private val log                                      = loggerFactory.getLogger
   private val prefix                                   = Prefix(Subsystem.MCS.toString)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   private var zeroMQActor: ActorRef[ZeroMQMessage]     = null
-  implicit val ec: ExecutionContextExecutor            = ctx.executionContext
+  private var simpleSimActor: ActorRef[SimpleSimMsg]   = null
+
+  implicit val ec: ExecutionContextExecutor = ctx.executionContext
 
   /*
-
+    This function is used in case of EventPublisher for publishing demands to MCS Simulator
    */
   private def processEvent(event: Event): Future[_] = {
-    log.info(msg = s"*** Received positionDemands: ${event} to HCD StatePublisherActor at ${System.currentTimeMillis()} ***")
+    //log.info(msg = s"*** Received positionDemands: ${event} to HCD StatePublisherActor at ${System.currentTimeMillis()} ***")
     event match {
       case systemEvent: SystemEvent => {
-        //TODO : Change PublishEvent(mcsDemandPosition) to systemEvent for publishing
         // val mcsDemandPositions: MCSPositionDemand = paramSetTransformer.getMountDemandPositions(systemEvent)
-        zeroMQActor ! PublishEvent(systemEvent)
+        val sysEvent = systemEvent.add(EventConstants.HcdReceivalTime_Key.set(System.currentTimeMillis()))
+        if (Commands.REAL_SIMULATOR == simulatorMode) {
+          //  log.error(s"Sending event : ${sysEvent} to RealSimulator")
+          zeroMQActor ! PublishEvent(sysEvent)
+        } else {
+          //log.error(s"Sending event : ${sysEvent} to SimpleSimulator")
+          simpleSimActor ! ProcEventDemand(sysEvent)
+        }
         Future.successful("Successfully sent Assembly position demands to MCS ZeroMQActor")
       }
     }
@@ -110,7 +135,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
         val eventSubscriber = eventService.defaultSubscriber
         zeroMQActor = msg.zeroMQProtoActor
         log.info(msg = s"Starting subscribing to events from MCS Assembly in StatePublisherActor via EventSubscriber")
-        eventSubscriber.subscribeAsync(EventConstants.PositionDemandKey, event => processEvent(event))
+        eventSubscriber.subscribeCallback(EventConstants.PositionDemandKey, event => processEvent(event))
         Behavior.same
       }
       case msg: StateChangeMsg => {
@@ -124,6 +149,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                          currLifeCycleState,
                                          msg.oerationalState,
                                          eventService,
+                                         simulatorMode,
                                          loggerFactory)
       }
       case msg: PublishState => {
@@ -133,13 +159,55 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
       case msg: HCDOperationalStateChangeMsg => {
         val currOperationalState = msg.operationalState
         log.info(msg = s"Changing current operational state of MCS HCD to: ${currOperationalState}")
-        StatePublisherActor.createObject(currentStatePublisher, lifeCycleState, currOperationalState, eventService, loggerFactory)
+        StatePublisherActor.createObject(currentStatePublisher,
+                                         lifeCycleState,
+                                         currOperationalState,
+                                         eventService,
+                                         simulatorMode,
+                                         loggerFactory)
+      }
+      case msg: SimulationModeChange => {
+        log.info(s"Changing Simulation mode in StatePublisherActor from : $simulatorMode to ${msg.simMode}")
+        if (msg.simMode == Commands.SIMPLE_SIMULATOR) {
+          simpleSimActor = msg.simpleSimActor
+          simpleSimActor ! StartPublishingEvent()
+          log.info(s"Started Publishing Events from MCS SimpleSimulator")
+        } else {
+          log.info(s"Started Publishing events from MCS ZeroMQActor")
+          zeroMQActor = msg.zeroMQActor
+          zeroMQActor ! StartSimulEventSubscr()
+        }
+        StatePublisherActor.createObject(currentStatePublisher,
+                                         lifeCycleState,
+                                         operationalState,
+                                         eventService,
+                                         msg.simMode,
+                                         loggerFactory)
       }
       case msg: AssemblyStateChange => {
-        log.info(s"*** Received Assembly position demands : ${msg.currentState} at: ${System.currentTimeMillis()} ***")
-        zeroMQActor = msg.zeroMQProtoActor
-        val event = paramSetTransformer.getMountDemandPositions(msg.currentState)
-        zeroMQActor ! PublishEvent(event)
+        //TODO: Below HCD Event Receival time is temporary it must be removed once performance measurement is done.
+        //log.info(s"Received assembly state change : ${msg}")
+        try {
+          val currentState = msg.currentState
+          val currState    = currentState.add(EventConstants.HcdReceivalTime_Key.set(System.currentTimeMillis()))
+          if (simulatorMode == Commands.REAL_SIMULATOR) {
+            // log.info(s"Sending demands to Real Simulator")
+            zeroMQActor = msg.zeroMQProtoActor
+            zeroMQActor ! PublishCurrStateToZeroMQ(currState)
+            //log.info(s"Published ${currState} to zeroMQActor")
+          } else {
+            //log.info(s"Sending demands to Simple Simulator")
+            simpleSimActor = msg.simpleSimActor
+            simpleSimActor ! ProcCurrStateDemand(currState)
+            //log.info(s"Published ${currState} to simpleSimulator")
+          }
+
+        } catch {
+          case ex: Exception => {
+            ex.printStackTrace()
+            log.error("Exception in getting current state in HCD")
+          }
+        }
         Behavior.same
       }
       //TODO : In case later decesion changed to use this message then rewrite publishCurrentPosition case

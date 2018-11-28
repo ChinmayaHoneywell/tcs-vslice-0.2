@@ -5,19 +5,26 @@ import akka.util.Timeout
 import csw.messages.commands.{CommandResponse, ControlCommand}
 import csw.services.command.CommandResponseManager
 import csw.services.logging.scaladsl.{Logger, LoggerFactory}
-import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage
+import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, ZeroMQMessage}
+
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import akka.actor.typed.scaladsl.AskPattern._
 object PointCmdActor {
   def create(commandResponseManager: CommandResponseManager,
              zeroMQProtoActor: ActorRef[ZeroMQMessage],
+             simpleSimActor: ActorRef[SimpleSimMsg],
+             simulatorMode: String,
              loggerFactory: LoggerFactory): Behavior[ControlCommand] =
-    Behaviors.setup(ctx => PointCmdActor(ctx, commandResponseManager, zeroMQProtoActor, loggerFactory))
+    Behaviors.setup(
+      ctx => PointCmdActor(ctx, commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory)
+    )
 }
 case class PointCmdActor(ctx: ActorContext[ControlCommand],
                          commandResponseManager: CommandResponseManager,
                          zeroMQProtoActor: ActorRef[ZeroMQMessage],
+                         simpleSimActor: ActorRef[SimpleSimMsg],
+                         simulatorMode: String,
                          loggerFactory: LoggerFactory)
     extends MutableBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger

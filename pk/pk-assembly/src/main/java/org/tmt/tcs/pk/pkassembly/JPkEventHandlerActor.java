@@ -72,8 +72,11 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
         log.info("Inside JPkEventHandlerActor: Publishing Mcs Demand ");
         Key<Double> azDoubleKey = JKeyTypes.DoubleKey().make("mcs.az");
         Key<Double> elDoubleKey = JKeyTypes.DoubleKey().make("mcs.el");
-
-        Event event = new SystemEvent(prefix, new EventName("mcsdemandpositions")).add(azDoubleKey.set(message.getAz())).add(elDoubleKey.set(message.getEl()));
+        Key<Long>  publishTimeKey             = JKeyTypes.LongKey().make("timeStamp");
+        Event event = new SystemEvent(prefix, new EventName("mcsdemandpositions"))
+                .add(azDoubleKey.set(message.getAz()))
+                .add(elDoubleKey.set(message.getEl()))
+                .add(publishTimeKey.set(System.currentTimeMillis()));
         eventService.defaultPublisher().publish(event);
     }
 

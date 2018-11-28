@@ -96,9 +96,10 @@ class McsAssemblyHandlers(
   3. sends  StartPublishingEvents  and StartEventSubscription msg to EventHandlerActor
    */
   override def initialize(): Future[Unit] = Future {
-    //log.info(msg = "Initializing MCS Assembly")
+    log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
-    eventHandlerActor ! StartPublishingDummyEvent()
+    //eventHandlerActor ! StartPublishingDummyEvent()
+    eventHandlerActor ! StartEventSubscription()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
   /*
@@ -132,7 +133,7 @@ class McsAssemblyHandlers(
   }
 
   override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
-    //log.info(msg = s" validating command ----> ${controlCommand.commandName}")
+    log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
 
       case Commands.FOLLOW => {
@@ -154,7 +155,11 @@ class McsAssemblyHandlers(
         CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.SHUTDOWN => {
+        //log.info
         CommandResponse.Accepted(controlCommand.runId)
+      }
+      case Commands.SET_SIMULATION_MODE => {
+        executeSimModeAndSendResp(controlCommand)
       }
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
@@ -184,6 +189,25 @@ class McsAssemblyHandlers(
       )
     }
   }
+
+  private def executeSimModeAndSendResp(controlCommand: ControlCommand): CommandResponse = {
+    implicit val duration: Timeout = 20 seconds
+    implicit val scheduler         = ctx.system.scheduler
+    val immediateResponse: CommandMessage = Await.result(commandHandlerActor ? { ref: ActorRef[CommandMessage] =>
+      CommandMessage.ImmediateCommand(ref, controlCommand)
+    }, 5.seconds)
+    immediateResponse match {
+      case msg: ImmediateCommandResponse => {
+        msg.commandResponse
+      }
+      case _ => {
+        CommandResponse.NotAllowed(
+          controlCommand.runId,
+          UnsupportedCommandInStateIssue(s" Unable to setup simulation mode.")
+        )
+      }
+    }
+  }
   /*
     This function executes follow command by sending msg to commandhandler and sends response of commandhandler to
     the caller
@@ -199,6 +223,7 @@ class McsAssemblyHandlers(
         if (msg.commandResponse.toString.equals("Completed")) {
           monitorActor ! AssemblyOperationalStateChangeMsg(AssemblyOperationalState.Slewing)
         }
+        log.info(s"Follow command response is : ${msg.commandResponse}")
         msg.commandResponse
       }
       case _ => {
@@ -285,21 +310,23 @@ class McsAssemblyHandlers(
   private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
     // check hcd is in running state
     if (validateParams(controlCommand)) {
-      implicit val duration: Timeout = 20 seconds
+      implicit val duration: Timeout = 40 seconds
       implicit val scheduler         = ctx.system.scheduler
       val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
         MonitorMessage.GetCurrentState(ref)
-      }, 3.seconds)
-      //log.info(msg = s"Response from monitor actor is : ${assemblyCurrentState}")
+      }, 30.seconds)
+      log.info(msg = s"Response from monitor actor, while validating datum command  is : ${assemblyCurrentState}")
       if (validateAssemblyState(assemblyCurrentState)) {
         CommandResponse.Accepted(controlCommand.runId)
       } else {
+        log.error(s"Unable to pass datum command as assembly current state is : ${assemblyCurrentState}")
         CommandResponse.NotAllowed(
           controlCommand.runId,
           UnsupportedCommandInStateIssue(s" Datum command is not allowed if assembly is not in Running state")
         )
       }
     } else {
+      log.error(s"Incorrect parameters provided for Datum command ")
       CommandResponse.Invalid(controlCommand.runId,
                               WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }

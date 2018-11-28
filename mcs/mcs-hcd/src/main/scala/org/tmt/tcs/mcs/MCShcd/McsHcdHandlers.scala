@@ -4,7 +4,7 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
 import csw.framework.scaladsl.ComponentHandlers
-import csw.messages.commands.{CommandResponse, ControlCommand}
+import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
 import csw.messages.commands.CommandIssue.{
   UnsupportedCommandInStateIssue,
   UnsupportedCommandIssue,
@@ -16,26 +16,22 @@ import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, Tr
 import csw.messages.params.generics.Parameter
 import csw.services.location.scaladsl.LocationService
 import csw.services.logging.scaladsl.LoggerFactory
-import org.tmt.tcs.mcs.MCShcd.EventMessage.{
-  AssemblyStateChange,
-  HCDOperationalStateChangeMsg,
-  StartEventSubscription,
-  StateChangeMsg
-}
+import org.tmt.tcs.mcs.MCShcd.EventMessage._
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
-import org.tmt.tcs.mcs.MCShcd.constants.Commands
+import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import akka.actor.typed.scaladsl.AskPattern._
 import com.typesafe.config.Config
 import csw.framework.CurrentStatePublisher
 import csw.messages.TopLevelActorMessage
+import csw.messages.params.models.{Prefix, Subsystem}
 import csw.messages.params.states.CurrentState
 import csw.services.alarm.api.scaladsl.AlarmService
 import csw.services.command.CommandResponseManager
 import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
 import csw.services.event.api.scaladsl.EventService
-import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.ImmediateCommandResponse
+import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.{submitCommand, ImmediateCommandResponse}
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{Disconnect, StartSimulEventSubscr}
-import org.tmt.tcs.mcs.MCShcd.Protocol.{ZeroMQMessage, ZeroMQProtocolActor}
+import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, SimpleSimulator, ZeroMQMessage, ZeroMQProtocolActor}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.ParamSetTransformer
 import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
 
@@ -72,6 +68,7 @@ class McsHcdHandlers(
 
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
+  private var simulatorMode: String         = Commands.REAL_SIMULATOR
 
   private val lifeCycleActor: ActorRef[LifeCycleMessage] =
     ctx.spawn(LifeCycleActor.createObject(commandResponseManager, locationService, loggerFactory), "LifeCycleActor")
@@ -82,18 +79,30 @@ class McsHcdHandlers(
                                      HCDLifeCycleState.Off,
                                      HCDOperationalState.DrivePowerOff,
                                      eventService,
+                                     simulatorMode,
                                      loggerFactory),
     "StatePublisherActor"
   )
-  //private val subSystemManager: SubsystemManager = SubsystemManager.create(simulator, loggerFactory)
+
   private val zeroMQProtoActor: ActorRef[ZeroMQMessage] =
     ctx.spawn(ZeroMQProtocolActor.create(statePublisherActor, loggerFactory), "ZeroMQActor")
+  private val simpleSimActor: ActorRef[SimpleSimMsg] =
+    ctx.spawn(SimpleSimulator.create(loggerFactory, statePublisherActor), "SimpleSimulator")
+
   private val commandHandlerActor: ActorRef[HCDCommandMessage] =
-    ctx.spawn(CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, zeroMQProtoActor, loggerFactory),
-              "CommandHandlerActor")
+    ctx.spawn(
+      CommandHandlerActor.createObject(commandResponseManager,
+                                       lifeCycleActor,
+                                       zeroMQProtoActor,
+                                       simpleSimActor,
+                                       simulatorMode,
+                                       loggerFactory),
+      "CommandHandlerActor"
+    )
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   private val positionDemandActor: ActorRef[ControlCommand] =
-    ctx.spawn(PositionDemandActor.create(loggerFactory, zeroMQProtoActor, paramSetTransformer), "PositionDemandEventActor")
+    ctx.spawn(PositionDemandActor.create(loggerFactory, zeroMQProtoActor, simpleSimActor, simulatorMode, paramSetTransformer),
+              "PositionDemandEventActor")
   /*
   This function initializes HCD, uses configuration object to initialize Protocol and
   sends updated states tp state publisher actor for publishing
@@ -108,12 +117,12 @@ class McsHcdHandlers(
     val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
       LifeCycleMessage.InitializeMsg(ref)
     }, 10.seconds)
+    //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
 
     if (connectToSimulator(lifecycleMsg)) {
-      //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
-      //statePublisherActor ! StartEventSubscription()
+      statePublisherActor ! StartEventSubscription(zeroMQProtoActor, simpleSimActor)
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
-      zeroMQProtoActor ! StartSimulEventSubscr()
+      //zeroMQProtoActor ! StartSimulEventSubscr()
     } else {
       log.error(msg = s"Unable to connect with MCS Simulator")
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.Disconnected)
@@ -126,7 +135,7 @@ class McsHcdHandlers(
     implicit val scheduler         = ctx.system.scheduler
     lifecycleMsg match {
       case x: LifeCycleMessage.HCDConfig => {
-        log.info(msg = s"Sending initialize message to zeroMQActor, config from configuration service is : ${x.config}")
+        //  log.info(msg = s"Sending initialize message to zeroMQActor, config from configuration service is : ${x.config}")
 
         val zeroMQMsg = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
           ZeroMQMessage.InitializeSimulator(ref, x.config)
@@ -151,12 +160,15 @@ class McsHcdHandlers(
   var assemblyLocation: Option[CommandService]                    = None
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    log.info(msg = "** Assembly Location changed **")
+    // log.error(msg = "** Assembly Location changed **")
     trackingEvent match {
       case LocationUpdated(location) => {
         assemblyLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
+        //log.error(s"Published assembly current state to HCD : ")
         assemblyDemandsSubscriber = Some(
-          assemblyLocation.get.subscribeCurrentState(statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, _))
+          assemblyLocation.get.subscribeCurrentState(
+            statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, simpleSimActor, _)
+          )
         )
       }
       case LocationRemoved(_) => {
@@ -180,7 +192,13 @@ class McsHcdHandlers(
         validatePointCommand(controlCommand)
       }
       case Commands.POINT_DEMAND => {
+        // point demand is in case of Move command splitting at assembly level.
         validatePointDemandCommand(controlCommand)
+      }
+      case Commands.POSITION_DEMANDS => {
+        // position demands command is used during one way command tpk position demands
+        //log.info(s"** Position Demands Validate loop is executed")
+        CommandResponse.Accepted(controlCommand.runId)
       }
       case Commands.STARTUP => {
         log.info(msg = s"validating startup command in HCD")
@@ -190,15 +208,28 @@ class McsHcdHandlers(
         log.info(msg = s"validating shutdown command in HCD")
         CommandResponse.Accepted(controlCommand.runId)
       }
-      case Commands.POSITION_DEMANDS => {
-        log.info(s"** Position Demands Validate loop is executed")
-        CommandResponse.Accepted(controlCommand.runId)
+
+      case Commands.SET_SIMULATION_MODE => {
+        validateSetSimulationMode(controlCommand)
       }
       case x =>
         CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
-
+  private def validateSetSimulationMode(cmd: ControlCommand): CommandResponse = {
+    val modeParam: Parameter[_] = cmd.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
+    val param                   = modeParam.head
+    if (param == Commands.REAL_SIMULATOR) {
+      simulatorMode = Commands.REAL_SIMULATOR
+    }
+    if (param == Commands.SIMPLE_SIMULATOR) {
+      simulatorMode = Commands.SIMPLE_SIMULATOR
+    }
+    commandHandlerActor ! submitCommand(cmd)
+    statePublisherActor ! SimulationModeChange(simulatorMode, simpleSimActor, zeroMQProtoActor)
+    positionDemandActor ! cmd
+    CommandResponse.Completed(cmd.runId)
+  }
   /*
      This functions validates point demand command based upon paramters and hcd state
    */
@@ -511,8 +542,17 @@ class McsHcdHandlers(
   }
 
   override def onOneway(controlCommand: ControlCommand): Unit = {
-    log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
-    positionDemandActor ! controlCommand
+    // log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
+    val hcdRecTime      = System.currentTimeMillis()
+    val setup           = Setup(Prefix(Subsystem.MCS.toString), CommandName(Commands.POSITION_DEMANDS), None)
+    val azPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
+    val elPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
+    val timeStamp       = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
+    val assemblyRecTime = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
+    val hcdRecParam     = EventConstants.HcdReceivalTime_Key.set(hcdRecTime)
+
+    val cmd = setup.add(azPosParam).add(elPosParam).add(timeStamp).add(assemblyRecTime).add(hcdRecParam)
+    positionDemandActor ! cmd
   }
 
   override def onShutdown(): Future[Unit] = Future {

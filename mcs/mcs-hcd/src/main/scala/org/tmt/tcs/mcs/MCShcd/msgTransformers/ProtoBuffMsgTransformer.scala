@@ -50,7 +50,20 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
         paramSetTransformer.getMCSDriveStatus(driveState)
       }
       case EventConstants.HEALTH_STATE => {
-        val healthState: McsHealth = McsHealth.parseFrom(encodedEventData)
+        var healthState: McsHealth = null
+        try {
+          healthState = McsHealth.parseFrom(encodedEventData)
+        } catch {
+          case e: Exception => {
+            healthState = McsHealth
+              .newBuilder()
+              .setHealth(McsHealth.Health.Good)
+              .setReason("All is well")
+              .setTime(Instant.now().toEpochMilli)
+              .build()
+            e.printStackTrace()
+          }
+        }
         paramSetTransformer.getMCSHealth(healthState)
       }
     }
@@ -79,9 +92,38 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       }
     }
   }
+  override def encodeCurrentState(currentState: CurrentState): Array[Byte] = {
+    var trackID  = 1
+    var azPos    = 0.0
+    var elPos    = 0.0
+    val sentTime = System.currentTimeMillis() //current time of HCD
+    // log.info(s"Received current state for transformation to events : $currentState")
+    /* if (currentState.exists(EventConstants.TrackIDKey)) {
+      trackID = currentState.get(EventConstants.TrackIDKey).get.head
+    }*/
+    if (currentState.exists(EventConstants.AzPosKey)) {
+      azPos = currentState.get(EventConstants.AzPosKey).get.head
+    }
+    if (currentState.exists(EventConstants.ElPosKey)) {
+      elPos = currentState.get(EventConstants.ElPosKey).get.head
+    }
+    val event: GeneratedMessage =
+      TcsPositionDemandEvent
+        .newBuilder()
+        .setAzimuth(azPos)
+        .setElevation(elPos)
+        .setHcdReceivalTime(currentState.get(EventConstants.HcdReceivalTime_Key).get.head)
+        .setTpkPublishTime(currentState.get(EventConstants.TimeStampKey).get.head)
+        .setAssemblyReceivalTime(currentState.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head)
+        .build()
+    // log.info(s"converted current state to ${event.toByteArray}")
+    event.toByteArray
+  }
+
+  //TODO: Change this method for publishing assembly,hcd receival times
   override def encodeEvent(systemEvent: SystemEvent): Array[Byte] = {
 
-    val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
+    //   val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
 
     var azParam = 0.0
     if (systemEvent.exists(EventConstants.AzPosKey)) {
@@ -91,21 +133,23 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     if (systemEvent.exists(EventConstants.ElPosKey)) {
       elParam = systemEvent.get(EventConstants.ElPosKey).get.head
     }
-    var timeSent = Instant.now().toEpochMilli
-    if (systemEvent.exists(EventConstants.TimeStampKey)) {
-      timeSent = systemEvent.get(EventConstants.TimeStampKey).get.head.toEpochMilli
-    }
 
     // val trackID: Int = trackIDOption.get.head
+    var assemblySentTime = System.currentTimeMillis()
+    if (systemEvent.exists(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY)) {
+      assemblySentTime = systemEvent.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
+    }
 
-    val event: GeneratedMessage =
-      TcsPositionDemandEvent
-        .newBuilder()
-        .setAzimuth(azParam)
-        .setElevation(elParam)
-        .setTime(timeSent)
-        .build()
+    val event = TcsPositionDemandEvent
+      .newBuilder()
+      .setAzimuth(azParam)
+      .setElevation(elParam)
+      .setHcdReceivalTime(systemEvent.get(EventConstants.HcdReceivalTime_Key).get.head)
+      .setTpkPublishTime(systemEvent.get(EventConstants.TimeStampKey).get.head)
+      .setAssemblyReceivalTime(assemblySentTime)
+      .build()
     event.toByteArray
+
   }
 
   def getFollowCommandBytes: Array[Byte] = {

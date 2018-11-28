@@ -15,8 +15,8 @@ object MCSSubsystem extends App{
   commandProcessor.initialize(addr,pushSocketPort, pullSocketPort)
 
   val eventProcessor : EventsProcessor =  EventsProcessor.createEventsProcessor(zmqContext)
-  val pubSocketPort : Int = 55581
-  val subSocketPort : Int = 55580
+  val pubSocketPort : Int = 55580
+  val subSocketPort : Int = 55581
   eventProcessor.initialize(addr,pubSocketPort,subSocketPort)
 
   new Thread(new Runnable {

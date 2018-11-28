@@ -24,48 +24,54 @@ object ParamSetTransformer {
 
 case class ParamSetTransformer(loggerFactory: LoggerFactory) {
 
-  private val log                        = loggerFactory.getLogger
-  private val prefix                     = Prefix(Subsystem.MCS.toString)
-  private val timeStampKey: Key[Instant] = EventConstants.TimeStampKey
+  private val log                     = loggerFactory.getLogger
+  private val prefix                  = Prefix(Subsystem.MCS.toString)
+  private val timeStampKey: Key[Long] = EventConstants.TimeStampKey
   def getMountDemandPositions(msg: ControlCommand): SystemEvent = {
     val paramSet = msg.paramSet
     //paramSet: Set[Parameter[_]]
 
-    val azPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
-    val elPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
-    val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
+    val azPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
+    val elPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
+    //  val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
     val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
 
-    val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
-    val azPos    = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
-    val elPos    = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
-    val sentTime = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(Instant.now()))
+    //val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
+    val azPos           = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
+    val elPos           = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
+    val sentTime        = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
+    val assemblyRecTime = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
+    val hcdRecTime      = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
 
     SystemEvent(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
-      .add(trackID)
+    /*.add(trackID)*/
       .add(azPos)
       .add(elPos)
       .add(sentTime)
+      .add(assemblyRecTime)
+      .add(hcdRecTime)
 
   }
   def getMountDemandPositions(currentState: CurrentState): SystemEvent = {
 
-    val trackIDOption  = currentState.get(EventConstants.TrackIDKey)
+    // val trackIDOption  = currentState.get(EventConstants.TrackIDKey)
     val azPosOption    = currentState.get(EventConstants.AzPosKey)
     val elPosOption    = currentState.get(EventConstants.ElPosKey)
     val sentTimeOption = currentState.get(EventConstants.TimeStampKey)
 
-    val trackID  = trackIDOption.getOrElse(EventConstants.TrackIDKey.set(0))
+    //val trackID  = trackIDOption.getOrElse(EventConstants.TrackIDKey.set(0))
     val azPos    = azPosOption.getOrElse(EventConstants.AzPosKey.set(0.0))
     val elPos    = elPosOption.getOrElse(EventConstants.ElPosKey.set(0.0))
-    val sentTime = sentTimeOption.getOrElse(EventConstants.TimeStampKey.set(Instant.now()))
+    val sentTime = sentTimeOption.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
 
     val event = SystemEvent(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))
-      .add(trackID)
+    /*  .add(trackID)*/
       .add(azPos)
       .add(elPos)
       .add(sentTime)
-
+      .add(currentState.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get)
+      .add(currentState.get(EventConstants.HcdReceivalTime_Key).get)
+    //     .add(currentState.get(EventConstants.)
     event
   }
   /* def getMountDemandPositions(systemEvent: SystemEvent): MCSPositionDemand = {
@@ -75,7 +81,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
   def getHCDState(state: String): CurrentState = {
     val lifeCycleStateKey                 = EventConstants.LifeCycleStateKey
     val lifeCycleParam: Parameter[String] = lifeCycleStateKey.set(state)
-    val timestamp                         = timeStampKey.set(Instant.now)
+    val timestamp                         = timeStampKey.set(System.currentTimeMillis())
     CurrentState(prefix, StateName(EventConstants.HCDLifecycleState)).add(lifeCycleParam).add(timestamp)
   }
   /*
@@ -94,7 +100,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
 
     val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(mcsCurrentPosEvent.getAzInPosition)
     val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(mcsCurrentPosEvent.getElInPosition)
-    val timestamp                             = timeStampKey.set(Instant.ofEpochMilli(mcsCurrentPosEvent.getTime))
+    val timestamp                             = timeStampKey.set(mcsCurrentPosEvent.getTime)
 
     CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
       .add(azPosParam)
@@ -118,7 +124,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
 
     val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(diagnosis.getAzInPosition)
     val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(diagnosis.getElInPosition)
-    val timestamp                             = timeStampKey.set(Instant.ofEpochMilli(diagnosis.getTime))
+    val timestamp                             = timeStampKey.set(diagnosis.getTime)
 
     CurrentState(prefix, StateName(EventConstants.DIAGNOSIS_STATE))
       .add(azPosParam)
@@ -139,7 +145,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
     val mcdLifecycleStateParam: Parameter[String] = EventConstants.LifeCycleStateKey.set(driveStatus.getLifecycle.toString)
     val mcsAzState: Parameter[String]             = EventConstants.MCS_AZ_STATE.set(driveStatus.getAzstate.name())
     val mcsElState: Parameter[String]             = EventConstants.MCS_EL_STATE.set(driveStatus.getElstate.name())
-    val timestamp                                 = timeStampKey.set(Instant.ofEpochMilli(driveStatus.getTime))
+    val timestamp                                 = timeStampKey.set(driveStatus.getTime)
 
     CurrentState(prefix, StateName(EventConstants.DRIVE_STATE))
       .add(processingCmdParam)
@@ -151,7 +157,7 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
   def getMCSHealth(health: McsHealth): CurrentState = {
     val healthParam: Parameter[String]       = EventConstants.HEALTH_KEY.set(health.getHealth.name())
     val healthReasonParam: Parameter[String] = EventConstants.HEALTH_REASON_KEY.set(health.getReason)
-    val timestamp                            = timeStampKey.set(Instant.ofEpochMilli(health.getTime))
+    val timestamp                            = timeStampKey.set(health.getTime)
 
     CurrentState(prefix, StateName(EventConstants.HEALTH_STATE))
       .add(healthParam)

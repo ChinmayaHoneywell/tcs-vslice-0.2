@@ -2,8 +2,14 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk_7019.iml" filepath="$PROJECT_DIR$/.idea/modules/pk_7019.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk_7019-build.iml" filepath="$PROJECT_DIR$/.idea/modules/pk_7019-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk.iml" filepath="$PROJECT_DIR$/.idea/modules/pk.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-assembly.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-assembly.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-assembly-build.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-assembly-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-build.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-client.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-client-build.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-client-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-deploy.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-deploy.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/pk-deploy-build.iml" filepath="$PROJECT_DIR$/.idea/modules/pk-deploy-build.iml" />
     </modules>
   </component>
 </project>
