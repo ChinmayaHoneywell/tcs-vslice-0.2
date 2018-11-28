@@ -4,6 +4,10 @@ import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.ActorRef;
 import csw.framework.CurrentStatePublisher;
 import csw.messages.framework.ComponentInfo;
+import csw.messages.framework.LocationServiceUsage;
+import csw.messages.location.ComponentType;
+import csw.messages.location.Connection;
+import csw.messages.params.models.Prefix;
 import csw.messages.params.states.CurrentState;
 import csw.services.logging.javadsl.JLoggerFactory;
 import org.junit.*;
@@ -13,6 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.tmt.encsubsystem.enchcd.models.HCDState;
+import scala.concurrent.duration.FiniteDuration;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -50,8 +57,17 @@ public class JStatePublisherActorTest {
 
     @Mock
     CurrentStatePublisher currentStatePublisher;
+
     @Mock
-    ComponentInfo componentInfo;
+    ComponentType type;
+
+    @Mock
+    LocationServiceUsage usage;
+
+    @Mock
+    scala.collection.immutable.Set<Connection> connections;
+
+    ComponentInfo componentInfo = new ComponentInfo("a", type, new Prefix("tmt.tcs.ecs"),"abcd", usage,connections, FiniteDuration.apply(10, TimeUnit.SECONDS));
 
     @Captor
     ArgumentCaptor<CurrentState> currentStateArgumentCaptor;
@@ -71,22 +87,6 @@ public class JStatePublisherActorTest {
     public void tearDown() throws Exception {
     }
 
-    /**
-     * given HCD is running,
-     * when state publisher actor receives follow command complted message,
-     * then it should change hcdstate to follow
-     * How to test if actor has executed some function?
-     * https://stackoverflow.com/questions/27091629/akka-test-that-function-from-test-executed?answertab=oldest#tab-top
-     */
-    @Test
-    public void followCommandCompletedTest() throws InterruptedException {
-
-        statePublisherActor.tell(new JStatePublisherActor.FollowCommandCompletedMessage());
-        Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
-        verify(currentStatePublisher).publish(currentStateArgumentCaptor.capture());
-        CurrentState currentState = currentStateArgumentCaptor.getValue();
-        assertEquals(currentState.stateName().name(), "OpsAndLifecycleState");
-    }
 
     /**
      * given hcd is initialized,

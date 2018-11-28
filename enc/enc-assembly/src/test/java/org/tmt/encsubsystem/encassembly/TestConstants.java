@@ -26,8 +26,8 @@ public class TestConstants {
         timeDurationValue[0] = 10L;
         Setup moveCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("move"), Optional.empty())
                 .add(JKeyTypes.StringKey().make("operation").set("On"))
-                .add(JKeyTypes.DoubleKey().make("az").set(2.34))
-                .add(JKeyTypes.DoubleKey().make("el").set(5.76))
+                .add(JKeyTypes.DoubleKey().make("base").set(2.34))
+                .add(JKeyTypes.DoubleKey().make("cap").set(5.76))
                 .add(JKeyTypes.StringKey().make("mode").set("fast"))
                 .add(JKeyTypes.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
 
@@ -39,8 +39,8 @@ public class TestConstants {
         timeDurationValue[0] = 10L;
         Setup moveCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("move"), Optional.empty())
                 .add(JKeyTypes.StringKey().make("operation").set("On"))
-                .add(JKeyTypes.DoubleKey().make("az").set(2.34))
-                .add(JKeyTypes.DoubleKey().make("el").set(5.76))
+                .add(JKeyTypes.DoubleKey().make("base").set(2.34))
+                .add(JKeyTypes.DoubleKey().make("cap").set(5.76))
                 .add(JKeyTypes.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
 
         return moveCommand;

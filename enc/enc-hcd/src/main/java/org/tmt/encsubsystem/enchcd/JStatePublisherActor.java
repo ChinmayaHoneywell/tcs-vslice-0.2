@@ -215,7 +215,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
                 case DEMAND_POSITIONS:
                     log.debug(() -> "encdemandpositions - "+reverseCurrentState);
                     DemandPosition demandPosition = extractDemandPosition(reverseCurrentState);
-                    forwardToSubsystem(demandPosition);//assembly state derivation can be scheduled using timer.
+                    forwardToSubsystem(demandPosition);
                     break;
                 default:
                     log.error("This current state is not handled");
@@ -376,10 +376,34 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
     }
 
     public static final class InitializedMessage implements StatePublisherMessage {
+        @Override
+        public boolean equals(Object obj) {
+
+            if (!(obj instanceof InitializedMessage)) {
+                return false;
+            }
+            return true;
+        }
     }
     public static final class UnInitializedMessage implements StatePublisherMessage {
+        @Override
+        public boolean equals(Object obj) {
+
+            if (!(obj instanceof UnInitializedMessage)) {
+                return false;
+            }
+            return true;
+        }
     }
     public static final class FollowCommandCompletedMessage implements StatePublisherMessage {
+        @Override
+        public boolean equals(Object obj) {
+
+            if (!(obj instanceof FollowCommandCompletedMessage)) {
+                return false;
+            }
+            return true;
+        }
     }
 
     /**

@@ -44,6 +44,7 @@ public class JStartUpCmdActorTest {
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
+        monitorActor = testKit.createTestProbe();
         startUpCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory, monitorActor.getRef()));
     }
 

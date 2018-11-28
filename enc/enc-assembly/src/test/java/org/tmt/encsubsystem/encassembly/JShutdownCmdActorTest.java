@@ -43,6 +43,7 @@ public class JShutdownCmdActorTest {
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
+        monitorActor= testKit.createTestProbe();
         shutdownCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory, monitorActor.getRef()));
 
     }

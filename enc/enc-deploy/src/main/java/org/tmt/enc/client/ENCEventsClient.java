@@ -19,6 +19,9 @@ import csw.services.logging.javadsl.ILogger;
 import csw.services.logging.javadsl.JLoggerFactory;
 import csw.services.logging.javadsl.JLoggingSystemFactory;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.time.Instant;
@@ -43,13 +46,17 @@ public class ENCEventsClient {
         String assemblyState = "Unknown";
         String health="Unknown";
         String diagnostic="Unknown";
-
+        PrintStream  printStream;
 
         public ENCEventsClient(ActorSystem system, ILocationService locationService) throws Exception {
             this.source = new Prefix("enc.enc-event-client");
             this.system = system;
             this.locationService = locationService;
             this.eventService = getEventServiceInstance(locationService, system);
+
+            File file = new File("CurrentPosition_SimpleSimulator_Logs_"+Instant.now().toString()+"__.txt");
+            file.createNewFile();
+            this.printStream = new PrintStream(new FileOutputStream(file));
         }
         /**
          * Use this method to get an instance of EventService
@@ -94,6 +101,7 @@ public class ENCEventsClient {
 
             //System.out.print("\r"+event.eventName().name()+", base="+ basePosParam.value(0) + ", cap="+ capPosParam.value(0) + ", subsystem timestamp - " + subsystemInstantTime + ", HCD timestamp- " + hcdInstantTime+ ", Assembly timestamp- " + assemblyInstantTime + ", Client timestamp- " + clientInstantTime + ", Time taken(HCD to Client) - " + hcdToClientDuration + "ms, Time taken(Subsystem to Client) - " + subsystemToClientDuration + "ms, Time taken(HCD to Assembly) - " + hcdToAssemblyDuration+"ms" + " , "+assemblyState+ ", " + health+" , "+ diagnostic);
             log.info(()->"Event="+event.eventName().name()+", base="+ basePosParam.value(0) + ", cap="+ capPosParam.value(0) + ", subsystem time=" + subsystemInstantTime + ", hcd time=" + hcdInstantTime+ ", assembly time=" + assemblyInstantTime + ", subscriber time=" + clientInstantTime + ", Duration(hcd to subscriber in ms)=" + hcdToClientDuration + ", Duration(subsystem to subscriber in ms)=" + subsystemToClientDuration + ", Duration(hcd to assembly in ms)=" + hcdToAssemblyDuration);
+            this.printStream.println("Event="+event.eventName().name()+", base="+ basePosParam.value(0) + ", cap="+ capPosParam.value(0) + ", subsystem time=" + subsystemInstantTime + ", hcd time=" + hcdInstantTime+ ", assembly time=" + assemblyInstantTime + ", subscriber time=" + clientInstantTime + ", Duration(hcd to subscriber in ms)=" + hcdToClientDuration + ", Duration(subsystem to subscriber in ms)=" + subsystemToClientDuration + ", Duration(hcd to assembly in ms)=" + hcdToAssemblyDuration);
             return CompletableFuture.completedFuture("Ok");
         }
 

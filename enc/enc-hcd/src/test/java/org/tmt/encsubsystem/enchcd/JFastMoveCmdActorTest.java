@@ -35,8 +35,8 @@ public class JFastMoveCmdActorTest {
     TestProbe<JStatePublisherActor.StatePublisherMessage> statePublisherMessageTestProbe;
     ActorRef<ControlCommand> fastMoveCmdActor;
 
-    private Key<Double> azKey = JKeyTypes.DoubleKey().make("az");
-    private Key<Double> elKey = JKeyTypes.DoubleKey().make("el");
+    private Key<Double> azKey = JKeyTypes.DoubleKey().make("base");
+    private Key<Double> elKey = JKeyTypes.DoubleKey().make("cap");
     private Key<String> mode = JKeyTypes.StringKey().make("mode");
     private Key<String> operation = JKeyTypes.StringKey().make("operation");
 
@@ -57,14 +57,14 @@ public class JFastMoveCmdActorTest {
      * then it should  update command response manager that command successfully completed
      */
     @Test
-    public void fastMoveCommandCompletion() {
-
+    public void fastMoveCommandCompletion() throws InterruptedException {
         Setup setup = new Setup(new Prefix("enc.enc-test"), new CommandName("fastMove"), Optional.empty())
                 .add(azKey.set(2.60))
                 .add(elKey.set(1.4))
                 .add(mode.set("fast"))
                 .add(operation.set("On"));
         fastMoveCmdActor.tell(setup);
+        Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(commandResponseManager).addOrUpdateCommand(setup.runId(), new CommandResponse.Completed(setup.runId()));
     }
 }
