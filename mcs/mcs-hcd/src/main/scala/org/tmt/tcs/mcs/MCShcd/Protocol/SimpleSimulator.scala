@@ -32,16 +32,12 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
                            loggerFactory: LoggerFactory,
                            statePublisherActor: ActorRef[EventMessage])
     extends MutableBehavior[SimpleSimMsg] {
-  private val log: Logger   = loggerFactory.getLogger
-  var az: Double            = 0.0
-  var el: Double            = 0.0
-  val prefix: Prefix        = Prefix(Subsystem.MCS.toString)
-  val MIN_AZ_POS: Double    = -330
-  val MAX_AZ_POS: Double    = 170
-  val MIN_EL_POS: Double    = -3
-  val MAX_EL_POS: Double    = 93
-  var AzPosDemanded: Double = 15
-  var ElPosDemanded: Double = 15
+  private val log: Logger = loggerFactory.getLogger
+
+  val prefix: Prefix = Prefix(Subsystem.MCS.toString)
+
+  var AzPosDemanded: Double = 0
+  var ElPosDemanded: Double = 0
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
     msg match {
@@ -79,8 +75,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
         val azPos            = cs.get(EventConstants.AzPosKey).get.head
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
-        az = azPos
-        el = elPos
+
         log.error(s"Received event :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
         Behavior.same
       }
@@ -92,11 +87,11 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
         val azPos            = cs.get(EventConstants.AzPosKey).get.head
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
-        az = azPos
-        el = elPos
-        setAzPosDemanded(az)
-        setElPosDemanded(el)
-        log.info(s"Received currentState :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
+        AzPosDemanded = azPos
+        ElPosDemanded = elPos
+        log.info(
+          s"Received demanded positions :$AzPosDemanded, $ElPosDemanded, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime"
+        )
         Behavior.same
       }
       case msg: StartPublishingEvent => {
@@ -113,65 +108,40 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
       }
     }
   }
-  private def setElPosDemanded(elDemanded: Double) = {
-    if (elDemanded >= MAX_EL_POS) {
-      ElPosDemanded = MAX_EL_POS
-    } else if (elDemanded <= MIN_EL_POS) {
-      ElPosDemanded = MIN_EL_POS
-    } else {
-      ElPosDemanded = elDemanded
-    }
-  }
 
-  private def setAzPosDemanded(azDemanded: Double) = {
-    if (azDemanded >= MAX_AZ_POS) {
-      AzPosDemanded = MAX_AZ_POS
-    } else if (azDemanded <= MIN_AZ_POS) {
-      AzPosDemanded = MIN_AZ_POS
-    } else {
-      AzPosDemanded = azDemanded
-    }
-  }
-  def updateCurrentElPos(): Double = {
-    if (el < ElPosDemanded) {
-      if (el + 5 < MAX_EL_POS) {
-        el = el + 5
-      } else {
-        el = MAX_AZ_POS
-      }
-    }
-    el
-  }
-  def updateCurrentAzPos(): Double = {
-    if (az < AzPosDemanded) {
-      if (az + 5 < MAX_AZ_POS) {
-        az = az + 5
-      } else {
-        az = MAX_AZ_POS
-      }
-    }
-    az
-  }
   def startPublishingCurrPos(): Unit = {
+
     log.info(s"Publish Current position thread started")
+    var elC: Double = 0
+    var azC: Double = 0
     while (true) {
       Thread.sleep(10)
-      //updateCurrentAzPos()
-      //updateCurrentElPos()
+
+      if (ElPosDemanded > 0 && elC < ElPosDemanded) {
+        elC = ElPosDemanded + 0.5
+      } else {
+        elC = ElPosDemanded - 0.5
+      }
+
+      if (AzPosDemanded > 0 && azC < AzPosDemanded) {
+        azC = AzPosDemanded + 0.5
+      } else {
+        azC = AzPosDemanded - 0.5
+      }
+
       val currentTime = System.currentTimeMillis()
 
-      val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(updateCurrentAzPos()).withUnits(degree)
-      val elPosParam: Parameter[Double] = EventConstants.ElPosKey.set(updateCurrentElPos()).withUnits(degree)
+      val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(azC).withUnits(degree)
+      val elPosParam: Parameter[Double] = EventConstants.ElPosKey.set(elC).withUnits(degree)
 
       val azPosErrorParam: Parameter[Double] =
-        EventConstants.AZ_POS_ERROR_KEY.set(az).withUnits(degree)
+        EventConstants.AZ_POS_ERROR_KEY.set(azC).withUnits(degree)
       val elPosErrorParam: Parameter[Double] =
-        EventConstants.EL_POS_ERROR_KEY.set(el).withUnits(degree)
+        EventConstants.EL_POS_ERROR_KEY.set(elC).withUnits(degree)
 
       val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(true)
       val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(true)
       val timestamp                             = EventConstants.TimeStampKey.set(currentTime)
-      val hcdRecvTimeKey                        = EventConstants.hcdEventReceivalTime_Key.set(currentTime)
 
       val currentState = CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
         .add(azPosParam)
@@ -181,7 +151,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         .add(azInPositionParam)
         .add(elInPositionParam)
         .add(timestamp)
-        .add(hcdRecvTimeKey)
+
       statePublisherActor ! PublishState(currentState)
     }
   }

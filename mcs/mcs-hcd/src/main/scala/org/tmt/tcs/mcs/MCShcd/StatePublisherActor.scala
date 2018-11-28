@@ -153,8 +153,17 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                          loggerFactory)
       }
       case msg: PublishState => {
-        currentStatePublisher.publish(msg.currentState)
-        Behavior.same
+        if (simulatorMode == Commands.SIMPLE_SIMULATOR) {
+          val hcdReceivalTime: Parameter[Long] = EventConstants.hcdEventReceivalTime_Key.set(System.currentTimeMillis())
+          val currentState                     = msg.currentState.add(hcdReceivalTime)
+          currentStatePublisher.publish(currentState)
+          Behavior.same
+
+        } else {
+          currentStatePublisher.publish(msg.currentState)
+          Behavior.same
+        }
+
       }
       case msg: HCDOperationalStateChangeMsg => {
         val currOperationalState = msg.operationalState

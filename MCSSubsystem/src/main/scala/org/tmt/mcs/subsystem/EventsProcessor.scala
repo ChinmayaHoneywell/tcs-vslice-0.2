@@ -18,10 +18,9 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   val  MIN_EL_POS: Double  = -3
   val  MAX_EL_POS : Double = 93
 
-  var AzPosDemanded : Double = 15
-  var ElPosDemanded : Double = 15
-  var AzCurrPos : Double = 15
-  var ElCurrPos : Double = 25
+  var  AzPosDemanded : Double = 0
+  var  ElPosDemanded : Double = 0
+
   var demandedTime : Double = 0
 
 
@@ -39,15 +38,21 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   }
   def startPublishingCurrPos(): Unit ={
     println("Publish Current position thread started")
+    var elC: Double = 0
+    var azC: Double = 0
     while(true){
       Thread.sleep(10)
-      updateCurrentAzPos()
-      updateCurrentElPos()
+      if(elC < ElPosDemanded){
+        elC = elC + 0.5
+      }
+      if(azC < AzPosDemanded){
+        azC = azC + 0.5
+      }
       val mcsCurrentPosition : McsCurrentPositionEvent =  TcsMcsEventsProtos.McsCurrentPositionEvent.newBuilder()
-        .setAzPos(updateCurrentAzPos)
-        .setElPos(updateCurrentElPos)
-        .setAzPosError(AzPosDemanded - AzCurrPos)
-        .setElPosError(ElPosDemanded - ElCurrPos)
+        .setAzPos(azC)
+        .setElPos(elC)
+        .setAzPosError(AzPosDemanded - azC)
+        .setElPosError(ElPosDemanded - elC)
         .setAzInPosition(true)
         .setElInPosition(true)
         .setTime(Instant.now().toEpochMilli)
@@ -58,9 +63,9 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         .setEncodeLatchingTime(Instant.now().toEpochMilli)
         .setAzPosDmdErrCount(1)
         .setElPosDmdErrCount(1)
-        .setAzWrapPos(AzCurrPos)
+        .setAzWrapPos(azC)
         .setAzWrapPosDemand(AzPosDemanded)
-        .setAzWrapPosError(AzPosDemanded - AzCurrPos)
+        .setAzWrapPosError(AzPosDemanded - azC)
         .build()
 
       //println("Publishing currentPosition : "+mcsCurrentPosition)
@@ -69,10 +74,10 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
           println(s"Published currentPosition: ${mcsCurrentPosition} event data")
         }else{
-          //println("Error!!!! Unable to send currentPositionEvent Data.")
+          println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
         }
       }else{
-        //println("Error --> Unable to send currentPosition event name.")
+        println(s"!!!!!!!! Error occured while publishing current position: $mcsCurrentPosition")
       }
     }
   }
@@ -99,8 +104,8 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
       val diagnosis : MountControlDiags = TcsMcsEventsProtos.MountControlDiags.newBuilder()
         .setAzPosDemand(AzPosDemanded)
         .setElPosDemand(ElPosDemanded)
-        .setAzPosError(AzPosDemanded - AzCurrPos)
-        .setElPosError(ElPosDemanded - ElCurrPos)
+        .setAzPosError(AzPosDemanded - 0)
+        .setElPosError(ElPosDemanded - 0)
         .build()
       if(pubSocket.sendMore("Diagnosis")){
         pubSocket.send(diagnosis.toByteArray,ZMQ.NOBLOCK)
@@ -120,32 +125,34 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
       if(pubSocket.sendMore("Health")){
         if(pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)){
          println(s"Successfully published health event: $mcsHealth")
+        }else{
+          println(s"!!!!!!!! Error occured while publishing health information : $mcsHealth")
         }
       }
     }
   }
 
-  def updateCurrentElPos() : Double = {
+ /* def getUpdatedCurrentElPos() : Double = {
     if(ElCurrPos < ElPosDemanded){
-      if(ElCurrPos + 5 < MAX_EL_POS) {
-        ElCurrPos = ElCurrPos + 5
+      if(ElCurrPos + 0.5 < MAX_EL_POS) {
+        ElCurrPos = ElCurrPos + 0.5
       }else{
         ElCurrPos = MAX_AZ_POS
       }
     }
     ElCurrPos
   }
-  def updateCurrentAzPos() : Double = {
+  def getUpdatedCurrentAzPos() : Double = {
     if(AzCurrPos < AzPosDemanded){
-      if(AzCurrPos + 5 < MAX_AZ_POS) {
-        AzCurrPos = AzCurrPos + 5
+      if(AzCurrPos + 0.5 < MAX_AZ_POS) {
+        AzCurrPos = AzCurrPos + 0.5
       }else{
         AzCurrPos = MAX_AZ_POS
       }
     }
     AzCurrPos
   }
-
+*/
   //Position Demands will be ignored if MCS is not in follow state
   def subscribePositionDemands : Unit = {
     println("Subscribe position Demands thread started")
@@ -157,33 +164,13 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
         println(s"Start,${positionDemand.getAzimuth},${positionDemand.getElevation},${positionDemand.getTpkPublishTime},${positionDemand.getAssemblyReceivalTime},${positionDemand.getHcdReceivalTime},${System.currentTimeMillis()},Done")
 
-        setAzPosDemanded(positionDemand.getAzimuth)
-        setElPosDemanded(positionDemand.getElevation)
+        AzPosDemanded = positionDemand.getAzimuth
+        ElPosDemanded = positionDemand.getElevation
         //demandedTime = positionDemand.getTime
       }else{
         println("Didn't get any position demands yet.")
       }
     }
   }
-  private def setElPosDemanded(elDemanded : Double) ={
-    if(elDemanded >= MAX_EL_POS){
-      ElPosDemanded = MAX_EL_POS
-    }
-    else if(elDemanded <= MIN_EL_POS){
-      ElPosDemanded = MIN_EL_POS
-    }else{
-      ElPosDemanded = elDemanded
-    }
-  }
 
-  private def setAzPosDemanded(azDemanded : Double) = {
-    if (azDemanded >= MAX_AZ_POS) {
-      AzPosDemanded = MAX_AZ_POS
-    }
-    else if (azDemanded <= MIN_AZ_POS) {
-      AzPosDemanded = MIN_AZ_POS
-    } else {
-      AzPosDemanded = azDemanded
-    }
-  }
 }
