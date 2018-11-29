@@ -152,7 +152,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         Parameter baseParam = event.paramSet().find(x -> x.keyName().equals(DEMAND_POSITIONS_BASE_KEY)).get();
         Parameter capParam = event.paramSet().find(x -> x.keyName().equals(DEMAND_POSITIONS_CAP_KEY)).get();
         Parameter<Instant> clientTimeParam = CLIENT_TIMESTAMP_KEY.set(event.eventTime().time());
-        Parameter<Instant> assemblyTimeParam = ASSEMBLY_TIMESTAMP_KEY.set(event.eventTime().time());
+        Parameter<Instant> assemblyTimeParam = ASSEMBLY_TIMESTAMP_KEY.set(Instant.now());
         CurrentState demandPosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(DEMAND_POSITIONS))
                 .add(baseParam)
                 .add(capParam)
