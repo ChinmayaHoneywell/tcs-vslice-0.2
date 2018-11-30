@@ -1,0 +1,69 @@
+For REal Simulator
+
+[tmt_tcs_2@localhost bin]$ ./mcs-main-app 
+2018-11-29T10:21:04.044Z INFO   - Saw 1 messages before logger start
+2018-11-29T10:21:04.288Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:21:04.293Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+SimulationMode command response is : Completed(Id(d08a78b5-a9f4-42b1-851d-867096a04ba9)) total time taken is : 187
+2018-11-29T10:21:04.472Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:21:04.472Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Startup command response is : Accepted(Id(4a2adfa0-227a-4d6b-88e8-8ab86ebe9be5)) total time taken is : 11
+2018-11-29T10:21:04.483Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:21:04.483Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Datum command response is : Completed(Id(374d6450-14c1-48a1-b32d-12ed846adf5f)) total time taken is : 246
+2018-11-29T10:21:04.729Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:21:04.730Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Follow command response is : Completed(Id(5340fce0-458f-44ef-ba47-594d316323ac)) total time taken is : 72
+2018-11-29T10:21:04.801Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:21:04.801Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Dummy immediate command Response is : Completed(Id(56449cfd-b4c8-4a25-b773-1b8f87f2cc46)) total time taken is : 4
+2018-11-29T10:21:04.806Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:21:04.806Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Dummy Long Command Response is : Completed(Id(a225e2e8-14a7-4913-8a81-fc0ef0407e70)) total time taken is : 7
+
+
+[tmt_tcs_2@localhost bin]$ ./mcs-main-app 
+2018-11-29T10:31:55.878Z INFO   - Saw 1 messages before logger start
+2018-11-29T10:31:56.047Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:31:56.058Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+SimulationMode command response is : Completed(Id(705773f0-3476-4bf8-af65-387a892775ca)) total time taken is : 85
+2018-11-29T10:31:56.128Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:31:56.129Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Startup command response is : Accepted(Id(d98f21a2-75cc-4070-a6da-637df8ac8cee)) total time taken is : 8
+2018-11-29T10:31:56.136Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:31:56.136Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Datum command response is : Completed(Id(976e5d7c-8746-48e0-9bc8-77b1a84cac5a)) total time taken is : 141
+2018-11-29T10:31:56.280Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:31:56.280Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Follow command response is : Completed(Id(c0b45de1-6af0-4e92-90bb-3bdcf70b4ede)) total time taken is : 25
+2018-11-29T10:31:56.303Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:31:56.304Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Dummy immediate command Response is : Completed(Id(c8a40b1b-4cbb-4dd8-a20e-7de105b4500c)) total time taken is : 5
+2018-11-29T10:31:56.308Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:31:56.309Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Dummy Long Command Response is : Completed(Id(eb28be14-0ffb-4839-90e8-9f10765fa248)) total time taken is : 6
+
+
+2018-11-29T10:48:39.493Z INFO   - Saw 1 messages before logger start
+2018-11-29T10:48:39.808Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:48:39.817Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+SimulationMode command response is : Completed(Id(075d7925-728f-4ae4-851c-13ab3915d4f0)) total time taken is : 141
+2018-11-29T10:48:39.946Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:48:39.946Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Startup command response is : Accepted(Id(65283480-982c-44f6-9f1b-fe5674da3642)) total time taken is : 19
+2018-11-29T10:48:39.965Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:48:39.965Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Datum command response is : Completed(Id(ad794c0b-0d15-4f27-bda3-faea55005c1a)) total time taken is : 143
+2018-11-29T10:48:40.107Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:48:40.108Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Follow command response is : Completed(Id(2553d66d-648b-4cf1-9a59-7cd3f4882663)) total time taken is : 29
+2018-11-29T10:48:40.136Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:48:40.137Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Dummy immediate command Response is : Completed(Id(b5ebc2ca-0372-43da-baee-e4ba84d8a4d1)) total time taken is : 7
+2018-11-29T10:48:40.144Z INFO  location-service-lib (LocationServiceImpl.scala 152) - Resolving location for connection: [McsAssembly-assembly-akka] within 3000 seconds
+2018-11-29T10:48:40.145Z INFO  location-service-lib (LocationServiceImpl.scala 144) - Finding location for connection: [McsAssembly-assembly-akka]
+Dummy Long Command Response is : Completed(Id(ccea7897-b584-492d-a67e-fe68d9fc1f9b)) total time taken is : 16
+===========================================Command set completed =============================================================================
+
+
+
