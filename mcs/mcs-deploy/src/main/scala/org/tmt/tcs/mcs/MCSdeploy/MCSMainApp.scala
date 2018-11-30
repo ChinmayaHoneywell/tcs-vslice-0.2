@@ -129,7 +129,7 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        //println(s"Health, ${simulatorPublishTime}, ${hcdReceiveTime}, ${assemblyRecTime}, ${clientAppRecTime}")
+        println(s"Health, ${simulatorPublishTime}, ${hcdReceiveTime}, ${assemblyRecTime}, ${clientAppRecTime}")
       }
     }
     Future.successful[String]("Successfully processed Health event from assembly")
@@ -146,9 +146,9 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        println(
+        /* println(
           s"CurrentPosition:, ${azPosParam}, ${elPosParam},  ${simulatorPublishTime},${hcdReceiveTime}, ${assemblyRecTime},${clientAppRecTime}"
-        )
+        )*/
       }
     }
     Future.successful[String]("Successfully processed Current position event from assembly")

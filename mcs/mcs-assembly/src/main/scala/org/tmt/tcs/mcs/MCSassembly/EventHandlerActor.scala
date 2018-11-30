@@ -92,7 +92,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   private def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
     eventPublisher.publish(event, 40.seconds)
-    //log.info(s"Published event : ${event}")
+    log.info(s"Published event : ${event}")
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -108,11 +108,15 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     This function publishes position demands by using currentStatePublisher
    */
   private def sendEventByAssemblyCurrentState(msg: Event): Future[_] = {
+
     msg match {
       case systemEvent: SystemEvent => {
         //TODO : This time difference addition code is temporary it must removed once performance measurement is done
+        //log.info(s"Received event : $systemEvent")
         val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
-         log.info(s"** Received position demands to mcs Assmebly at : ${event.get(EventHandlerConstants.TimeStampKey).get.head}, ${System.currentTimeMillis()}"   )
+        /*log.info(
+            s"** Received position demands to mcs Assmebly at : ${event.get(EventHandlerConstants.TimeStampKey).get.head}, ${System.currentTimeMillis()}"
+          )*/
         val currentState = eventTransformer.getCurrentState(event)
         currentStatePublisher.publish(currentState)
         //log.info(s"Published demands current state : ${currentState}")

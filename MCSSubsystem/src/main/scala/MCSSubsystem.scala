@@ -9,28 +9,23 @@ object MCSSubsystem extends App{
   val zmqContext : ZMQ.Context = ZMQ.context(1)
   val addr : String = "tcp://localhost:"
 
-  val commandProcessor : CommandProcessor = CommandProcessor.create(zmqContext)
-  val pushSocketPort : Int = 55578
-  val pullSocketPort : Int = 55579
-  commandProcessor.initialize(addr,pushSocketPort, pullSocketPort)
+
 
   val eventProcessor : EventsProcessor =  EventsProcessor.createEventsProcessor(zmqContext)
   val pubSocketPort : Int = 55580
   val subSocketPort : Int = 55581
   eventProcessor.initialize(addr,pubSocketPort,subSocketPort)
 
+
+  val commandProcessor : CommandProcessor = CommandProcessor.create(zmqContext,eventProcessor)
+  val pushSocketPort : Int = 55578
+  val pullSocketPort : Int = 55579
+  commandProcessor.initialize(addr,pushSocketPort, pullSocketPort)
+
   new Thread(new Runnable {
     override def run(): Unit =  commandProcessor.processCommand()
   }).start()
 
-  new Thread(new Runnable {
-    override def run(): Unit =  eventProcessor.startPublishingCurrPos()
-  }).start()
-
-
-  new Thread(new Runnable {
-    override def run(): Unit = eventProcessor.startPublishingHealth()
-  }).start()
 
   new Thread(new Runnable {
     override def run(): Unit = eventProcessor.subscribePositionDemands

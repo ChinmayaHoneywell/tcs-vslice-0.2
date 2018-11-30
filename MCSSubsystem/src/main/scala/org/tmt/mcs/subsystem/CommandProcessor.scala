@@ -6,20 +6,19 @@ import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse.CmdEr
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.PointDemandCommand
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse
 import org.zeromq.ZMQ
-import org.tmt.mcs.subsystem.protos.TcsMcsEventsProtos.McsCurrentPositionEvent
+
 
 object CommandProcessor{
-  def create(zmqContext : ZMQ.Context): CommandProcessor = CommandProcessor(zmqContext)
+  def create(zmqContext : ZMQ.Context, eventProcessor : EventsProcessor): CommandProcessor = CommandProcessor(zmqContext, eventProcessor)
 }
-case class CommandProcessor(zmqContext : ZMQ.Context) {
+case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsProcessor) {
   val pullSocket: ZMQ.Socket = zmqContext.socket(ZMQ.PULL)
   val pushSocket: ZMQ.Socket = zmqContext.socket(ZMQ.PUSH)
 
   private var azDemanded : Double = 180
   private var elDemanded : Double = 90
-  private var azCurr : Double  = 0
-  private var elCurr : Double = 0
-  def initialize(addr: String, pushSocketPort: Int, pullSocketPort: Int ): Unit = {
+
+  def initialize(addr: String, pushSocketPort: Int, pullSocketPort: Int): Unit = {
     println("Initializing MCS subsystem ZeroMQ command Processor")
 
     val pullSocketAddr = addr + pullSocketPort
@@ -40,6 +39,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context) {
       println(s"Received command is : ${commandName}")
       if(commandName != null ){
         println(s"Processing ${commandName} command ")
+        updateSimulator(commandName)
         val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
         if (pushSocket.sendMore(commandName)) {
           println(s"Sending response for : ${commandName} command ")
@@ -54,34 +54,40 @@ case class CommandProcessor(zmqContext : ZMQ.Context) {
         }else{
           println(s"Unable to send command response ")
         }
-
-        if(commandName == "Follow" || commandName == "Point" || commandName == "PointDemand"){
-          if(commandName == "PointDemand"){
+        if(commandName == "PointDemand"){
             val pointDemand : PointDemandCommand = PointDemandCommand.parseFrom(commandData)
             azDemanded = pointDemand.getAZ
             elDemanded = pointDemand.getEL
           }
-        }
       }else{
-        //println("Didn't get any command to process")
+        println("Didn't get any command to process")
       }
     }
  }
+  def updateSimulator(commandName : String):Unit = {
+      commandName match {
+        case "Startup" => {
+          new Thread(new Runnable {
+            override def run(): Unit =  eventProcessor.startPublishingCurrPos()
+          }).start()
 
-  def publishCurrentPosition()= {
 
-      if(azCurr < azDemanded) {
-         azCurr += 1
+          new Thread(new Runnable {
+            override def run(): Unit = eventProcessor.startPublishingHealth()
+          }).start()
+
+        }
+        case "ShutDown" => {
+          eventProcessor.updateCurrPosPublisher(false)
+          eventProcessor.updateHealthPublisher(false)
+          eventProcessor.updatePosDemandSubscriber(false)
+          println("Updating current position publisher and health publisher to false")
+        }
+        case _=>{
+          println("Not changing publisher thread state")
+        }
       }
-      if(elCurr < elDemanded) {
-        elCurr += 1
-      }
-      val currentPosition : McsCurrentPositionEvent =   McsCurrentPositionEvent.newBuilder()
-        .setAzPos(azCurr).setAzPosDemand(azDemanded).setAzPosError(azDemanded - azCurr)
-        .setElPos(elCurr).setElPosDemand(elDemanded).setElPosError(elDemanded - elCurr)
-        .build()
+  }
 
-      Thread.sleep(10000)
-    }
 
 }
