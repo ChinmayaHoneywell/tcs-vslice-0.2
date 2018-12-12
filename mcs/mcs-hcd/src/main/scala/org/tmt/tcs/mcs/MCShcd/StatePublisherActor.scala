@@ -15,7 +15,7 @@ import csw.messages.params.states.{CurrentState, StateName}
 import csw.services.event.api.scaladsl.{EventService, EventSubscriber}
 import csw.services.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
-import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg.{ProcCurrStateDemand, ProcEventDemand, StartPublishingEvent}
+import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg.{ProcCurrStateDemand, ProcEventDemand}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, SimpleSimulator, ZeroMQMessage}
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{PublishCurrStateToZeroMQ, PublishEvent, StartSimulEventSubscr}
 import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
@@ -153,8 +153,17 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
                                          loggerFactory)
       }
       case msg: PublishState => {
-        currentStatePublisher.publish(msg.currentState)
-        Behavior.same
+        if (simulatorMode == Commands.SIMPLE_SIMULATOR) {
+          val hcdReceivalTime: Parameter[Long] = EventConstants.hcdEventReceivalTime_Key.set(System.currentTimeMillis())
+          val currentState                     = msg.currentState.add(hcdReceivalTime)
+          currentStatePublisher.publish(currentState)
+          Behavior.same
+
+        } else {
+          currentStatePublisher.publish(msg.currentState)
+          Behavior.same
+        }
+
       }
       case msg: HCDOperationalStateChangeMsg => {
         val currOperationalState = msg.operationalState
@@ -170,7 +179,7 @@ case class StatePublisherActor(ctx: ActorContext[EventMessage],
         log.info(s"Changing Simulation mode in StatePublisherActor from : $simulatorMode to ${msg.simMode}")
         if (msg.simMode == Commands.SIMPLE_SIMULATOR) {
           simpleSimActor = msg.simpleSimActor
-          simpleSimActor ! StartPublishingEvent()
+          //simpleSimActor ! StartPublishingEvent()
           log.info(s"Started Publishing Events from MCS SimpleSimulator")
         } else {
           log.info(s"Started Publishing events from MCS ZeroMQActor")

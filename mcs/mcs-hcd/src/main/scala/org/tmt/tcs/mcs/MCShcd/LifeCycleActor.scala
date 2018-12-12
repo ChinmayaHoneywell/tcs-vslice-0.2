@@ -73,7 +73,8 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(message: LifeCycleMessage): Config = {
     log.info(msg = " Initializing MCS HCD with the help of Config Server")
-    val config: Config        = getHCDConfig()
+    val config: Config = getHCDConfig()
+    log.info(s"Config object is : ${config}")
     val zeroMQPushSocket: Int = config.getInt("tmt.tcs.mcs.zeroMQPush")
     log.info(msg = s"zeroMQPushSocket from config file : mcs_hcd.conf is ${zeroMQPushSocket}")
     hcdConfig = Some(config)
@@ -93,7 +94,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val configData: ConfigData                   = Await.result(getConfigData(filePath), 20.seconds)
-    log.info(msg = s" Successfully loaded config file : ${fileName} from config server")
+    log.info(msg = s" Successfully loaded config file : ${fileName} from config server : ${configData}")
     Await.result(configData.toConfigObject, 3.seconds)
 
   }
@@ -106,6 +107,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
         //configData
       }
       case None => throw ConfigNotFoundException()
+
     }
   }
 

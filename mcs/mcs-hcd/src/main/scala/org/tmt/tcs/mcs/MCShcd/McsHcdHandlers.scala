@@ -120,9 +120,8 @@ class McsHcdHandlers(
     //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
 
     if (connectToSimulator(lifecycleMsg)) {
-      statePublisherActor ! StartEventSubscription(zeroMQProtoActor, simpleSimActor)
+      //statePublisherActor ! StartEventSubscription(zeroMQProtoActor, simpleSimActor)
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
-      //zeroMQProtoActor ! StartSimulEventSubscr()
     } else {
       log.error(msg = s"Unable to connect with MCS Simulator")
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.Disconnected)

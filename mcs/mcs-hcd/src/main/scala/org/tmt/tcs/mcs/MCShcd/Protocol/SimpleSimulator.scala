@@ -1,5 +1,7 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
 import csw.messages.commands.{CommandResponse, ControlCommand}
@@ -12,16 +14,18 @@ import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.EventMessage
 import org.tmt.tcs.mcs.MCShcd.EventMessage.PublishState
 import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg._
-import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
+import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
+import java.lang.Double.doubleToLongBits
+import java.lang.Double.longBitsToDouble
 
 sealed trait SimpleSimMsg
 object SimpleSimMsg {
   case class ProcessCommand(command: ControlCommand, sender: ActorRef[SimpleSimMsg]) extends SimpleSimMsg
-  case class StartPublishingEvent()                                                  extends SimpleSimMsg
-  case class SimpleSimResp(commandResponse: CommandResponse)                         extends SimpleSimMsg
-  case class ProcEventDemand(event: SystemEvent)                                     extends SimpleSimMsg
-  case class ProcOneWayDemand(command: ControlCommand)                               extends SimpleSimMsg
-  case class ProcCurrStateDemand(currState: CurrentState)                            extends SimpleSimMsg
+
+  case class SimpleSimResp(commandResponse: CommandResponse) extends SimpleSimMsg
+  case class ProcEventDemand(event: SystemEvent)             extends SimpleSimMsg
+  case class ProcOneWayDemand(command: ControlCommand)       extends SimpleSimMsg
+  case class ProcCurrStateDemand(currState: CurrentState)    extends SimpleSimMsg
 }
 
 object SimpleSimulator {
@@ -32,21 +36,27 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
                            loggerFactory: LoggerFactory,
                            statePublisherActor: ActorRef[EventMessage])
     extends MutableBehavior[SimpleSimMsg] {
-  private val log: Logger   = loggerFactory.getLogger
-  var az: Double            = 0.0
-  var el: Double            = 0.0
-  val prefix: Prefix        = Prefix(Subsystem.MCS.toString)
-  val MIN_AZ_POS: Double    = -330
-  val MAX_AZ_POS: Double    = 170
-  val MIN_EL_POS: Double    = -3
-  val MAX_EL_POS: Double    = 93
-  var AzPosDemanded: Double = 15
-  var ElPosDemanded: Double = 15
+  private val log: Logger = loggerFactory.getLogger
+
+  val prefix: Prefix = Prefix(Subsystem.MCS.toString)
+
+  val azPosDemand: AtomicLong = new AtomicLong(doubleToLongBits(0.0))
+  val elPosDemand: AtomicLong = new AtomicLong(doubleToLongBits(0.0))
+
+  val MIN_AZ_POS: Double = -330
+  val MAX_AZ_POS: Double = 170
+  val MIN_EL_POS: Double = -3
+  val MAX_EL_POS: Double = 93
+
+  val currentPosPublisher: AtomicBoolean = new AtomicBoolean(true)
+  val healthPublisher: AtomicBoolean     = new AtomicBoolean(true)
+  val posDemandSubScriber: AtomicBoolean = new AtomicBoolean(true)
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
     msg match {
       case msg: ProcessCommand => {
         //log.info(s"Received command : ${msg.command} in simpleSimulator.")
+        updateSimulator(msg.command.commandName.name)
         msg.sender ! SimpleSimResp(CommandResponse.Completed(msg.command.runId))
         Behavior.same
       }
@@ -79,8 +89,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
         val azPos            = cs.get(EventConstants.AzPosKey).get.head
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
-        az = azPos
-        el = elPos
+
         log.error(s"Received event :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
         Behavior.same
       }
@@ -92,15 +101,20 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
         val azPos            = cs.get(EventConstants.AzPosKey).get.head
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
-        az = azPos
-        el = elPos
-        setAzPosDemanded(az)
-        setElPosDemanded(el)
-        log.info(s"Received currentState :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
+        this.azPosDemand.set(doubleToLongBits(azPos))
+        this.elPosDemand.set(doubleToLongBits(elPos))
+        /*  log.info(
+          s"Received demanded positions :${longBitsToDouble(this.azPosDemand.get())}, ${longBitsToDouble(this.elPosDemand.get())}, $tpkPublishTime, $assemblyRecTime, " +
+          s"$hcdRecTime, $simpleSimRecTime"
+        )*/
         Behavior.same
       }
-      case msg: StartPublishingEvent => {
-        log.info(s"Starting event publishing from Simple simulator")
+
+    }
+  }
+  def updateSimulator(commandName: String): Unit = {
+    commandName match {
+      case Commands.STARTUP => {
         new Thread(new Runnable {
           override def run(): Unit = startPublishingCurrPos()
         }).start()
@@ -108,70 +122,77 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         new Thread(new Runnable {
           override def run(): Unit = startPublishingHealth()
         }).start()
-        log.info(s"Successfully started publishing  current position and health events from Simple simulator")
-        Behavior.same
+        log.info("Starting publish current position and health threads")
+      }
+      case Commands.SHUTDOWN => {
+        updateCurrPosPublisher(false)
+        updateHealthPublisher(false)
+        log.info("Updating current position publisher and health publisher to false")
+      }
+      case _ => {
+        log.info(s"Not changing publisher thread state as command received is $commandName")
       }
     }
   }
-  private def setElPosDemanded(elDemanded: Double) = {
-    if (elDemanded >= MAX_EL_POS) {
-      ElPosDemanded = MAX_EL_POS
-    } else if (elDemanded <= MIN_EL_POS) {
-      ElPosDemanded = MIN_EL_POS
-    } else {
-      ElPosDemanded = elDemanded
-    }
+  def updateCurrPosPublisher(value: Boolean): Unit = {
+    println(s"Updating CurrentPosition publisher to : ${value}")
+    this.currentPosPublisher.set(value)
+  }
+  def updateHealthPublisher(value: Boolean): Unit = {
+    this.healthPublisher.set(value)
+    println(s"Updating Health publisher to : ${this.healthPublisher.get()}")
   }
 
-  private def setAzPosDemanded(azDemanded: Double) = {
-    if (azDemanded >= MAX_AZ_POS) {
-      AzPosDemanded = MAX_AZ_POS
-    } else if (azDemanded <= MIN_AZ_POS) {
-      AzPosDemanded = MIN_AZ_POS
-    } else {
-      AzPosDemanded = azDemanded
-    }
-  }
-  def updateCurrentElPos(): Double = {
-    if (el < ElPosDemanded) {
-      if (el + 5 < MAX_EL_POS) {
-        el = el + 5
-      } else {
-        el = MAX_AZ_POS
-      }
-    }
-    el
-  }
-  def updateCurrentAzPos(): Double = {
-    if (az < AzPosDemanded) {
-      if (az + 5 < MAX_AZ_POS) {
-        az = az + 5
-      } else {
-        az = MAX_AZ_POS
-      }
-    }
-    az
-  }
   def startPublishingCurrPos(): Unit = {
+
     log.info(s"Publish Current position thread started")
-    while (true) {
+    /* var elC: Double = 0
+    var azC: Double = 0
+    def getElCurrent() = {
+      if (elC == longBitsToDouble(this.elPosDemand.get())) {
+        elC = this.elPosDemand.get()
+      } else if (longBitsToDouble(this.elPosDemand.get()) > 0.0) {
+        // demanded positions are positive
+        elC = elC + 0.05
+      } else {
+        // for -ve demanded el positions
+        elC = elC - 0.05
+      }
+    }
+    def getCurrAz = {
+      if (azC == longBitsToDouble(this.azPosDemand.get())) {
+        azC = this.azPosDemand.get()
+      } else if (longBitsToDouble(this.azPosDemand.get()) > 0.0) {
+        //for positive demanded positions
+        azC = azC + 0.05
+      } else {
+        azC = azC - 0.05
+      }
+    }*/
+    log.info(s"currentPosPublisher current value is : ${this.currentPosPublisher.get()}")
+    while (this.currentPosPublisher.get()) {
       Thread.sleep(10)
-      //updateCurrentAzPos()
-      //updateCurrentElPos()
+      /*  getElCurrent
+      getCurrAz*/
+
       val currentTime = System.currentTimeMillis()
 
-      val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(updateCurrentAzPos()).withUnits(degree)
-      val elPosParam: Parameter[Double] = EventConstants.ElPosKey.set(updateCurrentElPos()).withUnits(degree)
+      val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(longBitsToDouble(this.azPosDemand.get())).withUnits(degree)
+      val elPosParam: Parameter[Double] = EventConstants.ElPosKey.set(longBitsToDouble(this.elPosDemand.get())).withUnits(degree)
 
       val azPosErrorParam: Parameter[Double] =
-        EventConstants.AZ_POS_ERROR_KEY.set(az).withUnits(degree)
+        EventConstants.AZ_POS_ERROR_KEY.set(longBitsToDouble(this.azPosDemand.get())).withUnits(degree)
       val elPosErrorParam: Parameter[Double] =
-        EventConstants.EL_POS_ERROR_KEY.set(el).withUnits(degree)
+        EventConstants.EL_POS_ERROR_KEY.set(longBitsToDouble(this.elPosDemand.get())).withUnits(degree)
 
       val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(true)
       val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(true)
       val timestamp                             = EventConstants.TimeStampKey.set(currentTime)
-      val hcdRecvTimeKey                        = EventConstants.hcdEventReceivalTime_Key.set(currentTime)
+
+      /* log.info(
+        s"Publishing Az position : $azC and el position : $elC demanded az : ${longBitsToDouble(this.azPosDemand.get())}," +
+        s" el : ${longBitsToDouble(this.elPosDemand.get())}"
+      )*/
 
       val currentState = CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
         .add(azPosParam)
@@ -181,25 +202,25 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         .add(azInPositionParam)
         .add(elInPositionParam)
         .add(timestamp)
-        .add(hcdRecvTimeKey)
+
       statePublisherActor ! PublishState(currentState)
     }
   }
 
   def startPublishingHealth(): Unit = {
-    //println("Publish Health Thread Started")
-    while (true) {
+
+    log.info(s"Health publisher current value is : ${this.healthPublisher.get()}")
+    while (this.healthPublisher.get()) {
       Thread.sleep(1000)
       val currentTime                          = System.currentTimeMillis()
       val healthParam: Parameter[String]       = EventConstants.HEALTH_KEY.set("Good")
       val healthReasonParam: Parameter[String] = EventConstants.HEALTH_REASON_KEY.set("Good Reason")
       val timestamp                            = EventConstants.TimeStampKey.set(currentTime)
-      val hcdRecvTimeKey                       = EventConstants.hcdEventReceivalTime_Key.set(currentTime)
       val currentState = CurrentState(prefix, StateName(EventConstants.HEALTH_STATE))
         .add(healthParam)
         .add(healthReasonParam)
         .add(timestamp)
-        .add(hcdRecvTimeKey)
+      log.info(s"Publishing health $currentState")
       statePublisherActor ! PublishState(currentState)
     }
   }

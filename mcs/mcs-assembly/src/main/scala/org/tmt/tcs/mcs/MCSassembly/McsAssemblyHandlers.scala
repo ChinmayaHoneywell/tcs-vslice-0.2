@@ -195,7 +195,7 @@ class McsAssemblyHandlers(
     implicit val scheduler         = ctx.system.scheduler
     val immediateResponse: CommandMessage = Await.result(commandHandlerActor ? { ref: ActorRef[CommandMessage] =>
       CommandMessage.ImmediateCommand(ref, controlCommand)
-    }, 5.seconds)
+    }, 15.seconds)
     immediateResponse match {
       case msg: ImmediateCommandResponse => {
         msg.commandResponse
@@ -310,11 +310,11 @@ class McsAssemblyHandlers(
   private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
     // check hcd is in running state
     if (validateParams(controlCommand)) {
-      implicit val duration: Timeout = 40 seconds
+      implicit val duration: Timeout = 50 seconds
       implicit val scheduler         = ctx.system.scheduler
       val assemblyCurrentState = Await.result(monitorActor ? { ref: ActorRef[MonitorMessage] =>
         MonitorMessage.GetCurrentState(ref)
-      }, 30.seconds)
+      }, 40.seconds)
       log.info(msg = s"Response from monitor actor, while validating datum command  is : ${assemblyCurrentState}")
       if (validateAssemblyState(assemblyCurrentState)) {
         CommandResponse.Accepted(controlCommand.runId)

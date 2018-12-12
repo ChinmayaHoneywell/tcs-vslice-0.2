@@ -67,9 +67,10 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
    */
   private def doInitialize(): Behavior[LifeCycleMessage] = {
     val assemblyConfig: Config = getAssemblyConfig()
-    val commandTimeout         = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
-    val numberOfRetries        = assemblyConfig.getInt("tmt.tcs.mcs.retries")
-    val velAccLimit            = assemblyConfig.getInt("tmt.tcs.mcs.limit")
+    log.info(s"Config object is : ${assemblyConfig}")
+    val commandTimeout  = assemblyConfig.getInt("tmt.tcs.mcs.cmdtimeout")
+    val numberOfRetries = assemblyConfig.getInt("tmt.tcs.mcs.retries")
+    val velAccLimit     = assemblyConfig.getInt("tmt.tcs.mcs.limit")
     config = Some(assemblyConfig)
     Behavior.same
   }
@@ -79,15 +80,18 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
     Behavior.stopped
   }
   private def getAssemblyConfig(): Config = {
-    val filePath                                 = Paths.get("org/tmt/tcs/mcs_assembly.conf")
+    val filePath = Paths.get("org/tmt/tcs/mcs_assembly.conf")
+    log.info(msg = s" Loading config file : ${filePath} from config server")
     implicit val context: ActorRefFactory        = ctx.system.toUntyped
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     val configData: ConfigData                   = Await.result(getConfigData(filePath), 30.seconds)
+    log.info(msg = s" Successfully loaded config file : ${filePath} : ${configData} from config server")
     Await.result(configData.toConfigObject, 20.seconds)
   }
 
   private def getConfigData(filePath: Path): Future[ConfigData] = {
     val futConfigData: Future[Option[ConfigData]] = configClient.getActive(filePath)
+
     futConfigData flatMap {
       case Some(configData: ConfigData) => {
         Future.successful(configData)

@@ -97,18 +97,20 @@ object MCSMainApp extends App {
   val resp6              = Await.result(sendDummyLongCommand, 200.seconds)
   println(s"Dummy Long Command Response is : ${resp6} total time taken is : ${System.currentTimeMillis() - dummyLongCmd}")
 
-  var shutdownCmd: Long = System.currentTimeMillis()
+  /*var shutdownCmd: Long = System.currentTimeMillis()
   val resp7             = Await.result(sendShutDownCmd, 30.seconds)
-  println(s"Shutdown Command Response is : ${resp7} total time taken is : ${System.currentTimeMillis() - shutdownCmd}")
+  println(s"Shutdown Command Response is : ${resp7} total time taken is : ${System.currentTimeMillis() - shutdownCmd}")*/
 
   println(
     s"===========================================Command set completed ============================================================================="
   )
 
-  new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
+  /*new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()*/
+
+  startSubscribingEvents
 
   def startSubscribingEvents(): Unit = {
-    // println(" ** Started subscribing Events from Assembly ** ")
+    println(" ** Started subscribing Events from Assembly ** ")
     val eventService = getEventService
     val subscriber   = eventService.defaultSubscriber
     subscriber.subscribeCallback(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
@@ -129,7 +131,7 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        // println(s"Health, ${simulatorPublishTime}, ${hcdReceiveTime}, ${assemblyRecTime}, ${clientAppRecTime}")
+        println(s"Health, ${simulatorPublishTime}, ${hcdReceiveTime}, ${assemblyRecTime}, ${clientAppRecTime}")
       }
     }
     Future.successful[String]("Successfully processed Health event from assembly")
@@ -146,9 +148,9 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        /*println(
+        println(
           s"CurrentPosition:, ${azPosParam}, ${elPosParam},  ${simulatorPublishTime},${hcdReceiveTime}, ${assemblyRecTime},${clientAppRecTime}"
-        )*/
+        )
       }
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
