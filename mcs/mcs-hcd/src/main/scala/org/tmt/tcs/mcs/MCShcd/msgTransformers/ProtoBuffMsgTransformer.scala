@@ -55,13 +55,14 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
           healthState = McsHealth.parseFrom(encodedEventData)
         } catch {
           case e: Exception => {
+            e.printStackTrace()
             healthState = McsHealth
               .newBuilder()
               .setHealth(McsHealth.Health.Good)
               .setReason("All is well")
               .setTime(Instant.now().toEpochMilli)
               .build()
-            e.printStackTrace()
+            log.error(s"Publishing dummy health from exception :$healthState")
           }
         }
         paramSetTransformer.getMCSHealth(healthState)

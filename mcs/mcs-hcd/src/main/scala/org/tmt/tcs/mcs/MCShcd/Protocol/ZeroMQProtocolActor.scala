@@ -126,6 +126,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         statePublisherActor ! PublishState(currState)
       } else {
         log.error(s"No event data is received for event: ${eventName}")
+        Thread.sleep(1000)
       }
     }
   }

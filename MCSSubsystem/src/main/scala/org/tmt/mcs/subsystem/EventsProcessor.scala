@@ -110,9 +110,9 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
       //println("Publishing currentPosition : "+mcsCurrentPosition)
       if(pubSocket.sendMore("CurrentPosition")){
-        //println("Sent event: CurrentPosition to MCS")
+        println("Sent event: mcsCurrentPosition to MCS")
         if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
-          //println(s"Published currentPosition: ${mcsCurrentPosition} event data")
+          println(s"Published currentPosition: ${mcsCurrentPosition} event data")
         }else{
           println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
         }
@@ -166,7 +166,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
       if(pubSocket.sendMore("Health")){
         if(pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)){
-         println(s"Successfully published health event: $mcsHealth")
+         println(s"Successfully published health event ")
         }else{
           println(s"!!!!!!!! Error occured while publishing health information : $mcsHealth")
         }
@@ -199,7 +199,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   def subscribePositionDemands : Unit = {
 
     while (this.posDemandSubScriber.get()) {
-      println("Subscribe position Demands thread started")
+     // println("Subscribe position Demands thread started")
       val eventName: String = subSocket.recvStr()
     //  println(s"Received : ${eventName} from MCS")
       if (subSocket.hasReceiveMore) {
@@ -207,8 +207,8 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
         this.azPosDemand.set(doubleToLongBits(positionDemand.getAzimuth))
         this.elPosDemand.set(doubleToLongBits((positionDemand.getElevation)))
-        println(s"Start,${longBitsToDouble(this.azPosDemand.get())},${longBitsToDouble(this.elPosDemand.get())},${positionDemand.getTpkPublishTime}," +
-          s"${positionDemand.getAssemblyReceivalTime},${positionDemand.getHcdReceivalTime},${System.currentTimeMillis()},Done")
+       /* println(s"Start,${longBitsToDouble(this.azPosDemand.get())},${longBitsToDouble(this.elPosDemand.get())},${positionDemand.getTpkPublishTime}," +
+          s"${positionDemand.getAssemblyReceivalTime},${positionDemand.getHcdReceivalTime},${System.currentTimeMillis()},Done")*/
       }else{
         println("Didn't get any position demands yet.")
       }

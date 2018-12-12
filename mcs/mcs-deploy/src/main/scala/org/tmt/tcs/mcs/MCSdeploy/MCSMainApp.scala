@@ -105,10 +105,12 @@ object MCSMainApp extends App {
     s"===========================================Command set completed ============================================================================="
   )
 
-  new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()
+  /*new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()*/
+
+  startSubscribingEvents
 
   def startSubscribingEvents(): Unit = {
-    // println(" ** Started subscribing Events from Assembly ** ")
+    println(" ** Started subscribing Events from Assembly ** ")
     val eventService = getEventService
     val subscriber   = eventService.defaultSubscriber
     subscriber.subscribeCallback(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
@@ -146,9 +148,9 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        /* println(
+        println(
           s"CurrentPosition:, ${azPosParam}, ${elPosParam},  ${simulatorPublishTime},${hcdReceiveTime}, ${assemblyRecTime},${clientAppRecTime}"
-        )*/
+        )
       }
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
