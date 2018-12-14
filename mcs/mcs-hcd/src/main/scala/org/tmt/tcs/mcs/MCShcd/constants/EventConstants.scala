@@ -1,10 +1,8 @@
 package org.tmt.tcs.mcs.MCShcd.constants
 
-import java.time.Instant
-
-import csw.messages.events.{EventKey, EventName}
-import csw.messages.params.generics.{Key, KeyType}
-import csw.messages.params.models.Prefix
+import csw.params.core.generics.{Key, KeyType}
+import csw.params.core.models.Prefix
+import csw.params.events.{EventKey, EventName}
 
 object EventConstants {
   val MOUNT_DEMAND_POSITION: String     = "mcsdemandpositions"

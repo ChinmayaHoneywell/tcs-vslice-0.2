@@ -2,11 +2,11 @@ package org.tmt.tcs.mcs.MCShcd.msgTransformers
 import java.time.Instant
 
 import com.google.protobuf.GeneratedMessage
-import csw.messages.commands.ControlCommand
-import csw.messages.events.SystemEvent
-import csw.messages.params.generics.Parameter
-import csw.messages.params.states.CurrentState
-import csw.services.logging.scaladsl.LoggerFactory
+import csw.logging.scaladsl.LoggerFactory
+import csw.params.commands.ControlCommand
+import csw.params.core.generics.Parameter
+import csw.params.core.states.CurrentState
+import csw.params.events.SystemEvent
 import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsCommandProtos._
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos._
@@ -26,35 +26,34 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     val commandResponse: MCSCommandResponse   = MCSCommandResponse.parseFrom(responsePacket)
     val cmdError: MCSCommandResponse.CmdError = commandResponse.getCmdError
     //log.info(s"Command Response from Simulator is : ${commandResponse}")
+    var cmdErrorBool: Boolean = false
     if (MCSCommandResponse.CmdError.OK.equals(cmdError)) {
       //log.info("No Error from Simulator")
-      SubystemResponse(true, None, None)
+      cmdErrorBool = true
+      SubystemResponse(cmdErrorBool, None, None)
     } else {
       //log.error(s"Error from simulator cmdError : ${cmdError} and expected : ${MCSCommandResponse.CmdError.OK}")
-      SubystemResponse(false, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
+      SubystemResponse(cmdErrorBool, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
     }
 
   }
   override def decodeEvent(eventName: String, encodedEventData: Array[Byte]): CurrentState = {
     eventName match {
-      case EventConstants.CURRENT_POSITION => {
+      case EventConstants.CURRENT_POSITION =>
         val mcsCurrentPosEvent: McsCurrentPositionEvent = McsCurrentPositionEvent.parseFrom(encodedEventData)
         paramSetTransformer.getMountCurrentPosition(mcsCurrentPosEvent)
-      }
-      case EventConstants.DIAGNOSIS_STATE => {
+      case EventConstants.DIAGNOSIS_STATE =>
         val diagnosis: MountControlDiags = MountControlDiags.parseFrom(encodedEventData)
         paramSetTransformer.getMountControlDignosis(diagnosis)
-      }
-      case EventConstants.DRIVE_STATE => {
+      case EventConstants.DRIVE_STATE =>
         val driveState: McsDriveStatus = McsDriveStatus.parseFrom(encodedEventData)
         paramSetTransformer.getMCSDriveStatus(driveState)
-      }
-      case EventConstants.HEALTH_STATE => {
+      case EventConstants.HEALTH_STATE =>
         var healthState: McsHealth = null
         try {
           healthState = McsHealth.parseFrom(encodedEventData)
         } catch {
-          case e: Exception => {
+          case e: Exception =>
             e.printStackTrace()
             healthState = McsHealth
               .newBuilder()
@@ -63,38 +62,24 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
               .setTime(Instant.now().toEpochMilli)
               .build()
             log.error(s"Publishing dummy health from exception :$healthState")
-          }
         }
         paramSetTransformer.getMCSHealth(healthState)
-      }
     }
+
   }
 
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
     //log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")
     controlCommand.commandName.name match {
-      case Commands.FOLLOW => {
-        getFollowCommandBytes
-      }
-      case Commands.DATUM => {
-        getDatumCommandBytes(controlCommand)
-      }
-      case Commands.POINT => {
-        getPointCommandBytes(controlCommand)
-      }
-      case Commands.POINT_DEMAND => {
-        getPointDemandCommandBytes(controlCommand)
-      }
-      case Commands.STARTUP => {
-        getStartupCommandBytes
-      }
-      case Commands.SHUTDOWN => {
-        getShutdownCommandBytes
-      }
+      case Commands.FOLLOW       => getFollowCommandBytes
+      case Commands.DATUM        => getDatumCommandBytes(controlCommand)
+      case Commands.POINT        => getPointCommandBytes(controlCommand)
+      case Commands.POINT_DEMAND => getPointDemandCommandBytes(controlCommand)
+      case Commands.STARTUP      => getStartupCommandBytes
+      case Commands.SHUTDOWN     => getShutdownCommandBytes
     }
   }
   override def encodeCurrentState(currentState: CurrentState): Array[Byte] = {
-    var trackID  = 1
     var azPos    = 0.0
     var elPos    = 0.0
     val sentTime = System.currentTimeMillis() //current time of HCD
@@ -160,7 +145,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   def getDatumCommandBytes(controlCommand: ControlCommand): Array[Byte] = {
     val axesParam: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
     val param1                  = axesParam.head
-    var axes: Axes              = Axes.BOTH;
+    var axes: Axes              = Axes.BOTH
     if (param1 == "AZ") {
       axes = Axes.AZ
     }
@@ -174,7 +159,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   def getPointCommandBytes(controlCommand: ControlCommand): Array[Byte] = {
     val axesParam: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
     val param1                  = axesParam.head
-    var axes: Axes              = Axes.BOTH;
+    var axes: Axes              = Axes.BOTH
     if (param1 == "AZ") {
       axes = Axes.AZ
     }

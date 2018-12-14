@@ -1,35 +1,11 @@
 package org.tmt.tcs.mcs.MCShcd
 
 import akka.actor.typed.scaladsl.ActorContext
-import csw.framework.CurrentStatePublisher
+import csw.command.client.messages.TopLevelActorMessage
+import csw.framework.models.CswContext
 import csw.framework.scaladsl.{ComponentBehaviorFactory, ComponentHandlers}
-import csw.messages.TopLevelActorMessage
-import csw.messages.framework.ComponentInfo
-import csw.services.alarm.api.scaladsl.AlarmService
-import csw.services.command.CommandResponseManager
-import csw.services.event.api.scaladsl.EventService
-import csw.services.location.scaladsl.LocationService
-import csw.services.logging.scaladsl.LoggerFactory
 
 class McsHcdBehaviorFactory extends ComponentBehaviorFactory {
-
-  override def handlers(
-      ctx: ActorContext[TopLevelActorMessage],
-      componentInfo: ComponentInfo,
-      commandResponseManager: CommandResponseManager,
-      currentStatePublisher: CurrentStatePublisher,
-      locationService: LocationService,
-      eventService: EventService,
-      alarmService: AlarmService,
-      loggerFactory: LoggerFactory
-  ): ComponentHandlers =
-    new McsHcdHandlers(ctx,
-                       componentInfo,
-                       commandResponseManager,
-                       currentStatePublisher,
-                       locationService,
-                       eventService,
-                       alarmService,
-                       loggerFactory)
-
+  protected override def handlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext): ComponentHandlers =
+    new McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext)
 }

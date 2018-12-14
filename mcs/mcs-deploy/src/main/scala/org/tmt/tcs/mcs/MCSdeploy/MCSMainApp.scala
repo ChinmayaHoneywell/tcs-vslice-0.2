@@ -1,27 +1,26 @@
 package org.tmt.tcs.mcs.MCSdeploy
 
 import java.net.InetAddress
-import java.time.Instant
-import java.util.Calendar
 
 import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import csw.messages.location.ComponentId
-import csw.messages.location.ComponentType.Assembly
-import csw.messages.location.Connection.AkkaConnection
 import akka.actor.typed.scaladsl.adapter._
-import csw.messages.commands.CommandResponse.Error
-import csw.messages.commands.{CommandName, CommandResponse, Setup}
-import csw.messages.events.{Event, SystemEvent}
-import csw.messages.params.generics.{Key, KeyType, Parameter}
-import csw.messages.params.models.{Id, Prefix}
-import csw.services.command.scaladsl.CommandService
-import csw.services.event.EventServiceFactory
-import csw.services.event.api.scaladsl.{EventService, EventSubscriber}
-import csw.services.location.commons.ClusterAwareSettings
-import csw.services.location.scaladsl.LocationServiceFactory
-import csw.services.logging.scaladsl.LoggingSystemFactory
+import csw.command.api.scaladsl.CommandService
+import csw.command.client.CommandServiceFactory
+import csw.event.api.scaladsl.EventService
+import csw.event.client.EventServiceFactory
+import csw.location.api.models.{AkkaLocation, ComponentId}
+import csw.location.api.models.ComponentType.Assembly
+import csw.location.api.models.Connection.AkkaConnection
+import csw.location.client.ActorSystemFactory
+import csw.location.client.scaladsl.HttpLocationServiceFactory
+import csw.logging.scaladsl.LoggingSystemFactory
+
+import csw.params.commands.{CommandName, CommandResponse, Setup}
+import csw.params.core.generics.{Key, KeyType, Parameter}
+import csw.params.core.models.{Id, Prefix}
+import csw.params.events.{Event, SystemEvent}
 import org.tmt.tcs.mcs.MCSdeploy.constants.{DeployConstants, EventConstants}
 
 import scala.concurrent.duration._
@@ -31,11 +30,11 @@ This object acts as a client object to test execution of commands
 
  */
 object MCSMainApp extends App {
-  private val system: ActorSystem = ClusterAwareSettings.system
-  private val locationService     = LocationServiceFactory.withSystem(system)
-
-  private val maybeObsId = None
-  private val host       = InetAddress.getLocalHost.getHostName
+  private val system: ActorSystem     = ActorSystemFactory.remote("Client-App")
+  implicit val mat: ActorMaterializer = ActorMaterializer()
+  // private val system: ActorSystem = ClusterAwareSettings.system
+  private val locationService = HttpLocationServiceFactory.makeLocalClient(system, mat)
+  private val host            = InetAddress.getLocalHost.getHostName
 
   LoggingSystemFactory.start("MCSMainApp", "0.1", host, system)
 
@@ -44,7 +43,7 @@ object MCSMainApp extends App {
   implicit val timeout: Timeout                 = Timeout(300.seconds)
   implicit val scheduler: Scheduler             = system.scheduler
   implicit def actorRefFactory: ActorRefFactory = system
-  implicit val mat: ActorMaterializer           = ActorMaterializer()
+
   // implicit val ec: ExecutionContextExecutor     = system.dispatcher
   private val connection = AkkaConnection(ComponentId("McsAssembly", Assembly))
 
@@ -55,11 +54,13 @@ object MCSMainApp extends App {
   /**
    * Gets a reference to the running assembly from the location service, if found.
    */
-  private def getAssembly: Future[Option[CommandService]] = {
+  private def getAssembly: CommandService = {
     implicit val sys: typed.ActorSystem[Nothing] = system.toTyped
-    locationService.resolve(connection, 3000.seconds).map(_.map(new CommandService(_)))
+    //locationService.resolve(connection, 3000.seconds).map(_.map(new CommandService(_)))
+    val akkaLocations: List[AkkaLocation] = Await.result(locationService.listByPrefix("tcs.mcs.assembly"), 10.seconds)
+    CommandServiceFactory.make(akkaLocations.head)(sys)
   }
-  private def getEventService(): EventService = {
+  private def getEventService: EventService = {
     locationService.resolve(connection, 3000.seconds)
     val eventService: EventService = new EventServiceFactory().make(locationService)(system)
     eventService
@@ -75,27 +76,27 @@ object MCSMainApp extends App {
   println(s"SimulationMode command response is : $resp0 total time taken is : ${System.currentTimeMillis() - simulCmdSentTime}")
 
   var startupSentTime: Long = System.currentTimeMillis()
-  val resp1                 = Await.result(sendStartupCommand, 30.seconds)
+  val resp1                 = Await.result(sendStartupCommand(), 30.seconds)
   println(s"Startup command response is : $resp1 total time taken is : ${System.currentTimeMillis() - startupSentTime}")
 
   var datumCommandSentTime: Long = System.currentTimeMillis()
-  val resp2                      = Await.result(sendDatumCommand, 200.seconds)
+  val resp2                      = Await.result(sendDatumCommand(), 200.seconds)
   println(s"Datum command response is : $resp2 total time taken is : ${System.currentTimeMillis() - datumCommandSentTime}")
 
   var followCmdSentTime: Long = System.currentTimeMillis()
-  val resp3                   = Await.result(sendFollowCommand, 200.seconds)
+  val resp3                   = Await.result(sendFollowCommand(), 200.seconds)
   println(s"Follow command response is : $resp3 total time taken is : ${System.currentTimeMillis() - followCmdSentTime}")
 
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
   //println(s"Move command response is : $resp4 at : ${System.currentTimeMillis()}")
 
   var dummyImmCmd: Long = System.currentTimeMillis()
-  val resp5             = Await.result(sendDummyImmediateCommand, 200.seconds)
-  println(s"Dummy immediate command Response is : ${resp5} total time taken is : ${System.currentTimeMillis() - dummyImmCmd}")
+  val resp5             = Await.result(sendDummyImmediateCommand(), 200.seconds)
+  println(s"Dummy immediate command Response is : $resp5 total time taken is : ${System.currentTimeMillis() - dummyImmCmd}")
 
   var dummyLongCmd: Long = System.currentTimeMillis()
-  val resp6              = Await.result(sendDummyLongCommand, 200.seconds)
-  println(s"Dummy Long Command Response is : ${resp6} total time taken is : ${System.currentTimeMillis() - dummyLongCmd}")
+  val resp6              = Await.result(sendDummyLongCommand(), 200.seconds)
+  println(s"Dummy Long Command Response is : $resp6 total time taken is : ${System.currentTimeMillis() - dummyLongCmd}")
 
   /*var shutdownCmd: Long = System.currentTimeMillis()
   val resp7             = Await.result(sendShutDownCmd, 30.seconds)
@@ -107,7 +108,7 @@ object MCSMainApp extends App {
 
   /*new Thread(new Runnable { override def run(): Unit = startSubscribingEvents }).start()*/
 
-  startSubscribingEvents
+  startSubscribingEvents()
 
   def startSubscribingEvents(): Unit = {
     println(" ** Started subscribing Events from Assembly ** ")
@@ -125,14 +126,13 @@ object MCSMainApp extends App {
     // println(s"*** Received health event: ${event} from assembly at time : ${Calendar.getInstance().getTime} *** ")
     val clientAppRecTime = System.currentTimeMillis()
     event match {
-      case systemEvent: SystemEvent => {
+      case systemEvent: SystemEvent =>
         val params                               = systemEvent.paramSet
         val simulatorSentTimeParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        println(s"Health, ${simulatorPublishTime}, ${hcdReceiveTime}, ${assemblyRecTime}, ${clientAppRecTime}")
-      }
+        println(s"Health, $simulatorPublishTime, $hcdReceiveTime, $assemblyRecTime, $clientAppRecTime")
     }
     Future.successful[String]("Successfully processed Health event from assembly")
   }
@@ -140,7 +140,7 @@ object MCSMainApp extends App {
     val clientAppRecTime = System.currentTimeMillis()
     // println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
     event match {
-      case systemEvent: SystemEvent => {
+      case systemEvent: SystemEvent =>
         val params                               = systemEvent.paramSet
         val azPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
         val elPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
@@ -149,108 +149,61 @@ object MCSMainApp extends App {
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
         println(
-          s"CurrentPosition:, ${azPosParam}, ${elPosParam},  ${simulatorPublishTime},${hcdReceiveTime}, ${assemblyRecTime},${clientAppRecTime}"
+          s"CurrentPosition:, $azPosParam, $elPosParam,  $simulatorPublishTime,$hcdReceiveTime, $assemblyRecTime,$clientAppRecTime"
         )
-      }
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
   }
 
   def sendDummyImmediateCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
-    getAssembly.flatMap {
-      case Some(commandService) => {
-        val dummyImmediate = Setup(prefix, CommandName("DummyImmediate"), None)
-        commandService.submit(dummyImmediate)
-      }
-      case None => {
-        Future.failed[CommandResponse](new Exception("Can't locate MCSAssembly"))
-      }
-    }
+    val dummyImmediate = Setup(prefix, CommandName("DummyImmediate"), None)
+    val commandService = getAssembly
+    commandService.submit(dummyImmediate)
   }
   def sendDummyLongCommand()(implicit ex: ExecutionContext): Future[CommandResponse] = {
-    getAssembly.flatMap {
-      case Some(commandService) => {
-        val dummyLong = Setup(prefix, CommandName("DummyLong"), None)
-        commandService.submitAndSubscribe(dummyLong)
-      }
-      case None => {
-        Future.failed[CommandResponse](new Exception("Can't locate MCSAssembly"))
-      }
-    }
+    val commandService = getAssembly
+    val dummyLong      = Setup(prefix, CommandName("DummyLong"), None)
+    commandService.submit(dummyLong)
   }
 
   def sendStartupCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
-    getAssembly.flatMap {
-      case Some(commandService) => {
-        val setup = Setup(prefix, CommandName("Startup"), None)
-        commandService.submit(setup)
-      }
-      case None => {
-        Future.successful(Error(Id(), "Can't locate MCSAssembly"))
-      }
-    }
+    val commandService = getAssembly
+    val setup          = Setup(prefix, CommandName("Startup"), None)
+    commandService.submit(setup)
   }
   def sendShutDownCmd()(implicit ec: ExecutionContext): Future[CommandResponse] = {
-    getAssembly.flatMap {
-      case Some(commandService) => {
-        val setup = Setup(prefix, CommandName("ShutDown"), None)
-        commandService.submit(setup)
-      }
-      case None => {
-        Future.successful(Error(Id(), "Can't locate MCSAssembly"))
-      }
-    }
+    val commandService = getAssembly
+    val setup          = Setup(prefix, CommandName("ShutDown"), None)
+    commandService.submit(setup)
   }
   def sendDatumCommand(): Future[CommandResponse] = {
     val datumParam: Parameter[String] = axesKey.set("BOTH")
-    getAssembly.flatMap {
-      case Some(commandService) => {
-        val setup = Setup(prefix, CommandName("Datum"), None).add(datumParam)
-        commandService.submitAndSubscribe(setup)
-      }
-      case None => {
-        Future.successful(Error(Id(), "Can't locate MCSAssembly"))
-      }
-    }
+    val setup                         = Setup(prefix, CommandName("Datum"), None).add(datumParam)
+    val commandService                = getAssembly
+    commandService.submit(setup)
   }
   def sendFollowCommand(): Future[CommandResponse] = {
-
-    getAssembly.flatMap {
-      case Some(commandService) =>
-        val setup = Setup(prefix, CommandName("Follow"), None)
-
-        commandService.submitAndSubscribe(setup)
-      case None =>
-        Future.successful(Error(Id(), "Can't locate TcsTemplateAssembly"))
-    }
+    val setup          = Setup(prefix, CommandName("Follow"), None)
+    val commandService = getAssembly
+    commandService.submit(setup)
   }
   def sendSimulationModeCommand(simulationMode: String): Future[CommandResponse] = {
-    val simulationModeKey: Key[String] = KeyType.StringKey.make("SimulationMode")
-    getAssembly.flatMap {
-      case Some(commandService) => {
-        val simulModeParam: Parameter[String] = simulationModeKey.set(simulationMode)
-        val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
-        commandService.submitAndSubscribe(setup)
-
-      }
-    }
+    val simulationModeKey: Key[String]    = KeyType.StringKey.make("SimulationMode")
+    val simulModeParam: Parameter[String] = simulationModeKey.set(simulationMode)
+    val commandService                    = getAssembly
+    val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
+    commandService.submit(setup)
   }
   def sendMoveCommand(): Future[CommandResponse] = {
     val axesParam: Parameter[String] = axesKey.set("BOTH")
     val azParam: Parameter[Double]   = azKey.set(1.5)
     val elParam: Parameter[Double]   = elKey.set(10)
-
-    getAssembly.flatMap {
-      case Some(commandService) =>
-        val setup = Setup(prefix, CommandName("Move"), None)
-          .add(axesParam)
-          .add(azParam)
-          .add(elParam)
-        //println("Move command sent time : " + System.currentTimeMillis())
-        commandService.submitAndSubscribe(setup)
-      case None =>
-        Future.successful(Error(Id(), "Can't locate TcsTemplateAssembly"))
-    }
+    val commandService               = getAssembly
+    val setup = Setup(prefix, CommandName("Move"), None)
+      .add(axesParam)
+      .add(azParam)
+      .add(elParam)
+    commandService.submit(setup)
   }
 
 }

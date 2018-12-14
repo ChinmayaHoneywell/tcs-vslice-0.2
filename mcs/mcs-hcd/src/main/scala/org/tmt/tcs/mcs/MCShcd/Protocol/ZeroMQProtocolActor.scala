@@ -1,13 +1,14 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import com.typesafe.config.Config
-import csw.messages.commands.{CommandIssue, CommandResponse, ControlCommand}
-import csw.messages.events.SystemEvent
-import csw.messages.params.models.Id
-import csw.messages.params.states.CurrentState
-import csw.services.logging.scaladsl.{Logger, LoggerFactory}
+import csw.logging.scaladsl.{Logger, LoggerFactory}
+import csw.params.commands.CommandResponse.{Error, SubmitResponse}
+import csw.params.commands.{CommandIssue, CommandResponse, ControlCommand}
+import csw.params.core.models.Id
+import csw.params.core.states.CurrentState
+import csw.params.events.SystemEvent
 import org.tmt.tcs.mcs.MCShcd.EventMessage
 import org.tmt.tcs.mcs.MCShcd.EventMessage.PublishState
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage._
@@ -20,7 +21,7 @@ object ZeroMQMessage {
   case class InitializeSimulator(sender: ActorRef[ZeroMQMessage], config: Config) extends ZeroMQMessage
 
   case class SubmitCommand(sender: ActorRef[ZeroMQMessage], controlCommand: ControlCommand) extends ZeroMQMessage
-  case class MCSResponse(commandResponse: CommandResponse)                                  extends ZeroMQMessage
+  case class MCSResponse(commandResponse: SubmitResponse)                                   extends ZeroMQMessage
   case class PublishEvent(event: SystemEvent)                                               extends ZeroMQMessage
   case class StartSimulEventSubscr()                                                        extends ZeroMQMessage
 
@@ -36,7 +37,7 @@ object ZeroMQProtocolActor {
 case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
                                statePublisherActor: ActorRef[EventMessage],
                                loggerFactory: LoggerFactory)
-    extends MutableBehavior[ZeroMQMessage] {
+    extends AbstractBehavior[ZeroMQMessage] {
   private val log: Logger                 = loggerFactory.getLogger
   private val zmqContext: ZMQ.Context     = ZMQ.context(1)
   private val pushSocket: ZMQ.Socket      = zmqContext.socket(ZMQ.PUSH) //55579
@@ -62,7 +63,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   override def onMessage(msg: ZeroMQMessage): Behavior[ZeroMQMessage] = {
     msg match {
 
-      case msg: InitializeSimulator => {
+      case msg: InitializeSimulator =>
         if (initMCSConnection(msg.config)) {
           log.info("CONNECTION ESTABLISHED WITH MCS SIMULATOR")
           msg.sender ! SimulatorConnResponse(true)
@@ -71,20 +72,17 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
           msg.sender ! SimulatorConnResponse(false)
         }
         Behavior.same
-      }
-      case msg: SubmitCommand => {
+      case msg: SubmitCommand =>
         submitCommandToMCS(msg)
         Behavior.same
-      }
-      case msg: PublishEvent => {
+      case msg: PublishEvent =>
         val positionDemands: Array[Byte] = messageTransformer.encodeEvent(msg.event)
         if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
           pubSocket.send(positionDemands)
         }
-
         Behavior.same
-      }
-      case msg: PublishCurrStateToZeroMQ => {
+
+      case msg: PublishCurrStateToZeroMQ =>
         try {
           val positionDemands: Array[Byte] = messageTransformer.encodeCurrentState(msg.currentState)
           if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
@@ -92,25 +90,19 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
           }
           //log.info(s"published position demands : ${msg.currentState} to MCS subsystem")
         } catch {
-          case ex: Exception => {
+          case ex: Exception =>
             ex.printStackTrace()
             log.error("Exception in converting current state to byte array")
-          }
-        }
 
+        }
         Behavior.same
-      }
-      case msg: StartSimulEventSubscr => {
-        new Thread(new Runnable {
-          override def run(): Unit = startSubscrToSimulEvents()
-        }).start()
+      case _: StartSimulEventSubscr =>
+        new Thread(() => startSubscrToSimulEvents()).start()
         log.info("Started subscribing to events from Simulator.")
         Behavior.same
-      }
-      case msg: Disconnect => {
+      case _: Disconnect =>
         disconnectFromMCS()
         Behavior.same
-      }
     }
   }
   private def startSubscrToSimulEvents() = {
@@ -125,7 +117,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         // log.info(s"Publishing event: $currState from HCD.")
         statePublisherActor ! PublishState(currState)
       } else {
-        log.error(s"No event data is received for event: ${eventName}")
+        log.error(s"No event data is received for event: $eventName")
         Thread.sleep(1000)
       }
     }
@@ -151,28 +143,20 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     }
   }
 
-  private def readCommandResponse(commandName: String, runId: Id): CommandResponse = {
+  private def readCommandResponse(commandName: String, runId: Id): SubmitResponse = {
     val responseCommandName: String = pullSocket.recvStr()
     if (commandName == responseCommandName) {
       if (pullSocket.hasReceiveMore) {
         val responsePacket: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
-        /*log.info(
-          s" ** Time required to get response for command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** "
-        )*/
         commandDecodeTime = System.currentTimeMillis()
         val response: SubystemResponse = messageTransformer.decodeCommandResponse(responsePacket)
-        val commandResponse            = paramSetTransformer.getCSWResponse(runId, response)
-        /* log.info(
-          s"Time required for decoding response for command: ${commandName} is: ${System.currentTimeMillis() - commandDecodeTime}"
-        )*/
-        commandResponse
+        paramSetTransformer.getCSWResponse(runId, response)
       } else {
-        CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
+        Error(runId, "unknown command send")
       }
     } else {
-      CommandResponse.Invalid(runId, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
+      Error(runId, "unknown command send")
     }
-
   }
 
   private def initMCSConnection(config: Config): Boolean = {

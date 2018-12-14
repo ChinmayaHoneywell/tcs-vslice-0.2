@@ -1,24 +1,20 @@
 package org.tmt.tcs.mcs.MCShcd
 
 import java.nio.file.{Path, Paths}
-import java.{lang, time, util}
-import java.time.Period
-import java.time.temporal.TemporalAmount
-import java.util.Map
 
 import akka.actor.ActorRefFactory
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.actor.typed.scaladsl.adapter.TypedActorSystemOps
 import akka.stream.ActorMaterializer
 import com.typesafe.config._
 import csw.framework.exceptions.FailureStop
-import csw.services.command.CommandResponseManager
-import csw.services.config.api.models.ConfigData
-import csw.services.config.api.scaladsl.ConfigClientService
-import csw.services.config.client.scaladsl.ConfigClientFactory
-import csw.services.location.scaladsl.LocationService
-import csw.services.logging.scaladsl.LoggerFactory
+import csw.command.client.CommandResponseManager
+import csw.config.api.models.ConfigData
+import csw.config.api.scaladsl.ConfigClientService
+import csw.config.client.scaladsl.ConfigClientFactory
+import csw.location.api.scaladsl.LocationService
+import csw.logging.scaladsl.LoggerFactory
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.{GetConfig, HCDConfig, InitializeMsg, ShutdownMsg}
 
 import scala.concurrent.duration._
@@ -44,7 +40,7 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
                           commandResponseManager: CommandResponseManager,
                           locationService: LocationService,
                           loggerFactory: LoggerFactory)
-    extends MutableBehavior[LifeCycleMessage] {
+    extends AbstractBehavior[LifeCycleMessage] {
   implicit val ec: ExecutionContextExecutor     = ctx.executionContext
   private val configClient: ConfigClientService = ConfigClientFactory.clientApi(ctx.system.toUntyped, locationService)
   private val log                               = loggerFactory.getLogger

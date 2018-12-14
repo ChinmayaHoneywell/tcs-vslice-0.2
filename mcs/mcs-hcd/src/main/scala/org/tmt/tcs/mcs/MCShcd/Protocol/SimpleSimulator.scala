@@ -3,14 +3,7 @@ package org.tmt.tcs.mcs.MCShcd.Protocol
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-import csw.messages.commands.{CommandResponse, ControlCommand}
-import csw.messages.events.SystemEvent
-import csw.messages.params.generics.Parameter
-import csw.messages.params.models.Units.degree
-import csw.messages.params.models.{Prefix, Subsystem}
-import csw.messages.params.states.{CurrentState, StateName}
-import csw.services.logging.scaladsl.{Logger, LoggerFactory}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import org.tmt.tcs.mcs.MCShcd.EventMessage
 import org.tmt.tcs.mcs.MCShcd.EventMessage.PublishState
 import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg._
@@ -18,14 +11,23 @@ import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import java.lang.Double.doubleToLongBits
 import java.lang.Double.longBitsToDouble
 
+import csw.logging.scaladsl.{Logger, LoggerFactory}
+import csw.params.commands.CommandResponse.SubmitResponse
+import csw.params.commands.{CommandResponse, ControlCommand}
+import csw.params.core.generics.Parameter
+import csw.params.core.models.Units.degree
+import csw.params.core.models.{Prefix, Subsystem}
+import csw.params.core.states.{CurrentState, StateName}
+import csw.params.events.SystemEvent
+
 sealed trait SimpleSimMsg
 object SimpleSimMsg {
   case class ProcessCommand(command: ControlCommand, sender: ActorRef[SimpleSimMsg]) extends SimpleSimMsg
 
-  case class SimpleSimResp(commandResponse: CommandResponse) extends SimpleSimMsg
-  case class ProcEventDemand(event: SystemEvent)             extends SimpleSimMsg
-  case class ProcOneWayDemand(command: ControlCommand)       extends SimpleSimMsg
-  case class ProcCurrStateDemand(currState: CurrentState)    extends SimpleSimMsg
+  case class SimpleSimResp(commandResponse: SubmitResponse) extends SimpleSimMsg
+  case class ProcEventDemand(event: SystemEvent)            extends SimpleSimMsg
+  case class ProcOneWayDemand(command: ControlCommand)      extends SimpleSimMsg
+  case class ProcCurrStateDemand(currState: CurrentState)   extends SimpleSimMsg
 }
 
 object SimpleSimulator {
@@ -35,7 +37,7 @@ object SimpleSimulator {
 case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
                            loggerFactory: LoggerFactory,
                            statePublisherActor: ActorRef[EventMessage])
-    extends MutableBehavior[SimpleSimMsg] {
+    extends AbstractBehavior[SimpleSimMsg] {
   private val log: Logger = loggerFactory.getLogger
 
   val prefix: Prefix = Prefix(Subsystem.MCS.toString)
@@ -54,13 +56,12 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
     msg match {
-      case msg: ProcessCommand => {
+      case msg: ProcessCommand =>
         //log.info(s"Received command : ${msg.command} in simpleSimulator.")
         updateSimulator(msg.command.commandName.name)
         msg.sender ! SimpleSimResp(CommandResponse.Completed(msg.command.runId))
         Behavior.same
-      }
-      case msg: ProcOneWayDemand => {
+      case msg: ProcOneWayDemand =>
         //log.info(s"Received position demands from MCSH :")
         val simulatorRecTime                 = System.currentTimeMillis()
         val paramSet                         = msg.command.paramSet
@@ -77,11 +78,11 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val hcdRecTime      = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
 
         log.error(
-          s"${azPos.head}, ${elPos.head}, ${sentTime.head}, ${assemblyRecTime.head}, ${hcdRecTime.head}, ${simulatorRecTime}"
+          s"${azPos.head}, ${elPos.head}, ${sentTime.head}, ${assemblyRecTime.head}, ${hcdRecTime.head}, $simulatorRecTime"
         )
         Behavior.same
-      }
-      case msg: ProcEventDemand => {
+
+      case msg: ProcEventDemand =>
         val cs               = msg.event
         val simpleSimRecTime = System.currentTimeMillis()
         val assemblyRecTime  = cs.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
@@ -89,11 +90,10 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
         val azPos            = cs.get(EventConstants.AzPosKey).get.head
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
-
         log.error(s"Received event :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
         Behavior.same
-      }
-      case msg: ProcCurrStateDemand => {
+
+      case msg: ProcCurrStateDemand =>
         val cs               = msg.currState
         val simpleSimRecTime = System.currentTimeMillis()
         val assemblyRecTime  = cs.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
@@ -108,34 +108,25 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
           s"$hcdRecTime, $simpleSimRecTime"
         )*/
         Behavior.same
-      }
 
     }
   }
   def updateSimulator(commandName: String): Unit = {
     commandName match {
-      case Commands.STARTUP => {
-        new Thread(new Runnable {
-          override def run(): Unit = startPublishingCurrPos()
-        }).start()
-
-        new Thread(new Runnable {
-          override def run(): Unit = startPublishingHealth()
-        }).start()
+      case Commands.STARTUP =>
+        new Thread(() => startPublishingCurrPos()).start()
+        new Thread(() => startPublishingHealth()).start()
         log.info("Starting publish current position and health threads")
-      }
-      case Commands.SHUTDOWN => {
+      case Commands.SHUTDOWN =>
         updateCurrPosPublisher(false)
         updateHealthPublisher(false)
         log.info("Updating current position publisher and health publisher to false")
-      }
-      case _ => {
+      case _ =>
         log.info(s"Not changing publisher thread state as command received is $commandName")
-      }
     }
   }
   def updateCurrPosPublisher(value: Boolean): Unit = {
-    println(s"Updating CurrentPosition publisher to : ${value}")
+    println(s"Updating CurrentPosition publisher to : $value")
     this.currentPosPublisher.set(value)
   }
   def updateHealthPublisher(value: Boolean): Unit = {

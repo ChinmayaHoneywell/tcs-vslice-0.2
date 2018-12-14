@@ -1,15 +1,15 @@
 package org.tmt.tcs.mcs.MCShcd.workers
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.util.Timeout
-import csw.messages.commands.{CommandResponse, ControlCommand}
-import csw.services.command.CommandResponseManager
-import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, ZeroMQMessage}
 
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.AskPattern._
+import csw.command.client.CommandResponseManager
+import csw.logging.scaladsl.{Logger, LoggerFactory}
+import csw.params.commands.{CommandResponse, ControlCommand}
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 
 import scala.concurrent.Await
@@ -31,7 +31,7 @@ case class DatumCmdActor(ctx: ActorContext[ControlCommand],
                          simplSimActor: ActorRef[SimpleSimMsg],
                          simulatorMode: String,
                          loggerFactory: LoggerFactory)
-    extends MutableBehavior[ControlCommand] {
+    extends AbstractBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
 
@@ -48,18 +48,17 @@ case class DatumCmdActor(ctx: ActorContext[ControlCommand],
   }
 
   private def submitToSimplSim(msg: ControlCommand) = {
-    implicit val duration: Timeout = 20 seconds
+    implicit val duration: Timeout = 10 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: SimpleSimMsg = Await.result(simplSimActor ? { ref: ActorRef[SimpleSimMsg] =>
       SimpleSimMsg.ProcessCommand(msg, ref)
-    }, 5.seconds)
+    }, 2.seconds)
     response match {
       case x: SimpleSimMsg.SimpleSimResp => {
-        commandResponseManager.addOrUpdateCommand(msg.runId, x.commandResponse)
+        commandResponseManager.addOrUpdateCommand(x.commandResponse)
       }
       case _ => {
         commandResponseManager.addOrUpdateCommand(
-          msg.runId,
           CommandResponse.Error(msg.runId, "Simple simulator is unable to process submitted command.")
         )
       }
@@ -68,22 +67,20 @@ case class DatumCmdActor(ctx: ActorContext[ControlCommand],
 
   private def submitToRealSim(msg: ControlCommand) = {
     //log.info(s"Submitting datum command with id : ${msg.runId} to Simulator")
-    implicit val duration: Timeout = 40 seconds
+    implicit val duration: Timeout = 10 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
       ZeroMQMessage.SubmitCommand(ref, msg)
-    }, 30.seconds)
+    }, 3.seconds)
     response match {
       case x: ZeroMQMessage.MCSResponse => {
-        log.info(s"Response from MCS for command runID : ${msg.runId}  and command Name : ${msg.commandName} is : ${x}")
-        commandResponseManager.addOrUpdateCommand(msg.runId, x.commandResponse)
+        log.info(s"Response from MCS for command runID : ${msg.runId}  and command Name : ${msg.commandName} is : $x")
+        commandResponseManager.addOrUpdateCommand(x.commandResponse)
       }
-      case _ => {
+      case _ =>
         commandResponseManager.addOrUpdateCommand(
-          msg.runId,
           CommandResponse.Error(msg.runId, "Unable to submit command data to MCS subsystem from worker actor.")
         )
-      }
     }
   }
 }

@@ -4,31 +4,21 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
 import csw.framework.scaladsl.ComponentHandlers
-import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
-import csw.messages.commands.CommandIssue.{
-  UnsupportedCommandInStateIssue,
-  UnsupportedCommandIssue,
-  WrongInternalStateIssue,
-  WrongNumberOfParametersIssue
-}
-import csw.messages.framework.ComponentInfo
-import csw.messages.location.{AkkaLocation, LocationRemoved, LocationUpdated, TrackingEvent}
-import csw.messages.params.generics.Parameter
-import csw.services.location.scaladsl.LocationService
-import csw.services.logging.scaladsl.LoggerFactory
+import csw.command.client.messages.TopLevelActorMessage
+import csw.params.commands._
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import akka.actor.typed.scaladsl.AskPattern._
-import com.typesafe.config.Config
-import csw.framework.CurrentStatePublisher
-import csw.messages.TopLevelActorMessage
-import csw.messages.params.models.{Prefix, Subsystem}
-import csw.messages.params.states.CurrentState
-import csw.services.alarm.api.scaladsl.AlarmService
-import csw.services.command.CommandResponseManager
-import csw.services.command.scaladsl.{CommandService, CurrentStateSubscription}
-import csw.services.event.api.scaladsl.EventService
+import csw.command.api.CurrentStateSubscription
+import csw.command.api.scaladsl.CommandService
+import csw.command.client.CommandServiceFactory
+import csw.framework.models.CswContext
+import csw.location.api.models.{AkkaLocation, LocationRemoved, LocationUpdated, TrackingEvent}
+import csw.params.commands.CommandIssue.{UnsupportedCommandIssue, WrongInternalStateIssue, WrongNumberOfParametersIssue}
+import csw.params.commands.CommandResponse._
+import csw.params.core.generics.Parameter
+import csw.params.core.models.{Prefix, Subsystem}
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.{submitCommand, ImmediateCommandResponse}
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.{Disconnect, StartSimulEventSubscr}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, SimpleSimulator, ZeroMQMessage, ZeroMQProtocolActor}
@@ -48,24 +38,9 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
  * and if validation is successful, then onSubmit hook gets invoked.
  * You can find more information on this here : https://tmtsoftware.github.io/csw-prod/framework.html
  */
-class McsHcdHandlers(
-    ctx: ActorContext[TopLevelActorMessage],
-    componentInfo: ComponentInfo,
-    commandResponseManager: CommandResponseManager,
-    currentStatePublisher: CurrentStatePublisher,
-    locationService: LocationService,
-    eventService: EventService,
-    alarmService: AlarmService,
-    loggerFactory: LoggerFactory
-) extends ComponentHandlers(ctx,
-                              componentInfo,
-                              commandResponseManager,
-                              currentStatePublisher,
-                              locationService,
-                              eventService,
-                              alarmService,
-                              loggerFactory) {
-
+class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext)
+    extends ComponentHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext) {
+  import cswCtx._
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
   private var simulatorMode: String         = Commands.REAL_SIMULATOR
@@ -141,17 +116,14 @@ class McsHcdHandlers(
         }, 10.seconds)
 
         zeroMQMsg match {
-          case msg: ZeroMQMessage.SimulatorConnResponse => {
-            msg.connected
-          }
-          case _ => false
+          case msg: ZeroMQMessage.SimulatorConnResponse => msg.connected
+          case _                                        => false
         }
 
       }
-      case _ => {
+      case _ =>
         log.error("Unable to get Config object from configuration service for connecting with ZeroMQ")
         false
-      }
     }
   }
 
@@ -162,8 +134,7 @@ class McsHcdHandlers(
     // log.error(msg = "** Assembly Location changed **")
     trackingEvent match {
       case LocationUpdated(location) => {
-        assemblyLocation = Some(new CommandService(location.asInstanceOf[AkkaLocation])(ctx.system))
-        //log.error(s"Published assembly current state to HCD : ")
+        assemblyLocation = Some(CommandServiceFactory.make(location.asInstanceOf[AkkaLocation])(ctx.system))
         assemblyDemandsSubscriber = Some(
           assemblyLocation.get.subscribeCurrentState(
             statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, simpleSimActor, _)
@@ -177,62 +148,26 @@ class McsHcdHandlers(
     }
   }
 
-  override def validateCommand(controlCommand: ControlCommand): CommandResponse = {
+  override def validateCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
     // log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
-      case Commands.DATUM => {
-        validateDatumCommand(controlCommand)
-      }
-      case Commands.FOLLOW => {
-        validateFollowCommand(controlCommand)
-
-      }
-      case Commands.POINT => {
-        validatePointCommand(controlCommand)
-      }
-      case Commands.POINT_DEMAND => {
-        // point demand is in case of Move command splitting at assembly level.
-        validatePointDemandCommand(controlCommand)
-      }
-      case Commands.POSITION_DEMANDS => {
-        // position demands command is used during one way command tpk position demands
-        //log.info(s"** Position Demands Validate loop is executed")
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.STARTUP => {
-        log.info(msg = s"validating startup command in HCD")
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-      case Commands.SHUTDOWN => {
-        log.info(msg = s"validating shutdown command in HCD")
-        CommandResponse.Accepted(controlCommand.runId)
-      }
-
-      case Commands.SET_SIMULATION_MODE => {
-        validateSetSimulationMode(controlCommand)
-      }
-      case x =>
-        CommandResponse.Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
+      case Commands.DATUM        => validateDatumCommand(controlCommand)
+      case Commands.FOLLOW       => validateFollowCommand(controlCommand)
+      case Commands.POINT        => validatePointCommand(controlCommand)
+      case Commands.POINT_DEMAND => validatePointDemandCommand(controlCommand)
+      // position demands command is used during one way command tpk position demands
+      case Commands.POSITION_DEMANDS    => Accepted(controlCommand.runId)
+      case Commands.STARTUP             => Accepted(controlCommand.runId)
+      case Commands.SHUTDOWN            => Accepted(controlCommand.runId)
+      case Commands.SET_SIMULATION_MODE => Accepted(controlCommand.runId)
+      case x                            => Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
-  private def validateSetSimulationMode(cmd: ControlCommand): CommandResponse = {
-    val modeParam: Parameter[_] = cmd.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
-    val param                   = modeParam.head
-    if (param == Commands.REAL_SIMULATOR) {
-      simulatorMode = Commands.REAL_SIMULATOR
-    }
-    if (param == Commands.SIMPLE_SIMULATOR) {
-      simulatorMode = Commands.SIMPLE_SIMULATOR
-    }
-    commandHandlerActor ! submitCommand(cmd)
-    statePublisherActor ! SimulationModeChange(simulatorMode, simpleSimActor, zeroMQProtoActor)
-    positionDemandActor ! cmd
-    CommandResponse.Completed(cmd.runId)
-  }
+
   /*
      This functions validates point demand command based upon paramters and hcd state
    */
-  private def validatePointDemandCommand(controlCommand: ControlCommand): CommandResponse = {
+  private def validatePointDemandCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
     log.info(msg = s"validating point demand command in HCD")
 
     def validateParams: Boolean = {
@@ -240,11 +175,11 @@ class McsHcdHandlers(
       val param1                = azParam.head
       val elParam: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "EL").get
       val param2                = elParam.head
-      log.info(msg = s"In Point Demand command az value is : ${param1} and el value is : ${param2}")
+      log.info(msg = s"In Point Demand command az value is : $param1 and el value is : $param2")
       if (param1 == null || param2 == null) {
         return false
       }
-      return true
+      true
     }
     def validateHCDState: Boolean = {
       implicit val duration: Timeout = 20 seconds
@@ -254,28 +189,24 @@ class McsHcdHandlers(
         EventMessage.GetCurrentState(ref)
       }, 3.seconds)
       hcdCurrentState match { //TODO : here should be the logic to change assembly states based on current state
-        case x: EventMessage.HcdCurrentState => {
+        case x: EventMessage.HcdCurrentState =>
           x.lifeCycleState match {
             case HCDLifeCycleState.Running
                 if x.operationalState.equals(HCDOperationalState.PointingDrivePowerOn) ||
-                x.operationalState.equals(HCDOperationalState.PointingDatumed) => {
+                x.operationalState.equals(HCDOperationalState.PointingDatumed) =>
               return true
-            }
-            case _ => {
+            case _ =>
               log.error(
                 msg = s" to execute pointind demand command HCD Lifecycle state must be running and operational state must " +
                 s"be ${HCDOperationalState.PointingDatumed} or ${HCDOperationalState.PointingDrivePowerOn}"
               )
               return false
-            }
           }
-        }
-        case _ => {
+        case _ =>
           log.error(msg = s"Incorrect state is sent to HCD handler by state publisher actor")
           return false
-        }
       }
-      return false
+      false
     }
     if (validateParams) {
       if (validateHCDState) {
@@ -298,7 +229,7 @@ class McsHcdHandlers(
   /*
        This functions validates point  command based upon paramters and hcd state
    */
-  private def validatePointCommand(controlCommand: ControlCommand): CommandResponse = {
+  private def validatePointCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
     log.info(msg = "Validating point command in HCD")
     def validateParams: Boolean = {
       val axesParam: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
@@ -306,7 +237,7 @@ class McsHcdHandlers(
       if (param1 == "BOTH" || param1 == "AZ" || param1 == "EL") {
         return true
       }
-      return false
+      false
     }
     def validateHCDState: Boolean = {
       implicit val duration: Timeout = 20 seconds
@@ -316,50 +247,53 @@ class McsHcdHandlers(
         EventMessage.GetCurrentState(ref)
       }, 3.seconds)
       hcdCurrentState match {
-        case x: EventMessage.HcdCurrentState => {
+        case x: EventMessage.HcdCurrentState =>
           x.lifeCycleState match {
             case HCDLifeCycleState.Running
                 if x.operationalState.equals(HCDOperationalState.ServoOffDrivePowerOn) ||
-                x.operationalState.equals(HCDOperationalState.ServoOffDatumed) => {
+                x.operationalState.equals(HCDOperationalState.ServoOffDatumed) =>
               return true
-            }
-            case _ => {
+
+            case _ =>
               log.error(
-                msg = s" to execute pointind demand command HCD Lifecycle state must be running and operational state must " +
+                msg = s" to execute pointing demand command HCD Lifecycle state must be running and operational state must " +
                 s"be ${HCDOperationalState.ServoOffDrivePowerOn} or ${HCDOperationalState.ServoOffDatumed}"
               )
               return false
-            }
           }
-        }
-        case _ => {
+        case _ =>
           log.error(msg = s"Incorrect state is sent to HCD handler by state publisher actor")
           return false
+      }
+      false
+    }
+    val paramValidation = validateParams
+    paramValidation match {
+      case true =>
+        val hcdStateValidate = validateHCDState
+        hcdStateValidate match {
+          case true => CommandResponse.Accepted(controlCommand.runId)
+          case false =>
+            CommandResponse.Invalid(
+              controlCommand.runId,
+              WrongInternalStateIssue(
+                s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state" +
+                s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} " +
+                s"or ${HCDOperationalState.ServoOffDatumed} to process point  command"
+              )
+            )
         }
-      }
-      return false
+
+      case false =>
+        CommandResponse.Invalid(controlCommand.runId,
+                                WrongNumberOfParametersIssue(s" axes parameter is not provided for point command"))
     }
-    if (validateParams) {
-      if (validateHCDState) {
-        CommandResponse.Accepted(controlCommand.runId)
-      } else {
-        CommandResponse.Invalid(
-          controlCommand.runId,
-          WrongInternalStateIssue(
-            s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state" +
-            s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or ${HCDOperationalState.ServoOffDatumed} to process point  command"
-          )
-        )
-      }
-    } else {
-      CommandResponse.Invalid(controlCommand.runId,
-                              WrongNumberOfParametersIssue(s" axes parameter is not provided for point command"))
-    }
+
   }
   /*
        This functions validates datum  command based upon paramters and hcd state
    */
-  private def validateDatumCommand(controlCommand: ControlCommand): CommandResponse = {
+  private def validateDatumCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
     log.info("Validating Datum command in HCD")
     def validateParams: Boolean = {
       val axesParam: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == "axes").get
@@ -367,7 +301,7 @@ class McsHcdHandlers(
       if (param1 == "BOTH" || param1 == "AZ" || param1 == "EL") {
         return true
       }
-      return false
+      false
     }
     def validateHCDState: Boolean = {
       implicit val duration: Timeout = 20 seconds
@@ -379,43 +313,41 @@ class McsHcdHandlers(
       hcdCurrentState match {
         case x: EventMessage.HcdCurrentState => {
           x.lifeCycleState match {
-            case HCDLifeCycleState.Running if x.operationalState.equals(HCDOperationalState.DrivePowerOff) => {
-              return true
-            }
-            case _ => {
+            case HCDLifeCycleState.Running if x.operationalState.equals(HCDOperationalState.DrivePowerOff) => return true
+            case _ =>
               log.error(
-                msg = s" to execute datum command HCD Lifecycle state must be running and operational state must " +
-                s"be ${HCDOperationalState.DrivePowerOff} "
+                msg =
+                  s" to execute datum command HCD Lifecycle state must be running and operational state must be ${HCDOperationalState.DrivePowerOff}"
               )
               return false
-            }
           }
         }
-        case _ => {
+        case _ =>
           log.error(msg = s"Incorrect state is sent to HCD handler by state publisher actor")
           return false
+      }
+      false
+    }
+    val paramsBool = validateParams
+    paramsBool match {
+      case true =>
+        val hcdState = validateHCDState
+        hcdState match {
+          case true => CommandResponse.Accepted(controlCommand.runId)
+          case false =>
+            CommandResponse.Invalid(
+              controlCommand.runId,
+              WrongInternalStateIssue(
+                s" MCS HCD and subsystem must be  in ${HCDLifeCycleState.Running} state " +
+                s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or  ${HCDOperationalState.ServoOffDatumed} " +
+                s"to process datum  command"
+              )
+            )
         }
-      }
-      return false
+      case false =>
+        CommandResponse.Invalid(controlCommand.runId,
+                                WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }
-    if (validateParams) {
-      if (validateHCDState) {
-        CommandResponse.Accepted(controlCommand.runId)
-      } else {
-        CommandResponse.Invalid(
-          controlCommand.runId,
-          WrongInternalStateIssue(
-            s" MCS HCD and subsystem must be  in ${HCDLifeCycleState.Running} state " +
-            s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or  ${HCDOperationalState.ServoOffDatumed} " +
-            s"to process datum  command"
-          )
-        )
-      }
-    } else {
-      CommandResponse.Invalid(controlCommand.runId,
-                              WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
-    }
-
   }
 
   private def getHCDCurrentState(): EventMessage = {
@@ -436,38 +368,33 @@ class McsHcdHandlers(
        execution response to the caller.
 
    */
-  private def validateFollowCommand(controlCommand: ControlCommand): CommandResponse = {
+  private def validateFollowCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
     //log.info("Validating follow command in HCD")
-    def validateParamset: Boolean = {
-      return controlCommand.paramSet.isEmpty
-    }
+    def validateParamset: Boolean = controlCommand.paramSet.isEmpty
     def validateHCDState: Boolean = {
       val hcdCurrentState = getHCDCurrentState()
       hcdCurrentState match {
-        case x: EventMessage.HcdCurrentState => {
+        case x: EventMessage.HcdCurrentState =>
           x.lifeCycleState match {
-            case HCDLifeCycleState.Running if x.operationalState.equals(HCDOperationalState.ServoOffDatumed) => {
+            case HCDLifeCycleState.Running if x.operationalState.equals(HCDOperationalState.ServoOffDatumed) =>
               return true
-            }
-            case _ => {
+            case _ =>
               log.error(
                 msg = s" to execute Follow command HCD Lifecycle state must be running and operational state must " +
                 s"be ${HCDOperationalState.ServoOffDatumed}"
               )
               return false
-            }
           }
-        }
-        case _ => {
+        case _ =>
           log.error(msg = s"Incorrect state is sent to HCD handler by state publisher actor")
           return false
-        }
       }
-      return false
+      false
     }
     if (validateParamset) {
       if (validateHCDState) {
-        executeFollowCommandAndSendResponse(controlCommand)
+        //executeFollowCommandAndSendResponse(controlCommand)
+        Accepted(controlCommand.runId)
       } else {
         CommandResponse.Invalid(
           controlCommand.runId,
@@ -488,55 +415,71 @@ class McsHcdHandlers(
   then it changes state of statePublisherActor to Following
 
    */
-  private def executeFollowCommandAndSendResponse(controlCommand: ControlCommand): CommandResponse = {
-    implicit val duration: Timeout = 20 seconds
+  private def executeFollowCommandAndSendResponse(controlCommand: ControlCommand): SubmitResponse = {
+    implicit val duration: Timeout = 1 seconds
     implicit val scheduler         = ctx.system.scheduler
     val immediateResponse: HCDCommandMessage = Await.result(commandHandlerActor ? { ref: ActorRef[HCDCommandMessage] =>
       HCDCommandMessage.ImmediateCommand(ref, controlCommand)
-    }, 10.seconds)
+    }, 1 seconds)
     immediateResponse match {
-      case msg: ImmediateCommandResponse => {
-        if (msg.commandResponse.toString.equals("Completed")) {
-          statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.Following)
-          //statePublisherActor ! publishCurrentPosition()
+      case msg: ImmediateCommandResponse =>
+        msg.submitResponse match {
+          case _: Completed           => statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.Following)
+          case _: CompletedWithResult => statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.Following)
+          case _: Error               => log.error("Error occurred while processing follow command")
         }
-        msg.commandResponse
-      }
-      case _ => {
-        CommandResponse.NotAllowed(
+        msg.submitResponse
+      case _ =>
+        CommandResponse.Invalid(
           controlCommand.runId,
-          UnsupportedCommandInStateIssue(s" Follow command is not allowed if HCD is not in Running state")
+          CommandIssue.WrongInternalStateIssue(" Follow Command is not allowed if hcd is not in proper state")
         )
-      }
     }
+  }
+  private def execSimModeCmdAndSendResp(controlCommand: ControlCommand): SubmitResponse = {
+    val modeParam: Parameter[_] = controlCommand.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
+    val param                   = modeParam.head
+    param match {
+      case Commands.REAL_SIMULATOR   => simulatorMode = Commands.REAL_SIMULATOR
+      case Commands.SIMPLE_SIMULATOR => simulatorMode = Commands.SIMPLE_SIMULATOR
+    }
+    commandHandlerActor ! submitCommand(controlCommand)
+    statePublisherActor ! SimulationModeChange(simulatorMode, simpleSimActor, zeroMQProtoActor)
+    positionDemandActor ! controlCommand
+    Completed(controlCommand.runId)
   }
   /*
        This functions routes all commands to commandhandler actor and bsed upon command execution updates states of HCD by sending it
        to StatePublisher actor
    */
-  override def onSubmit(controlCommand: ControlCommand): Unit = {
+  override def onSubmit(controlCommand: ControlCommand): SubmitResponse = {
 
-    commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
     controlCommand.commandName.name match {
-      case Commands.STARTUP => {
+      case Commands.STARTUP =>
+        commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         log.info("On receipt of startup command changing MCS HCD state to Running")
-
         statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Running, HCDOperationalState.DrivePowerOff)
-      }
-      case Commands.SHUTDOWN => {
+        Started(controlCommand.runId)
+      case Commands.SHUTDOWN =>
+        commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         log.info("On receipt of shutdown command changing MCS HCD state to Disconnected")
-
         statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Off, HCDOperationalState.Disconnected)
-      }
-      case Commands.DATUM => {
+        Started(controlCommand.runId)
+      case Commands.DATUM =>
+        commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         log.info("changing HCD's operational state to ServoOffDatumed")
         statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.ServoOffDatumed)
-      }
-      case Commands.POINT | Commands.POINT_DEMAND => {
+        Started(controlCommand.runId)
+      case Commands.FOLLOW =>
+        executeFollowCommandAndSendResponse(controlCommand)
+      case Commands.POINT | Commands.POINT_DEMAND =>
+        commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         log.info("changing HCD's operational state to pointing")
         statePublisherActor ! HCDOperationalStateChangeMsg(HCDOperationalState.PointingDatumed)
         //statePublisherActor ! publishCurrentPosition()
-      }
+        Started(controlCommand.runId)
+      case Commands.SET_SIMULATION_MODE =>
+        execSimModeCmdAndSendResp(controlCommand)
     }
   }
 

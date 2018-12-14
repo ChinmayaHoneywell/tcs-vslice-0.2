@@ -1,10 +1,10 @@
 package org.tmt.tcs.mcs.MCShcd.workers
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-import csw.messages.commands.ControlCommand
-import csw.messages.params.generics.Parameter
-import csw.services.logging.scaladsl.LoggerFactory
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import csw.logging.scaladsl.LoggerFactory
+import csw.params.commands.ControlCommand
+import csw.params.core.generics.Parameter
 import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg.ProcOneWayDemand
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, ZeroMQMessage}
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.PublishEvent
@@ -34,7 +34,7 @@ case class PositionDemandActor(ctx: ActorContext[ControlCommand],
                                simpleSimActor: ActorRef[SimpleSimMsg],
                                simulatorMode: String,
                                paramSetTransformer: ParamSetTransformer)
-    extends MutableBehavior[ControlCommand] {
+    extends AbstractBehavior[ControlCommand] {
   private val log = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
     //log.info(s"Sending position demands: ${msg} to ZeroMQActor for publishing")
@@ -53,14 +53,9 @@ case class PositionDemandActor(ctx: ActorContext[ControlCommand],
   }
   private def processPositionDemands(msg: ControlCommand) = {
     simulatorMode match {
-      case Commands.REAL_SIMULATOR => {
-        //log.info(s"Sending position demands via one way command to RealSimulator")
-        zeroMQProtoActor ! PublishEvent(paramSetTransformer.getMountDemandPositions(msg))
-      }
-      case Commands.SIMPLE_SIMULATOR => {
-        //log.info(s"Sending position demands via one way command to SimpleSimulator")
-        simpleSimActor ! ProcOneWayDemand(msg)
-      }
+      case Commands.REAL_SIMULATOR => zeroMQProtoActor ! PublishEvent(paramSetTransformer.getMountDemandPositions(msg))
+
+      case Commands.SIMPLE_SIMULATOR => simpleSimActor ! ProcOneWayDemand(msg)
     }
   }
 }

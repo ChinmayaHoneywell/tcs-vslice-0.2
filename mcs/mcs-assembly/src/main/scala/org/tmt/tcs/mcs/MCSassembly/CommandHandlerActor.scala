@@ -1,18 +1,19 @@
 package org.tmt.tcs.mcs.MCSassembly
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-import csw.messages.commands.{CommandName, CommandResponse, ControlCommand, Setup}
-import csw.services.command.scaladsl.CommandService
-import csw.services.logging.scaladsl.LoggerFactory
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import org.tmt.tcs.mcs.MCSassembly.CommandMessage._
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
-import csw.messages.params.models.{Prefix, Subsystem}
-import csw.services.command.CommandResponseManager
+import csw.command.api.scaladsl.CommandService
+import csw.command.client.CommandResponseManager
+import csw.logging.scaladsl.LoggerFactory
+import csw.params.commands.CommandResponse.{Error, SubmitResponse, ValidateCommandResponse}
+import csw.params.commands.{CommandName, CommandResponse, ControlCommand, Setup}
+import csw.params.core.models.{Prefix, Subsystem}
 
 sealed trait CommandMessage
 object CommandMessage {
@@ -21,7 +22,7 @@ object CommandMessage {
   case class submitCommandMsg(controlCommand: ControlCommand)                                   extends CommandMessage
   case class updateHCDLocation(hcdLocation: Option[CommandService])                             extends CommandMessage
   case class ImmediateCommand(sender: ActorRef[CommandMessage], controlCommand: ControlCommand) extends CommandMessage
-  case class ImmediateCommandResponse(commandResponse: CommandResponse)                         extends CommandMessage
+  case class ImmediateCommandResponse(submitResponse: SubmitResponse)                           extends CommandMessage
 
 }
 object CommandHandlerActor {
@@ -41,7 +42,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
                                isOnline: Boolean,
                                hcdLocation: Option[CommandService],
                                loggerFactory: LoggerFactory)
-    extends MutableBehavior[CommandMessage] {
+    extends AbstractBehavior[CommandMessage] {
   import org.tmt.tcs.mcs.MCSassembly.CommandHandlerActor._
   private val log                = loggerFactory.getLogger
   implicit val duration: Timeout = 20 seconds
@@ -53,42 +54,26 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
    */
   override def onMessage(msg: CommandMessage): Behavior[CommandMessage] = {
     msg match {
-      case x: GoOnlineMsg => {
-        createObject(commandResponseManager, true, hcdLocation, loggerFactory)
-      }
-      case x: GoOfflineMsg => {
-        createObject(commandResponseManager, false, hcdLocation, loggerFactory)
-      }
-      case x: submitCommandMsg => {
-        // log.info(msg = s"In commandHandlerActor submitCommandMsg processing command :${x} ")
+      case x: GoOnlineMsg  => createObject(commandResponseManager, true, hcdLocation, loggerFactory)
+      case x: GoOfflineMsg => createObject(commandResponseManager, false, hcdLocation, loggerFactory)
+      case x: submitCommandMsg =>
         handleSubmitCommand(x)
         Behavior.same
-      }
-      case x: ImmediateCommand => {
-        //log.info(msg = s"In commandHandler actor processing immediate command : ${x}")
+      case x: ImmediateCommand =>
         handleImmediateCommand(x)
         Behavior.same
-      }
-      case x: updateHCDLocation => {
-        createObject(commandResponseManager, isOnline, x.hcdLocation, loggerFactory)
-      }
-      case _ => {
-        log.error(msg = s" Incorrect command : ${msg} is sent to CommandHandlerActor")
+      case x: updateHCDLocation => createObject(commandResponseManager, isOnline, x.hcdLocation, loggerFactory)
+      case _ =>
+        log.error(msg = s" Incorrect command : $msg is sent to CommandHandlerActor")
         Behaviors.unhandled
-      }
     }
 
   }
   def handleImmediateCommand(msg: ImmediateCommand): Unit = {
-
-    log.info(s"In CommandHandlerActor processing immediate command : ${msg}")
+    log.info(s"In CommandHandlerActor processing immediate command : $msg")
     msg.controlCommand.commandName.name match {
-      case Commands.FOLLOW => {
-        handleFollowCommand(msg)
-      }
-      case Commands.SET_SIMULATION_MODE => {
-        handleSimulationModeCmd(msg)
-      }
+      case Commands.FOLLOW              => handleFollowCommand(msg)
+      case Commands.SET_SIMULATION_MODE => handleSimulationModeCmd(msg)
     }
   }
   /*
@@ -100,50 +85,41 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       msg = s"In commandHandlerActor handleSubmitCommand()" +
       s" function value of hcdLocation is : ${hcdLocation}"
     )*/
+
     msg.controlCommand.commandName.name match {
       case Commands.STARTUP  => handleStartupCommand(msg)
       case Commands.SHUTDOWN => handleShutDownCommand(msg)
 
-      case Commands.DATUM => handleDatumCommand(msg)
-      case Commands.MOVE  => handleMoveCommand(msg)
-      case Commands.DUMMY_LONG => {
-        commandResponseManager.addOrUpdateCommand(msg.controlCommand.runId, CommandResponse.Completed(msg.controlCommand.runId))
-      }
-      case _ => {
-        log.error(msg = s"Incorrect command : ${msg} is sent to MCS Assembly CommandHandlerActor")
-      }
+      case Commands.DATUM      => handleDatumCommand(msg)
+      case Commands.MOVE       => handleMoveCommand(msg)
+      case Commands.DUMMY_LONG => commandResponseManager.addOrUpdateCommand(CommandResponse.Completed(msg.controlCommand.runId))
+      case _                   => log.error(msg = s"Incorrect command : $msg is sent to MCS Assembly CommandHandlerActor")
     }
   }
   def handleShutDownCommand(msg: submitCommandMsg): Unit = {
     log.info(msg = s"In assembly command Handler Actor submitting shutdown command")
     val setup = Setup(mcsHCDPrefix, CommandName(Commands.SHUTDOWN), msg.controlCommand.maybeObsId)
     hcdLocation match {
-      case Some(commandService) => {
-        val response = Await.result(commandService.submit(setup), 5.seconds)
+      case Some(commandService) =>
+        val response = Await.result(commandService.submit(setup), 1.seconds)
         log.info(msg = s" Result of shutdown command is : $response")
         commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
-        commandResponseManager.updateSubCommand(response.runId, response)
-      }
-      case None => {
-        log.error(msg = s" Error in finding HCD instance ")
-      }
+        commandResponseManager.updateSubCommand(response)
+      case None => log.error(msg = s" Error in finding HCD instance ")
     }
   }
   def handleStartupCommand(msg: submitCommandMsg): Unit = {
     log.info(msg = s"In assembly command Handler Actor submitting startup command")
     val setup = Setup(mcsHCDPrefix, CommandName(Commands.STARTUP), msg.controlCommand.maybeObsId)
-    log.info(msg = s" In handleStarupCommand hcdLocation is ${hcdLocation}")
+    log.info(msg = s" In handleStarupCommand hcdLocation is $hcdLocation")
     hcdLocation match {
-      case Some(commandService: CommandService) => {
+      case Some(commandService: CommandService) =>
         val response = Await.result(commandService.submit(setup), 5.seconds)
         //log.info(msg = s" Result of startup command is : $response")
         commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
-        commandResponseManager.updateSubCommand(response.runId, response)
-        log.info(msg = s"Successfully updated status of startup command in commandResponseManager : ${response}")
-      }
-      case None => {
-        log.error(msg = s" Error in finding HCD instance while submitting startup command to HCD ")
-      }
+        commandResponseManager.updateSubCommand(response)
+        log.info(msg = s"Successfully updated status of startup command in commandResponseManager : $response")
+      case None => log.error(msg = s" Error in finding HCD instance while submitting startup command to HCD ")
     }
   }
 
@@ -170,11 +146,10 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
   }
   def handleSimulationModeCmd(command: CommandMessage.ImmediateCommand) = {
     hcdLocation match {
-      case Some(commandService) => {
-        val response = Await.result(commandService.submit(command.controlCommand), 3.seconds)
-        log.info(msg = s" updating simulation mode command : ${command.controlCommand.runId} with response : ${response} ")
+      case Some(commandService) =>
+        val response = Await.result(commandService.submit(command.controlCommand), 2.seconds)
         command.sender ! ImmediateCommandResponse(response)
-      }
+      case None => command.sender ! ImmediateCommandResponse(Error(command.controlCommand.runId, "HCD is unregistered"))
     }
   }
 

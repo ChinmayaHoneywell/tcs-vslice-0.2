@@ -2,9 +2,9 @@ package org.tmt.tcs.mcs.MCSdeploy.constants
 
 import java.time.Instant
 
-import csw.messages.events.{EventKey, EventName}
-import csw.messages.params.generics.{Key, KeyType}
-import csw.messages.params.models.{Prefix, Subsystem}
+import csw.params.core.generics.{Key, KeyType}
+import csw.params.core.models.{Prefix, Subsystem}
+import csw.params.events.{EventKey, EventName}
 import org.tmt.tcs.mcs.MCSdeploy.constants.EventConstants._
 
 object DeployConstants {

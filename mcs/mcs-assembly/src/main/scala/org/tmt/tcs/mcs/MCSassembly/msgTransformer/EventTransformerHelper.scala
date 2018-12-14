@@ -1,14 +1,11 @@
 package org.tmt.tcs.mcs.MCSassembly.msgTransformer
 
-import java.lang.Exception
-import java.time.Instant
-
-import csw.messages.commands.{CommandName, ControlCommand, Setup}
-import csw.messages.events.{Event, SystemEvent}
-import csw.messages.params.generics.Parameter
-import csw.messages.params.models.Prefix
-import csw.messages.params.states.{CurrentState, StateName}
-import csw.services.logging.scaladsl.LoggerFactory
+import csw.logging.scaladsl.LoggerFactory
+import csw.params.commands.{CommandName, ControlCommand, Setup}
+import csw.params.core.generics.Parameter
+import csw.params.core.models.Prefix
+import csw.params.core.states.{CurrentState, StateName}
+import csw.params.events.{Event, SystemEvent}
 import org.tmt.tcs.mcs.MCSassembly.Constants.{Commands, EventConstants, EventHandlerConstants}
 import org.tmt.tcs.mcs.MCSassembly.MonitorMessage.AssemblyCurrentState
 
@@ -65,11 +62,9 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
         .add(assemblyRecTimeOpt.get)
       // log.info(s"Converted event to current state is $currentState")
     } catch {
-      case e: Exception => {
+      case e: Exception =>
         log.error("Exception in converting event to current state")
         e.printStackTrace()
-      }
-
     }
     currentState
   }

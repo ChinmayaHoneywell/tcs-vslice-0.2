@@ -3,14 +3,14 @@ package org.tmt.tcs.mcs.MCSassembly
 import java.util.Calendar
 
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.util.Timeout
+import csw.command.api.scaladsl.CommandService
+import csw.event.api.scaladsl.EventService
 import csw.framework.CurrentStatePublisher
-import csw.messages.commands.ControlCommand
-import csw.messages.events.{Event, SystemEvent}
-import csw.services.command.scaladsl.CommandService
-import csw.services.event.api.scaladsl.EventService
-import csw.services.logging.scaladsl.LoggerFactory
+import csw.logging.scaladsl.LoggerFactory
+import csw.params.commands.ControlCommand
+import csw.params.events.{Event, SystemEvent}
 import org.tmt.tcs.mcs.MCSassembly.Constants.EventHandlerConstants
 import org.tmt.tcs.mcs.MCSassembly.EventMessage._
 
@@ -57,7 +57,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
                              eventTransformer: EventTransformerHelper,
                              currentStatePublisher: CurrentStatePublisher,
                              loggerFactory: LoggerFactory)
-    extends MutableBehavior[EventMessage] {
+    extends AbstractBehavior[EventMessage] {
 
   private val log                           = loggerFactory.getLogger
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
@@ -68,31 +68,27 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     msg match {
       case x: StartEventSubscription => subscribeEventMsg()
-      case x: hcdLocationChanged => {
+      case x: hcdLocationChanged     =>
         // log.info(s"Changed HCD Location is : ${x.hcdLocation}")
         EventHandlerActor.createObject(eventService, x.hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
-      }
+
       case x: PublishHCDState => publishReceivedEvent(x.event)
 
-      case x: StartPublishingDummyEvent => {
+      case x: StartPublishingDummyEvent =>
         //publishDummyEventFromAssembly()
         //log.error(s"HCDLocation in publishDummyEvent is $hcdLocation")
         EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
-      }
 
-      case _ => {
-        log.error(
-          s"************************ Received unknown message  in EventHandlerActor ${msg} *********************"
-        )
+      case _ =>
+        log.error(s"************************ Received unknown message  in EventHandlerActor $msg *********************")
         EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
-      }
 
     }
   }
 
   private def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
     eventPublisher.publish(event)
-    log.info(s"Published event : ${event}")
+    log.info(s"Published event : $event")
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -110,7 +106,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   private def sendEventByAssemblyCurrentState(msg: Event): Future[_] = {
 
     msg match {
-      case systemEvent: SystemEvent => {
+      case systemEvent: SystemEvent =>
         //TODO : This time difference addition code is temporary it must removed once performance measurement is done
         //log.info(s"Received event : $systemEvent")
         val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
@@ -119,11 +115,8 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
           )*/
         val currentState = eventTransformer.getCurrentState(event)
         currentStatePublisher.publish(currentState)
-        //log.info(s"Published demands current state : ${currentState}")
-      }
-      case _ => {
-        log.error(s"Unable to map received position demands from tpk assembly to systemEvent: $msg")
-      }
+      //log.info(s"Published demands current state : ${currentState}")
+      case _ => log.error(s"Unable to map received position demands from tpk assembly to systemEvent: $msg")
     }
     Future.successful("Successfully sent positionDemand by CurrentStatePublisher")
   }
@@ -132,11 +125,10 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    */
   private def sendEventByEventPublisher(msg: Event): Future[_] = {
     msg match {
-      case systemEvent: SystemEvent => {
+      case systemEvent: SystemEvent =>
         val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
         log.info(s" *** publishing positionDemand event: $msg from EventHandlerActor *** ")
         eventPublisher.publish(event)
-      }
     }
     Future.successful("Successfully sent positionDemand by event publisher")
   }
@@ -153,29 +145,26 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     )*/
 
     msg match {
-      case systemEvent: SystemEvent => {
+      case systemEvent: SystemEvent =>
         val event                          = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
         val controlCommand: ControlCommand = eventTransformer.getOneWayCommandObject(event)
         //log.info(s"Transformed oneWay command object is: $controlCommand")
         hcdLocation match {
-          case Some(commandService) => {
+          case Some(commandService) =>
             val response = Await.result(commandService.oneway(controlCommand), 5.seconds)
             /*log.info(
               s"*** Successfully submitted positionDemand Event : ${controlCommand} via oneWayCommand, " +
               s"response is : ${response} at time :${System.currentTimeMillis()} ***"
             )*/
-            Future.successful(s"Successfully submitted positionDemand Event, response for the same is : ${msg}")
-          }
-          case None => {
+            Future.successful(s"Successfully submitted positionDemand Event, response for the same is : $msg")
+          case None =>
             // log.error("Unable to match hcdLocation to commandService")
             Future.failed(new Exception("Unable to send event to assembly through oneWay command"))
-          }
         }
-      }
-      case _ => {
+      case _ =>
         //log.error(s"Unable to get systemEvent from incoming event")
         Future.failed(new Exception("Unable to send event to assembly through oneWay command"))
-      }
+
     }
   }
   private def publishDummyEventFromAssembly(): Unit = {

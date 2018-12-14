@@ -1,11 +1,7 @@
 package org.tmt.tcs.mcs.MCSassembly.Constants
-
-import java.time.Instant
-
-import csw.messages.events.{EventKey, EventName}
-import csw.messages.params.generics.{Key, KeyType, Parameter}
-import csw.messages.params.models.Units.degree
-import csw.messages.params.models.{Prefix, Subsystem}
+import csw.params.core.generics.{Key, KeyType}
+import csw.params.core.models.{Prefix, Subsystem}
+import csw.params.events.{EventKey, EventName}
 
 object EventHandlerConstants {
   //These parameters are needed by Position Demand Event

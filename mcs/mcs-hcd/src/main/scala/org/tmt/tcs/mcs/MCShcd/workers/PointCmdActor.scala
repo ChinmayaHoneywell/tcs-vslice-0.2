@@ -1,15 +1,15 @@
 package org.tmt.tcs.mcs.MCShcd.workers
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import akka.util.Timeout
-import csw.messages.commands.{CommandResponse, ControlCommand}
-import csw.services.command.CommandResponseManager
-import csw.services.logging.scaladsl.{Logger, LoggerFactory}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, ZeroMQMessage}
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import akka.actor.typed.scaladsl.AskPattern._
+import csw.command.client.CommandResponseManager
+import csw.logging.scaladsl.{Logger, LoggerFactory}
+import csw.params.commands.{CommandResponse, ControlCommand}
 object PointCmdActor {
   def create(commandResponseManager: CommandResponseManager,
              zeroMQProtoActor: ActorRef[ZeroMQMessage],
@@ -26,7 +26,7 @@ case class PointCmdActor(ctx: ActorContext[ControlCommand],
                          simpleSimActor: ActorRef[SimpleSimMsg],
                          simulatorMode: String,
                          loggerFactory: LoggerFactory)
-    extends MutableBehavior[ControlCommand] {
+    extends AbstractBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
     //log.info(s"Submitting point  command with id : ${msg.runId} to Protocol")
@@ -39,16 +39,14 @@ case class PointCmdActor(ctx: ActorContext[ControlCommand],
     response match {
       case x: ZeroMQMessage.MCSResponse => {
         //log.info(s"Response from MCS for command runID : ${msg.runId} is : ${x}")
-        commandResponseManager.addOrUpdateCommand(msg.runId, x.commandResponse)
+        commandResponseManager.addOrUpdateCommand(x.commandResponse)
       }
       case _ => {
         commandResponseManager.addOrUpdateCommand(
-          msg.runId,
           CommandResponse.Error(msg.runId, "Unable to submit command data to MCS subsystem from worker actor.")
         )
       }
     }
     Behavior.stopped
   }
-
 }

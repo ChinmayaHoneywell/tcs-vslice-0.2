@@ -1,15 +1,14 @@
 package org.tmt.tcs.mcs.MCShcd.msgTransformers
 
-import java.time.Instant
-
-import csw.messages.commands.CommandIssue.WrongInternalStateIssue
-import csw.messages.commands.{CommandIssue, CommandResponse, ControlCommand}
-import csw.messages.events.{EventName, SystemEvent}
-import csw.messages.params.generics.{Key, Parameter}
-import csw.messages.params.models.{Id, Prefix, Subsystem}
-import csw.messages.params.models.Units.degree
-import csw.messages.params.states.{CurrentState, StateName}
-import csw.services.logging.scaladsl.LoggerFactory
+import csw.logging.scaladsl.LoggerFactory
+import csw.params.commands.CommandIssue.WrongInternalStateIssue
+import csw.params.commands.CommandResponse.{Completed, SubmitResponse}
+import csw.params.commands.{CommandIssue, CommandResponse, ControlCommand}
+import csw.params.core.generics.{Key, Parameter}
+import csw.params.core.models.Units.degree
+import csw.params.core.models.{Id, Prefix, Subsystem}
+import csw.params.core.states.{CurrentState, StateName}
+import csw.params.events.{EventName, SystemEvent}
 import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
 import org.tmt.tcs.mcs.MCShcd.msgTransformers.protos.TcsMcsEventsProtos.{
   McsCurrentPositionEvent,
@@ -165,34 +164,23 @@ case class ParamSetTransformer(loggerFactory: LoggerFactory) {
       .add(timestamp)
   }
 
-  def getCSWResponse(runID: Id, subsystemResponse: SubystemResponse): CommandResponse = {
+  def getCSWResponse(runID: Id, subsystemResponse: SubystemResponse): SubmitResponse = {
     if (subsystemResponse.commandResponse) {
-      CommandResponse.Completed(runID)
+      Completed(runID)
     } else {
       decodeErrorState(runID, subsystemResponse)
     }
 
   }
-  def decodeErrorState(runID: Id, response: SubystemResponse): CommandResponse = {
+  def decodeErrorState(runID: Id, response: SubystemResponse): SubmitResponse = {
     response.errorReason.get match {
-      case "ILLEGAL_STATE" => {
-        return CommandResponse.Invalid(runID, WrongInternalStateIssue(response.errorInfo.get))
-      }
-      case "BUSY" => {
-        return CommandResponse.NotAllowed(runID, CommandIssue.OtherIssue(response.errorInfo.get))
-      }
-      case "OUT_OF_RANGE" => {
-        return CommandResponse.Invalid(runID, CommandIssue.ParameterValueOutOfRangeIssue(response.errorInfo.get))
-      }
-      case "OUT_OF_SPEC" => {
-        return CommandResponse.Invalid(runID, CommandIssue.WrongParameterTypeIssue(response.errorInfo.get))
-      }
-      case "FAILED" => {
-        return CommandResponse.Error(runID, response.errorInfo.get)
-      }
-      case _ => return CommandResponse.Invalid(runID, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
+      case "ILLEGAL_STATE" => CommandResponse.Invalid(runID, WrongInternalStateIssue(response.errorInfo.get))
+      case "BUSY"          => CommandResponse.Invalid(runID, CommandIssue.OtherIssue(response.errorInfo.get))
+      case "OUT_OF_RANGE"  => CommandResponse.Invalid(runID, CommandIssue.ParameterValueOutOfRangeIssue(response.errorInfo.get))
+      case "OUT_OF_SPEC"   => CommandResponse.Invalid(runID, CommandIssue.WrongParameterTypeIssue(response.errorInfo.get))
+      case "FAILED"        => CommandResponse.Error(runID, response.errorInfo.get)
+      case _               => CommandResponse.Invalid(runID, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
     }
-    CommandResponse.Invalid(runID, CommandIssue.UnsupportedCommandInStateIssue("unknown command send"))
   }
 
 }

@@ -1,16 +1,18 @@
 package org.tmt.tcs.mcs.MCShcd.workers
 
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, MutableBehavior}
-import akka.util.Timeout
-import csw.messages.commands.CommandResponse
-import csw.services.command.CommandResponseManager
-import csw.services.logging.scaladsl.{Logger, LoggerFactory}
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.{ImmediateCommand, ImmediateCommandResponse}
 import org.tmt.tcs.mcs.MCShcd.Protocol.{SimpleSimMsg, ZeroMQMessage}
+
 import scala.concurrent.duration._
 import akka.actor.typed.scaladsl.AskPattern._
+import akka.util.Timeout
+import csw.command.client.CommandResponseManager
+import csw.logging.scaladsl.{Logger, LoggerFactory}
+import csw.params.commands.CommandResponse
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
+
 import scala.concurrent.{Await, ExecutionContextExecutor}
 
 object FollowCmdActor {
@@ -29,56 +31,51 @@ case class FollowCmdActor(ctx: ActorContext[ImmediateCommand],
                           simplSimActor: ActorRef[SimpleSimMsg],
                           simulatorMode: String,
                           loggerFactory: LoggerFactory)
-    extends MutableBehavior[ImmediateCommand] {
+    extends AbstractBehavior[ImmediateCommand] {
   private val log: Logger                   = loggerFactory.getLogger
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   override def onMessage(msg: ImmediateCommand): Behavior[ImmediateCommand] = {
     //log.info(s"Submitting follow command with id : ${msg.controlCommand.runId} to Protocol")
     simulatorMode match {
-      case Commands.REAL_SIMULATOR => {
+      case Commands.REAL_SIMULATOR =>
         submitToRealSim(msg)
         Behavior.stopped
-      }
-      case Commands.SIMPLE_SIMULATOR => {
+      case Commands.SIMPLE_SIMULATOR =>
         submitToSimpleSim(msg)
         Behavior.stopped
-      }
     }
   }
 
   private def submitToSimpleSim(msg: ImmediateCommand) = {
-    implicit val duration: Timeout = 20 seconds
+    implicit val duration: Timeout = 1 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: SimpleSimMsg = Await.result(simplSimActor ? { ref: ActorRef[SimpleSimMsg] =>
       SimpleSimMsg.ProcessCommand(msg.controlCommand, ref)
-    }, 10.seconds)
+    }, 100.millisecond)
     response match {
-      case x: SimpleSimMsg.SimpleSimResp => {
+      case x: SimpleSimMsg.SimpleSimResp =>
         msg.sender ! ImmediateCommandResponse(x.commandResponse)
-      }
-      case _ => {
+        log.info(s"Follow command response from simple simulator actor is : ${x.commandResponse}")
+      case _ =>
+        log.error("Unable to submit command to SimpleSimulator")
         msg.sender ! ImmediateCommandResponse(
           CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command to SimpleSimulator")
         )
-      }
     }
   }
 
   private def submitToRealSim(msg: ImmediateCommand) = {
-    implicit val duration: Timeout = 20 seconds
+    implicit val duration: Timeout = 1 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
       ZeroMQMessage.SubmitCommand(ref, msg.controlCommand)
-    }, 10.seconds)
+    }, 100.millisecond)
     response match {
-      case x: ZeroMQMessage.MCSResponse => {
+      case x: ZeroMQMessage.MCSResponse =>
         msg.sender ! ImmediateCommandResponse(x.commandResponse)
-      }
-      case _ => {
-        msg.sender ! ImmediateCommandResponse(
-          CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command  to RealSimulator.")
-        )
-      }
+        log.info(s"Follow command response from zeroMQ actor is : ${x.commandResponse}")
+      case _ => log.error(s"${msg.controlCommand.runId}, Unable to submit command  to RealSimulator.")
+      //msg.sender ! ImmediateCommandResponse(CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command  to RealSimulator."))
     }
   }
 }
