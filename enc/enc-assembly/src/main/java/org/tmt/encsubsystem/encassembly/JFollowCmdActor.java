@@ -2,19 +2,14 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
+import akka.actor.typed.javadsl.*;
 import akka.util.Timeout;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.core.models.Prefix;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Objects;
@@ -25,7 +20,7 @@ import java.util.concurrent.TimeUnit;
  * Assembly's Follow Command Actor.
  * This Actor submit follow command from assembly to hcd.
  */
-public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessage> {
+public class JFollowCmdActor extends AbstractBehavior<JFollowCmdActor.FollowMessage> {
 
 
     // Add messages here
@@ -55,33 +50,34 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
     }
 
     private ActorContext<FollowMessage> actorContext;
-    private JLoggerFactory loggerFactory;
+    JCswContext cswCtx;
+    ;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> hcdCommandService;
+
+    private Optional<ICommandService> hcdCommandService;
 
     private Prefix encAssemblyPrefix = new Prefix("tcs.encA");
 
 
-    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, JCswContext cswCtx,  Optional<ICommandService> hcdCommandService ) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(JFollowCmdActor.class);
+
         this.hcdCommandService = hcdCommandService;
 
 
     }
 
-    public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
+    public static <FollowMessage> Behavior<FollowMessage> behavior(JCswContext cswCtx, Optional<ICommandService> hcdCommandService ) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, hcdCommandService, loggerFactory);
+            return (AbstractBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, cswCtx,  hcdCommandService );
         });
     }
 
 
     @Override
-    public Behaviors.Receive<FollowMessage> createReceive() {
+    public Receive<FollowMessage> createReceive() {
 
         ReceiveBuilder<FollowMessage> builder = receiveBuilder()
                 .onMessage(FollowCommandMessage.class,
@@ -106,7 +102,7 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
 
         if (hcdCommandService.isPresent()) {
             hcdCommandService.get()
-                    .submitAndSubscribe(command, Timeout.durationToTimeout(FiniteDuration.apply(10, TimeUnit.SECONDS))).thenAccept(response -> {
+                    .submit(command, Timeout.durationToTimeout(FiniteDuration.apply(10, TimeUnit.SECONDS))).thenAccept(response -> {
                 followCommandMessage.replyTo.tell(new JCommandHandlerActor.ImmediateResponseMessage(response));
             });
         } else {

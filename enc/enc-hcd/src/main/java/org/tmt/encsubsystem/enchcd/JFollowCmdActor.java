@@ -2,21 +2,17 @@ package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
 import org.tmt.encsubsystem.enchcd.models.FollowCommand;
 import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.util.Objects;
 
-public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessage> {
+public class JFollowCmdActor extends AbstractBehavior<JFollowCmdActor.FollowMessage> {
 
 
     // Add messages here
@@ -46,26 +42,26 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
 
     }
 
-    private ActorContext<FollowMessage> actorContext;
-    private JLoggerFactory loggerFactory;
+    private ActorContext<FollowMessage> actorContext;JCswContext cswCtx;
+    ;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
+
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
 
 
-    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+    private JFollowCmdActor(ActorContext<FollowMessage> actorContext, JCswContext cswCtx,    ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(JFollowCmdActor.class);
+
         this.statePublisherActor = statePublisherActor;
 
 
     }
 
-    public static <FollowMessage> Behavior<FollowMessage> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+    public static <FollowMessage> Behavior<FollowMessage> behavior(JCswContext cswCtx, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
+            return (AbstractBehavior<FollowMessage>) new JFollowCmdActor((ActorContext<JFollowCmdActor.FollowMessage>) ctx, cswCtx,   statePublisherActor);
         });
     }
 
@@ -75,7 +71,7 @@ public class JFollowCmdActor extends MutableBehavior<JFollowCmdActor.FollowMessa
      * @return
      */
     @Override
-    public Behaviors.Receive<FollowMessage> createReceive() {
+    public Receive<FollowMessage> createReceive() {
 
         ReceiveBuilder<FollowMessage> builder = receiveBuilder()
                 .onMessage(FollowCommandMessage.class,

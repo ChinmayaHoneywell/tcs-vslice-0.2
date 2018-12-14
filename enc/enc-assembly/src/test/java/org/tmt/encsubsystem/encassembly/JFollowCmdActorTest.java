@@ -3,13 +3,14 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.Setup;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -30,9 +31,10 @@ public class JFollowCmdActorTest {
 
     @Mock
     CommandResponseManager commandResponseManager;
-
     @Mock
-    JCommandService hcdCommandService;
+    JCswContext cswCtx;
+    @Mock
+    ICommandService hcdCommandService;
 
     JLoggerFactory jLoggerFactory;
     ActorRef<JFollowCmdActor.FollowMessage> followCmdActor;
@@ -40,7 +42,7 @@ public class JFollowCmdActorTest {
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        followCmdActor = testKit.spawn(JFollowCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory));
+        followCmdActor = testKit.spawn(JFollowCmdActor.behavior(cswCtx, Optional.of(hcdCommandService)));
     }
 
     @After
@@ -56,7 +58,7 @@ public class JFollowCmdActorTest {
     @Test
     public void followCommandCompletion() {
         Setup followCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
-        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
+        when(hcdCommandService.submit(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
         TestProbe<JCommandHandlerActor.ImmediateResponseMessage> responseTestProbe = testKit.createTestProbe();
         followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(followCommand, responseTestProbe.getRef()));
         responseTestProbe.expectMessage(new JCommandHandlerActor.ImmediateResponseMessage(new CommandResponse.Completed(followCommand.runId())));

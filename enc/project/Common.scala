@@ -1,7 +1,7 @@
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport.scalafmtOnCompile
 import sbt.Keys._
-import sbt.{Resolver, url, _}
 import sbt.plugins.JvmPlugin
+import sbt.{Resolver, url, _}
 
 object Common extends AutoPlugin {
 
@@ -34,7 +34,7 @@ object Common extends AutoPlugin {
       // -a Show stack traces and exception class name for AssertionErrors.
       Tests.Argument(TestFrameworks.JUnit, "-v", "-a")
     ),
-    resolvers += Resolver.url("bintray-sbt-plugins", url("https://dl.bintray.com/sbt/sbt-plugin-releases/"))(Resolver.ivyStylePatterns),
+    //resolvers += Resolver.url("bintray-sbt-plugins", url("https://dl.bintray.com/sbt/sbt-plugin-releases/"))(Resolver.ivyStylePatterns),
     resolvers += Resolver.bintrayRepo("twtmt", "maven"),
     version := "0.0.1",
     fork := true,

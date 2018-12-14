@@ -3,14 +3,15 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.BehaviorTestKit;
 import akka.actor.testkit.typed.javadsl.TestInbox;
 import akka.actor.typed.javadsl.ActorContext;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandName;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
+import csw.params.javadsl.JKeyType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,7 +30,8 @@ public class JCommandHandlerActorTest {
     public MockitoRule mockitoRule = MockitoJUnit.rule();
     @Mock
     CommandResponseManager commandResponseManager;
-
+    @Mock
+    JCswContext cswCtx;
     @Mock
     JLoggerFactory jLoggerFactory;
     @Mock
@@ -46,7 +48,7 @@ public class JCommandHandlerActorTest {
         when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         statePublisherActorInbox = TestInbox.create();
         replyTo = TestInbox.create();
-        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, jLoggerFactory, statePublisherActorInbox.getRef()));
+        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(cswCtx, statePublisherActorInbox.getRef()));
     }
 
     @After
@@ -91,12 +93,12 @@ public class JCommandHandlerActorTest {
     public void handleFastMoveCommandTest() throws InterruptedException {
 
         Setup fastMoveSetupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("fastMove"), Optional.empty())
-                .add(JKeyTypes.DoubleKey().make("az").set(2.64))
-                .add(JKeyTypes.DoubleKey().make("el").set(5.34))
-                .add(JKeyTypes.StringKey().make("mode").set("fast"))
-                .add(JKeyTypes.StringKey().make("operation").set("On"));
+                .add(JKeyType.DoubleKey().make("az").set(2.64))
+                .add(JKeyType.DoubleKey().make("el").set(5.34))
+                .add(JKeyType.StringKey().make("mode").set("fast"))
+                .add(JKeyType.StringKey().make("operation").set("On"));
         commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(fastMoveSetupCmd));
-        //   commandHandlerBehaviourKit.expectEffect(Effects.spawnedAnonymous(JFastMoveCmdActor.behavior(commandResponseManager,jLoggerFactory, statePublisherActorInbox.getRef()),Props.empty()));
+        //   commandHandlerBehaviourKit.expectEffect(Effects.spawnedAnonymous(JFastMoveCmdActor.behavior(jLoggerFactory, statePublisherActorInbox.getRef()),Props.empty()));
         TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
         TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(fastMoveSetupCmd);
 
@@ -112,7 +114,7 @@ public class JCommandHandlerActorTest {
     public void handleTrackOffCommandTest() throws InterruptedException {
 
         Setup trackOffCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("trackOff"), Optional.empty())
-                .add(JKeyTypes.StringKey().make("operation").set("Off"));
+                .add(JKeyType.StringKey().make("operation").set("Off"));
         commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(trackOffCommand));
         TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");
         TestInbox<ControlCommand> controlCommandTestInbox = commandWorkerActorInbox.expectMessage(trackOffCommand);

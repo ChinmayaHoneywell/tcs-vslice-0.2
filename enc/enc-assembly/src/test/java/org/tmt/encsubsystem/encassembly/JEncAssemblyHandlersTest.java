@@ -3,27 +3,28 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.ActorContext;
+import csw.alarm.api.javadsl.IAlarmService;
+import csw.command.api.CurrentStateSubscription;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.command.client.messages.TopLevelActorMessage;
+import csw.command.client.models.framework.ComponentInfo;
+import csw.config.api.javadsl.IConfigClientService;
+import csw.config.client.javadsl.JConfigClientFactory;
+import csw.event.api.javadsl.IEventService;
 import csw.framework.CurrentStatePublisher;
-import csw.messages.TopLevelActorMessage;
-import csw.messages.commands.CommandIssue;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.Setup;
-import csw.messages.framework.ComponentInfo;
-import csw.messages.location.AkkaLocation;
-import csw.messages.location.Connection;
-import csw.messages.location.LocationRemoved;
-import csw.messages.params.models.Prefix;
-import csw.messages.params.states.CurrentState;
-import csw.services.alarm.api.javadsl.IAlarmService;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.command.scaladsl.CurrentStateSubscription;
-import csw.services.config.api.javadsl.IConfigClientService;
-import csw.services.config.client.javadsl.JConfigClientFactory;
-import csw.services.event.api.javadsl.IEventService;
-import csw.services.location.javadsl.ILocationService;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.location.api.javadsl.ILocationService;
+import csw.location.api.models.AkkaLocation;
+import csw.location.api.models.Connection;
+import csw.location.api.models.LocationRemoved;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandIssue;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
+import csw.params.core.states.CurrentState;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -64,6 +65,9 @@ public class JEncAssemblyHandlersTest {
     ComponentInfo componentInfo;
 
     @Mock
+    JCswContext cswCtx;
+
+    @Mock
     CommandResponseManager commandResponseManager;
 
     @Mock
@@ -75,8 +79,8 @@ public class JEncAssemblyHandlersTest {
     ILocationService locationService;
 
     @Mock
-    JCommandService hcdService;
-  //  Optional<JCommandService> enclowCommandOpt;
+    ICommandService hcdService;
+  //  Optional<ICommandService> enclowCommandOpt;
 
     @Mock
     IEventService eventService;
@@ -108,7 +112,7 @@ public class JEncAssemblyHandlersTest {
             return testKit.spawn(i.getArgument(0));
         });
         JEncAssemblyBehaviorFactory factory = new JEncAssemblyBehaviorFactory();
-        assemblyHandlers = (JEncAssemblyHandlers)factory.jHandlers(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, alarmService, jLoggerFactory);
+        assemblyHandlers = (JEncAssemblyHandlers)factory.jHandlers(ctx, cswCtx);
     }
 
     @After
@@ -164,7 +168,7 @@ public class JEncAssemblyHandlersTest {
     @Test
     public void moveCommandTest(){
       //  PowerMockito.mockStatic(Optional.class);
-       // when(Optional.of(any(JCommandService.class))).thenReturn(enclowCommandOpt);
+       // when(Optional.of(any(ICommandService.class))).thenReturn(enclowCommandOpt);
        // assemblyHandlers.onLocationTrackingEvent(new LocationUpdated(location));
         assemblyHandlers.getMonitorActor().tell(new JMonitorActor.CurrentStateMessage(TestConstants.getReadyState()));
         Setup moveCommand = TestConstants.moveCommand();
@@ -179,10 +183,10 @@ public class JEncAssemblyHandlersTest {
     @Test
     public void followCommandTest() throws InterruptedException {
         //  PowerMockito.mockStatic(Optional.class);
-        // when(Optional.of(any(JCommandService.class))).thenReturn(enclowCommandOpt);
+        // when(Optional.of(any(ICommandService.class))).thenReturn(enclowCommandOpt);
         // assemblyHandlers.onLocationTrackingEvent(new LocationUpdated(location));
         Setup followCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("follow"), Optional.empty());
-        when(hcdService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
+        when(hcdService.submit(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(followCommand.runId())));
         //assemblyHandlers.getMonitorActor().tell(new JMonitorActor.LocationEventMessage(Optional.of(hcdService)));
         assemblyHandlers.getCommandHandlerActor().tell(new JCommandHandlerActor.UpdateTemplateHcdMessage(Optional.of(hcdService)));
         assemblyHandlers.getMonitorActor().tell(new JMonitorActor.InitializedMessage());

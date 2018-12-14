@@ -2,39 +2,35 @@ package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.params.generics.Parameter;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.core.generics.Parameter;
 import org.tmt.encsubsystem.enchcd.models.FastMoveCommand;
 import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
-public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
+public class JFastMoveCmdActor extends AbstractBehavior<ControlCommand> {
 
-    private ActorContext<ControlCommand> actorContext;
-    private JLoggerFactory loggerFactory;
+    private ActorContext<ControlCommand> actorContext;JCswContext cswCtx;
+    ;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
+
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
 
 
-    private JFastMoveCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+    private JFastMoveCmdActor(ActorContext<ControlCommand> actorContext, JCswContext cswCtx, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(JFastMoveCmdActor.class);
+
         this.statePublisherActor = statePublisherActor;
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(JCswContext cswCtx,   ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<ControlCommand>) new JFastMoveCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
+            return (AbstractBehavior<ControlCommand>) new JFastMoveCmdActor((ActorContext<csw.params.commands.ControlCommand>) ctx, cswCtx,   statePublisherActor);
         });
     }
 
@@ -44,7 +40,7 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
      * @return
      */
     @Override
-    public Behaviors.Receive<ControlCommand> createReceive() {
+    public Receive<ControlCommand> createReceive() {
 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
@@ -70,10 +66,10 @@ public class JFastMoveCmdActor extends MutableBehavior<ControlCommand> {
            FastMoveCommand.Response response = SimpleSimulator.getInstance().sendCommand(new FastMoveCommand((double)baseParam.value(0), (double)capParam.value(0)));
            switch (response.getStatus()){
                case OK:
-                   commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
+                   this.cswCtx.commandResponseManager().addOrUpdateCommand( new CommandResponse.Completed(message.runId()));
                    break;
                case ERROR:
-                   commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Error(message.runId(), response.getDesc()));
+                   this.cswCtx.commandResponseManager().addOrUpdateCommand( new CommandResponse.Error(message.runId(), response.getDesc()));
            }
     }
 

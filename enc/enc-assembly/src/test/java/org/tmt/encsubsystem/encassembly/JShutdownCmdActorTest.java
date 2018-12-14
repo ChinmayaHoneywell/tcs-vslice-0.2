@@ -3,14 +3,15 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -34,8 +35,9 @@ public class JShutdownCmdActorTest {
     CommandResponseManager commandResponseManager;
 
     @Mock
-    JCommandService hcdCommandService;
-
+    ICommandService hcdCommandService;
+    @Mock
+    JCswContext cswCtx;
     JLoggerFactory jLoggerFactory;
     ActorRef<ControlCommand> shutdownCmdActor;
     TestProbe<JMonitorActor.MonitorMessage> monitorActor;
@@ -44,7 +46,7 @@ public class JShutdownCmdActorTest {
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         monitorActor= testKit.createTestProbe();
-        shutdownCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory, monitorActor.getRef()));
+        shutdownCmdActor = testKit.spawn(JStartUpCmdActor.behavior(cswCtx, Optional.of(hcdCommandService), monitorActor.getRef()));
 
     }
 
@@ -61,9 +63,9 @@ public class JShutdownCmdActorTest {
     public void shutdownCommandCompletion() throws InterruptedException {
 
         Setup shutdownCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("shutdown"), Optional.empty());
-        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(shutdownCmd.runId())));
+        when(hcdCommandService.submit(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(shutdownCmd.runId())));
         shutdownCmdActor.tell(shutdownCmd);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
-        verify(commandResponseManager).addOrUpdateCommand(shutdownCmd.runId(), new CommandResponse.Completed(shutdownCmd.runId()));
+        verify(commandResponseManager).addOrUpdateCommand(new CommandResponse.Completed(shutdownCmd.runId()));
     }
 }

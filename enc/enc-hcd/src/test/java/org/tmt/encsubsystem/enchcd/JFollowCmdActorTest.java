@@ -3,12 +3,13 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.Setup;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -49,7 +50,8 @@ public class JFollowCmdActorTest {
 
     @Mock
     CommandResponseManager commandResponseManager;
-
+    @Mock
+    JCswContext cswCtx;
     JLoggerFactory jLoggerFactory;
     TestProbe<JStatePublisherActor.StatePublisherMessage> statePublisherMessageTestProbe;
     ActorRef<JFollowCmdActor.FollowMessage> followCmdActor;
@@ -58,7 +60,7 @@ public class JFollowCmdActorTest {
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         statePublisherMessageTestProbe = testKit.createTestProbe();
-        followCmdActor = testKit.spawn(JFollowCmdActor.behavior(commandResponseManager, jLoggerFactory, statePublisherMessageTestProbe.getRef()));
+        followCmdActor = testKit.spawn(JFollowCmdActor.behavior(cswCtx, statePublisherMessageTestProbe.getRef()));
     }
 
     @After

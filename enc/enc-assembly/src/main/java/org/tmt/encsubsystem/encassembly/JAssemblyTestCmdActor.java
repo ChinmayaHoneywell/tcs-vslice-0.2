@@ -2,17 +2,13 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
+import csw.command.api.javadsl.ICommandService;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.core.models.Prefix;
 
 import java.util.Optional;
 
@@ -20,30 +16,29 @@ import java.util.Optional;
  * This is a CommandWorkerActor for AssemblyTestCommand.
  * AssemblyTestCommand is a dummy command create for generating performance measures
  */
-public class JAssemblyTestCmdActor extends MutableBehavior<ControlCommand> {
+public class JAssemblyTestCmdActor extends AbstractBehavior<ControlCommand> {
     private Prefix templateHcdPrefix = new Prefix("tcs.encA");
     private ActorContext<ControlCommand> actorContext;
-    private JLoggerFactory loggerFactory;
+    JCswContext cswCtx;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> hcdCommandService;
+
+    private Optional<ICommandService> hcdCommandService;
     private ActorRef<JMonitorActor.MonitorMessage> monitorActor;
 
 
-    private JAssemblyTestCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
+    private JAssemblyTestCmdActor(ActorContext<ControlCommand> actorContext, JCswContext cswCtx, Optional<ICommandService> hcdCommandService, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
         this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+        this.cswCtx = cswCtx;
+        this.log = cswCtx.loggerFactory().getLogger(JAssemblyTestCmdActor.class);
+
         this.hcdCommandService = hcdCommandService;
         this.monitorActor = monitorActor;
 
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(JCswContext cswCtx, Optional<ICommandService> hcdCommandService,   ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<ControlCommand>) new JAssemblyTestCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
-                    loggerFactory, monitorActor);
+            return (AbstractBehavior<ControlCommand>) new JAssemblyTestCmdActor((ActorContext<csw.params.commands.ControlCommand>) ctx, cswCtx, hcdCommandService, monitorActor);
         });
     }
 
@@ -52,7 +47,7 @@ public class JAssemblyTestCmdActor extends MutableBehavior<ControlCommand> {
      * @return
      */
     @Override
-    public Behaviors.Receive<ControlCommand> createReceive() {
+    public Receive<ControlCommand> createReceive() {
 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
@@ -70,7 +65,7 @@ public class JAssemblyTestCmdActor extends MutableBehavior<ControlCommand> {
      * @param controlCommand
      */
     private void handleSubmitCommand(ControlCommand controlCommand) {
-                commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Completed(controlCommand.runId()));
+                this.cswCtx.commandResponseManager().addOrUpdateCommand(new CommandResponse.Completed(controlCommand.runId()));
     }
 
 

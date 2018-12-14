@@ -1,4 +1,4 @@
-package com.demo;
+package org.tmt.encsubsystem.enchcd;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -12,26 +12,26 @@ public class DurationTest {
 		System.out.println(Instant                // Represent a moment in UTC. 
 				.now()                 // Capture the current moment. Returns a `Instant` object. 
 				.truncatedTo(          // Lop off the finer part of this moment. 
-				    ChronoUnit.NANOS  // Granularity to which we are truncating. 
+				    ChronoUnit.MICROS  // Granularity to which we are truncating.
 				));// Returns another `Instant` object rather than changing the original, per the immutable objects pattern.
 		
 		System.out.println(ZonedDateTime.now(ZoneId.of( "America/Montreal")));		
 		Instant previous = Instant.now();
 		Instant current = Instant.now();
 		
-		//int i =0;
+		int i =0;
 		while(current.compareTo(previous)<=0) {
 		    current = Instant.now();
-		   // i++;
+		    i++;
 			continue;
 		}
 		
-		System.out.println("Iteration=" + 0+" , "+Duration.between(previous, current).toNanos());
+		System.out.println("Iteration=" + i+" , "+Duration.between(previous, current).toMillis());
 
 		long previousNano = System.nanoTime();
 		long currentNano = System.nanoTime();
 		
-		int i =0;
+		 i =0;
 		while(currentNano<=previousNano) {
 		    currentNano =System.nanoTime();
 		    i++;

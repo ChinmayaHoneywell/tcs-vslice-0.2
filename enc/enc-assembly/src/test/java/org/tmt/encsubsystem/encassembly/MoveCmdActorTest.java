@@ -2,13 +2,14 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.models.Id;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.models.Id;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -30,9 +31,10 @@ public class MoveCmdActorTest {
 
     @Mock
     CommandResponseManager commandResponseManager;
-
     @Mock
-    JCommandService hcdCommandService;
+    JCswContext cswCtx;
+    @Mock
+    ICommandService hcdCommandService;
 
     JLoggerFactory jLoggerFactory;
     ActorRef<ControlCommand> moveCmdActor;
@@ -40,7 +42,7 @@ public class MoveCmdActorTest {
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
-        moveCmdActor = testKit.spawn(MoveCmdActor.behavior(commandResponseManager, Optional.of(hcdCommandService), jLoggerFactory));
+        moveCmdActor = testKit.spawn(MoveCmdActor.behavior(cswCtx, Optional.of(hcdCommandService)));
     }
 
     @After
@@ -59,10 +61,10 @@ public class MoveCmdActorTest {
     public void startupCommandCompletion() throws InterruptedException {
         Id responseId = new Id("");
         Setup moveCommand = TestConstants.moveCommand();
-        when(hcdCommandService.submitAndSubscribe(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(responseId)));
+        when(hcdCommandService.submit(any(), any())).thenReturn(CompletableFuture.completedFuture(new CommandResponse.Completed(responseId)));
         moveCmdActor.tell(moveCommand);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
         verify(commandResponseManager).addSubCommand(moveCommand.runId(), responseId);
-        verify(commandResponseManager).updateSubCommand(responseId, new CommandResponse.Completed(responseId));
+        verify(commandResponseManager).updateSubCommand(new CommandResponse.Completed(responseId));
     }
 }

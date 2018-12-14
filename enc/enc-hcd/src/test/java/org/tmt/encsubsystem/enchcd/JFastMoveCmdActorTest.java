@@ -3,15 +3,16 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.generics.Key;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.generics.Key;
+import csw.params.core.models.Prefix;
+import csw.params.javadsl.JKeyType;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -27,7 +28,8 @@ public class JFastMoveCmdActorTest {
 
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
-
+    @Mock
+    JCswContext cswCtx;
     @Mock
     CommandResponseManager commandResponseManager;
 
@@ -35,16 +37,16 @@ public class JFastMoveCmdActorTest {
     TestProbe<JStatePublisherActor.StatePublisherMessage> statePublisherMessageTestProbe;
     ActorRef<ControlCommand> fastMoveCmdActor;
 
-    private Key<Double> azKey = JKeyTypes.DoubleKey().make("base");
-    private Key<Double> elKey = JKeyTypes.DoubleKey().make("cap");
-    private Key<String> mode = JKeyTypes.StringKey().make("mode");
-    private Key<String> operation = JKeyTypes.StringKey().make("operation");
+    private Key<Double> azKey = JKeyType.DoubleKey().make("base");
+    private Key<Double> elKey = JKeyType.DoubleKey().make("cap");
+    private Key<String> mode = JKeyType.StringKey().make("mode");
+    private Key<String> operation = JKeyType.StringKey().make("operation");
 
     @Before
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         statePublisherMessageTestProbe = testKit.createTestProbe();
-        fastMoveCmdActor = testKit.spawn(JFastMoveCmdActor.behavior(commandResponseManager, jLoggerFactory, statePublisherMessageTestProbe.getRef()));
+        fastMoveCmdActor = testKit.spawn(JFastMoveCmdActor.behavior(cswCtx, statePublisherMessageTestProbe.getRef()));
     }
 
     @After
@@ -65,6 +67,6 @@ public class JFastMoveCmdActorTest {
                 .add(operation.set("On"));
         fastMoveCmdActor.tell(setup);
         Thread.sleep(TestConstants.ACTOR_MESSAGE_PROCESSING_DELAY);
-        verify(commandResponseManager).addOrUpdateCommand(setup.runId(), new CommandResponse.Completed(setup.runId()));
+        verify(commandResponseManager).addOrUpdateCommand(new CommandResponse.Completed(setup.runId()));
     }
 }

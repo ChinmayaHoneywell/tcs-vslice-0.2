@@ -16,7 +16,6 @@ public class SimpleSimulator {
     public static final int COMMAND_PROCESSING_DELAY_MILLIS = 1;
 
     public static final int CURRENT_POSITION_CHANGE_DELAY= 100;
-
     public static final int AZ_EL_DECIMAL_PLACES= 2;
     public static final double AZ_EL_PRECISION= .01;
 

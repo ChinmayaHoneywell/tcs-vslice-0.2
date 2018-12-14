@@ -1,12 +1,12 @@
 package org.tmt.encsubsystem.encassembly;
 
-import csw.messages.commands.CommandName;
-import csw.messages.commands.Setup;
-import csw.messages.javadsl.JUnits;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.models.Prefix;
-import csw.messages.params.states.CurrentState;
-import csw.messages.params.states.StateName;
+import csw.params.commands.CommandName;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
+import csw.params.core.states.CurrentState;
+import csw.params.core.states.StateName;
+import csw.params.javadsl.JKeyType;
+import csw.params.javadsl.JUnits;
 import org.tmt.encsubsystem.encassembly.model.HCDState;
 
 import java.util.Optional;
@@ -25,11 +25,11 @@ public class TestConstants {
         Long[] timeDurationValue = new Long[1];
         timeDurationValue[0] = 10L;
         Setup moveCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("move"), Optional.empty())
-                .add(JKeyTypes.StringKey().make("operation").set("On"))
-                .add(JKeyTypes.DoubleKey().make("base").set(2.34))
-                .add(JKeyTypes.DoubleKey().make("cap").set(5.76))
-                .add(JKeyTypes.StringKey().make("mode").set("fast"))
-                .add(JKeyTypes.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
+                .add(JKeyType.StringKey().make("operation").set("On"))
+                .add(JKeyType.DoubleKey().make("base").set(2.34))
+                .add(JKeyType.DoubleKey().make("cap").set(5.76))
+                .add(JKeyType.StringKey().make("mode").set("fast"))
+                .add(JKeyType.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
 
         return moveCommand;
     }
@@ -38,18 +38,18 @@ public class TestConstants {
         Long[] timeDurationValue = new Long[1];
         timeDurationValue[0] = 10L;
         Setup moveCommand = new Setup(new Prefix("enc.enc-test"), new CommandName("move"), Optional.empty())
-                .add(JKeyTypes.StringKey().make("operation").set("On"))
-                .add(JKeyTypes.DoubleKey().make("base").set(2.34))
-                .add(JKeyTypes.DoubleKey().make("cap").set(5.76))
-                .add(JKeyTypes.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
+                .add(JKeyType.StringKey().make("operation").set("On"))
+                .add(JKeyType.DoubleKey().make("base").set(2.34))
+                .add(JKeyType.DoubleKey().make("cap").set(5.76))
+                .add(JKeyType.LongKey().make("timeDuration").set(timeDurationValue, JUnits.second));
 
         return moveCommand;
     }
 
     public static CurrentState getReadyState(){
-        CurrentState state = new CurrentState("tmt.tcs.ecs", new StateName("HcdState"))
-                .add(JKeyTypes.StringKey().make("LifecycleState").set(HCDState.LifecycleState.Running.name()))
-                .add(JKeyTypes.StringKey().make("OperationalState").set(HCDState.OperationalState.Ready.name()));
+        CurrentState state = new CurrentState(new Prefix("tmt.tcs.ecs"), new StateName("HcdState"))
+                .add(JKeyType.StringKey().make("LifecycleState").set(HCDState.LifecycleState.Running.name()))
+                .add(JKeyType.StringKey().make("OperationalState").set(HCDState.OperationalState.Ready.name()));
         return state;
 
     }
