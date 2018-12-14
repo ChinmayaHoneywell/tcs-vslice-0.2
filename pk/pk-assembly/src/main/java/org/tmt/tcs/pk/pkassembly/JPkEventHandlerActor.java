@@ -1,22 +1,19 @@
 package org.tmt.tcs.pk.pkassembly;
 
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.events.Event;
-import csw.messages.events.EventName;
-import csw.messages.events.SystemEvent;
-import csw.messages.params.models.Prefix;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.generics.Key;
+import akka.actor.typed.javadsl.*;
+import csw.event.api.javadsl.IEventService;
+import csw.logging.javadsl.ILogger;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.core.generics.Key;
+import csw.params.core.models.Prefix;
+import csw.params.events.Event;
+import csw.params.events.EventName;
+import csw.params.events.SystemEvent;
+import csw.params.javadsl.JKeyType;
 
-import csw.services.event.api.javadsl.IEventService;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
 
-public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.EventMessage> {
+public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.EventMessage> {
 
     private ActorContext<EventMessage> actorContext;
     private IEventService eventService;
@@ -36,14 +33,14 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
 
     public static <EventMessage> Behavior<EventMessage> behavior(IEventService eventService, JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<EventMessage>) new JPkEventHandlerActor((ActorContext<JPkEventHandlerActor.EventMessage>) ctx, eventService, loggerFactory);
+            return (AbstractBehavior<EventMessage>) new JPkEventHandlerActor((ActorContext<JPkEventHandlerActor.EventMessage>) ctx, eventService, loggerFactory);
         });
     }
 
 
 
     @Override
-    public Behaviors.Receive<EventMessage> createReceive() {
+    public Receive<EventMessage> createReceive() {
 
         ReceiveBuilder<EventMessage> builder = receiveBuilder()
                 .onMessage(McsDemandMessage.class,
@@ -70,9 +67,9 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
     private void publishMcsDemand(McsDemandMessage message) {
 
         log.info("Inside JPkEventHandlerActor: Publishing Mcs Demand ");
-        Key<Double> azDoubleKey = JKeyTypes.DoubleKey().make("mcs.az");
-        Key<Double> elDoubleKey = JKeyTypes.DoubleKey().make("mcs.el");
-        Key<Long>  publishTimeKey             = JKeyTypes.LongKey().make("timeStamp");
+        Key<Double> azDoubleKey = JKeyType.DoubleKey().make("mcs.az");
+        Key<Double> elDoubleKey = JKeyType.DoubleKey().make("mcs.el");
+        Key<Long>  publishTimeKey             = JKeyType.LongKey().make("timeStamp");
         Event event = new SystemEvent(prefix, new EventName("mcsdemandpositions"))
                 .add(azDoubleKey.set(message.getAz()))
                 .add(elDoubleKey.set(message.getEl()))
@@ -83,8 +80,8 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
     private void publishEncDemand(EncDemandMessage message) {
 
         log.info("Inside JPkEventHandlerActor: Publishing Enc Demand ");
-        Key<Double> baseDoubleKey = JKeyTypes.DoubleKey().make("ecs.base");
-        Key<Double> capDoubleKey = JKeyTypes.DoubleKey().make("ecs.cap");
+        Key<Double> baseDoubleKey = JKeyType.DoubleKey().make("ecs.base");
+        Key<Double> capDoubleKey = JKeyType.DoubleKey().make("ecs.cap");
 
         Event event = new SystemEvent(prefix, new EventName("encdemandpositions")).add(baseDoubleKey.set(message.getBase())).add(capDoubleKey.set(message.getCap()));
         eventService.defaultPublisher().publish(event);
@@ -93,8 +90,8 @@ public class JPkEventHandlerActor extends MutableBehavior<JPkEventHandlerActor.E
     private void publishM3Demand(M3DemandMessage message) {
 
         log.info("Inside JPkEventHandlerActor: Publishing M3 Demand ");
-        Key<Double> rotationDoubleKey = JKeyTypes.DoubleKey().make("m3.rotation");
-        Key<Double> tiltDoubleKey = JKeyTypes.DoubleKey().make("m3.tilt");
+        Key<Double> rotationDoubleKey = JKeyType.DoubleKey().make("m3.rotation");
+        Key<Double> tiltDoubleKey = JKeyType.DoubleKey().make("m3.tilt");
 
         Event event = new SystemEvent(prefix, new EventName("m3demandpositions")).add(rotationDoubleKey.set(message.getRotation())).add(tiltDoubleKey.set(message.getTilt()));;
         eventService.defaultPublisher().publish(event);

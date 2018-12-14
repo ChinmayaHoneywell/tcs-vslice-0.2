@@ -1,19 +1,18 @@
 package org.tmt.tcs.pk.pkassembly;
 
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.params.generics.Parameter;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+
+import akka.actor.typed.javadsl.*;
+
+import csw.command.client.CommandResponseManager;
+import csw.logging.javadsl.ILogger;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.core.generics.Parameter;
 import org.tmt.tcs.pk.wrapper.TpkWrapper;
 
-public class SetTargetCmdActor extends MutableBehavior<ControlCommand> {
+public class SetTargetCmdActor extends AbstractBehavior<ControlCommand> {
 
     // Add messages here
     // No sealed trait/interface or messages for this actor.  Always accepts the Submit command message.
@@ -25,7 +24,8 @@ public class SetTargetCmdActor extends MutableBehavior<ControlCommand> {
 
     private TpkWrapper tpkWrapper;
 
-    private SetTargetCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, TpkWrapper tpkWrapper) {
+    private SetTargetCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager,
+                              JLoggerFactory loggerFactory, TpkWrapper tpkWrapper) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
@@ -33,16 +33,17 @@ public class SetTargetCmdActor extends MutableBehavior<ControlCommand> {
         this.tpkWrapper = tpkWrapper;
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, TpkWrapper tpkWrapper) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager,
+                                                                     JLoggerFactory loggerFactory, TpkWrapper tpkWrapper) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<ControlCommand>) new SetTargetCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager,
+            return (AbstractBehavior<ControlCommand>) new SetTargetCmdActor((ActorContext<csw.params.commands.ControlCommand>) ctx, commandResponseManager,
                     loggerFactory, tpkWrapper);
         });
     }
 
 
     @Override
-    public Behaviors.Receive<ControlCommand> createReceive() {
+    public Receive<ControlCommand> createReceive() {
 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
@@ -57,19 +58,13 @@ public class SetTargetCmdActor extends MutableBehavior<ControlCommand> {
     private void handleSubmitCommand(ControlCommand message) {
 
         log.info("Inside SetTargetCmdActor: handleSubmitCommand start");
-
         Parameter raParam = message.paramSet().find(x -> x.keyName().equals("ra")).get();
         Parameter decParam = message.paramSet().find(x -> x.keyName().equals("dec")).get();
-
         Double ra = (Double) raParam.value(0);
         Double dec = (Double) decParam.value(0);
-
         log.info("Inside SetTargetCmdActor: handleSubmitCommand: ra is: " + ra + ": dec is: " + dec);
-
         tpkWrapper.newTarget(ra, dec);
-
-        commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
-
+        commandResponseManager.addOrUpdateCommand(new CommandResponse.Completed(message.runId()));
         log.info("Inside SetTargetCmdActor: command message handled");
     }
 

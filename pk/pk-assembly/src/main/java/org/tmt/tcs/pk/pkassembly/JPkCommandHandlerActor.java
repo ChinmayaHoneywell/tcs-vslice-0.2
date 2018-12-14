@@ -2,28 +2,23 @@ package org.tmt.tcs.pk.pkassembly;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.ControlCommand;
-import csw.services.command.CommandResponseManager;
+import akka.actor.typed.javadsl.*;
+
+import csw.command.client.CommandResponseManager;
+import csw.logging.javadsl.ILogger;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.ControlCommand;
 import org.tmt.tcs.pk.pkassembly.JPkCommandHandlerActor.CommandMessage;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
 import org.tmt.tcs.pk.wrapper.TpkWrapper;
 
-public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
+public class JPkCommandHandlerActor extends AbstractBehavior<CommandMessage> {
 
 
     // add messages here
     interface CommandMessage {}
 
     public static final class SubmitCommandMessage implements CommandMessage {
-
         public final ControlCommand controlCommand;
-
-
         public SubmitCommandMessage(ControlCommand controlCommand) {
             this.controlCommand = controlCommand;
         }
@@ -40,7 +35,8 @@ public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
     private CommandResponseManager commandResponseManager;
     private TpkWrapper tpkWrapper;
 
-    private JPkCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory, ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor) {
+    private JPkCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, Boolean online,
+                                   JLoggerFactory loggerFactory, ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor) {
         this.actorContext = actorContext;
         this.loggerFactory = loggerFactory;
         this.log = loggerFactory.getLogger(actorContext, getClass());
@@ -53,13 +49,14 @@ public class JPkCommandHandlerActor extends MutableBehavior<CommandMessage> {
 
     public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, Boolean online, JLoggerFactory loggerFactory, ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<CommandMessage>) new JPkCommandHandlerActor((ActorContext<JPkCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, online, loggerFactory, eventHandlerActor);
+            return (AbstractBehavior<CommandMessage>) new JPkCommandHandlerActor((ActorContext<JPkCommandHandlerActor.CommandMessage>) ctx,
+                    commandResponseManager, online, loggerFactory, eventHandlerActor);
         });
     }
 
 
     @Override
-    public Behaviors.Receive<CommandMessage> createReceive() {
+    public Receive<CommandMessage> createReceive() {
 
         ReceiveBuilder<CommandMessage> builder = receiveBuilder()
                 .onMessage(SubmitCommandMessage.class,

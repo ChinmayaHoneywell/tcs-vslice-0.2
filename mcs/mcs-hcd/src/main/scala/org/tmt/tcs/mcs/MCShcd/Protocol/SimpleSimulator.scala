@@ -62,21 +62,16 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         msg.sender ! SimpleSimResp(CommandResponse.Completed(msg.command.runId))
         Behavior.same
       case msg: ProcOneWayDemand =>
-        //log.info(s"Received position demands from MCSH :")
         val simulatorRecTime                 = System.currentTimeMillis()
         val paramSet                         = msg.command.paramSet
         val azPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
         val elPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
-        //  val trackIDParam: Option[Parameter[_]]  = paramSet.find(msg => msg.keyName == EventConstants.POITNTING_KERNEL_TRACK_ID)
         val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
-
-        //val trackID  = trackIDParam.getOrElse(EventConstants.TrackIDKey.set(0))
         val azPos           = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
         val elPos           = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
         val sentTime        = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
         val assemblyRecTime = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
         val hcdRecTime      = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
-
         log.error(
           s"${azPos.head}, ${elPos.head}, ${sentTime.head}, ${assemblyRecTime.head}, ${hcdRecTime.head}, $simulatorRecTime"
         )
@@ -103,12 +98,11 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
-        /*  log.info(
-          s"Received demanded positions :${longBitsToDouble(this.azPosDemand.get())}, ${longBitsToDouble(this.elPosDemand.get())}, $tpkPublishTime, $assemblyRecTime, " +
-          s"$hcdRecTime, $simpleSimRecTime"
+       /* log.info(
+          s"Received demanded positions :${longBitsToDouble(this.azPosDemand.get())}, ${longBitsToDouble(this.elPosDemand.get())}," +
+          s" $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime"
         )*/
         Behavior.same
-
     }
   }
   def updateSimulator(commandName: String): Unit = {
@@ -137,9 +131,9 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
   def startPublishingCurrPos(): Unit = {
 
     log.info(s"Publish Current position thread started")
-    /* var elC: Double = 0
+    var elC: Double = 0
     var azC: Double = 0
-    def getElCurrent() = {
+    def updateElC() = {
       if (elC == longBitsToDouble(this.elPosDemand.get())) {
         elC = this.elPosDemand.get()
       } else if (longBitsToDouble(this.elPosDemand.get()) > 0.0) {
@@ -149,8 +143,9 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         // for -ve demanded el positions
         elC = elC - 0.05
       }
+      log.info(s"Updated el position is : $elC")
     }
-    def getCurrAz = {
+    def updateAzC = {
       if (azC == longBitsToDouble(this.azPosDemand.get())) {
         azC = this.azPosDemand.get()
       } else if (longBitsToDouble(this.azPosDemand.get()) > 0.0) {
@@ -159,17 +154,16 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
       } else {
         azC = azC - 0.05
       }
-    }*/
+      log.info(s"Updated az position is : $azC")
+    }
     log.info(s"currentPosPublisher current value is : ${this.currentPosPublisher.get()}")
     while (this.currentPosPublisher.get()) {
-      Thread.sleep(10)
-      /*  getElCurrent
-      getCurrAz*/
-
-      val currentTime = System.currentTimeMillis()
-
-      val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(longBitsToDouble(this.azPosDemand.get())).withUnits(degree)
-      val elPosParam: Parameter[Double] = EventConstants.ElPosKey.set(longBitsToDouble(this.elPosDemand.get())).withUnits(degree)
+      Thread.sleep(100) //TODO : Temporarily taking to 100 from 10
+      updateAzC
+      updateElC
+      val currentTime                   = System.currentTimeMillis()
+      val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(azC).withUnits(degree)
+      val elPosParam: Parameter[Double] = EventConstants.ElPosKey.set(elC).withUnits(degree)
 
       val azPosErrorParam: Parameter[Double] =
         EventConstants.AZ_POS_ERROR_KEY.set(longBitsToDouble(this.azPosDemand.get())).withUnits(degree)
@@ -179,10 +173,9 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
       val azInPositionParam: Parameter[Boolean] = EventConstants.AZ_InPosition_Key.set(true)
       val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(true)
       val timestamp                             = EventConstants.TimeStampKey.set(currentTime)
-
-      /* log.info(
-        s"Publishing Az position : $azC and el position : $elC demanded az : ${longBitsToDouble(this.azPosDemand.get())}," +
-        s" el : ${longBitsToDouble(this.elPosDemand.get())}"
+      /*  log.info(
+        s"Publishing Az position : $azC and el position : $elC demanded az : ${this.azPosDemand.get()}," +
+        s" el : ${this.elPosDemand.get()}"
       )*/
 
       val currentState = CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
@@ -193,7 +186,6 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         .add(azInPositionParam)
         .add(elInPositionParam)
         .add(timestamp)
-
       statePublisherActor ! PublishState(currentState)
     }
   }

@@ -35,9 +35,7 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
   private val log: Logger = loggerFactory.getLogger
 
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
-    //  log.info(s"Submitting startup  command with id : ${msg.runId} to simulator")
-
-    simulatorMode match {
+      simulatorMode match {
       case Commands.REAL_SIMULATOR => {
         submitToRealSim(msg)
         Behaviors.stopped
@@ -51,11 +49,11 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
     Behavior.stopped
   }
   private def submitToSimpleSim(msg: ControlCommand): Unit = {
-    implicit val duration: Timeout = 20 seconds
+    implicit val duration: Timeout = 2 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: SimpleSimMsg = Await.result(simpleSimActor ? { ref: ActorRef[SimpleSimMsg] =>
       SimpleSimMsg.ProcessCommand(msg, ref)
-    }, 10.seconds)
+    }, 1 seconds)
     response match {
       case x: SimpleSimMsg.SimpleSimResp => commandResponseManager.addOrUpdateCommand(x.commandResponse)
       case _ =>

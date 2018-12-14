@@ -84,71 +84,45 @@ case class CommandHandlerActor(ctx: ActorContext[HCDCommandMessage],
     }
   }
   private def processSubmitCommand(cmdMessage: submitCommand): Behavior[HCDCommandMessage] = {
-
     cmdMessage.controlCommand.commandName.name match {
-
-      case Commands.STARTUP => {
+      case Commands.STARTUP =>
         log.info("Starting MCS HCD")
-        val startupCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(
-            StartupCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory),
-            "StartupCmdActor"
-          )
+        val startupCmdActor: ActorRef[ControlCommand] = ctx.spawn(StartupCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor,
+          simulatorMode, loggerFactory),"StartupCmdActor")
         startupCmdActor ! cmdMessage.controlCommand
         Behavior.same
-      }
-      case Commands.SET_SIMULATION_MODE => {
+      case Commands.SET_SIMULATION_MODE =>
         val modeParam: Parameter[_] = cmdMessage.controlCommand.paramSet.find(msg => msg.keyName == Commands.SIMULATION_MODE).get
         val param: Any              = modeParam.head
         log.info(s"Changing commandHandlers simulation mode from: $simulatorMode to ${param.toString}")
-        CommandHandlerActor.createObject(commandResponseManager,
-                                         lifeCycleActor,
-                                         zeroMQProtoActor,
-                                         simpleSimActor,
-                                         param.toString,
-                                         loggerFactory)
-      }
-      case Commands.SHUTDOWN => {
+        CommandHandlerActor.createObject(commandResponseManager, lifeCycleActor, zeroMQProtoActor, simpleSimActor, param.toString, loggerFactory)
+      case Commands.SHUTDOWN =>
         log.info("ShutDown MCS HCD")
-        val shutDownCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(
-            ShutdownCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory),
-            "ShutdownCmdActor"
-          )
+        val shutDownCmdActor: ActorRef[ControlCommand] = ctx.spawn(ShutdownCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor,
+          simulatorMode, loggerFactory),"ShutdownCmdActor")
         shutDownCmdActor ! cmdMessage.controlCommand
         Behavior.stopped
-      }
-      case Commands.POINT => {
+      case Commands.POINT =>
         log.debug(s"handling point command: ${cmdMessage.controlCommand}")
-        val pointCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(PointCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory),
-                    "PointCmdActor")
+        val pointCmdActor: ActorRef[ControlCommand] = ctx.spawn(PointCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor,
+          simulatorMode, loggerFactory), "PointCmdActor")
         pointCmdActor ! cmdMessage.controlCommand
         Behavior.same
-      }
-      case Commands.POINT_DEMAND => {
+      case Commands.POINT_DEMAND =>
         log.debug(s"handling pointDemand command: ${cmdMessage.controlCommand}")
-        val pointDemandCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(
-            PointDemandCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory),
-            "PointDemandCmdActor"
-          )
+        val pointDemandCmdActor: ActorRef[ControlCommand] = ctx.spawn(PointDemandCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor,
+          simulatorMode, loggerFactory), "PointDemandCmdActor")
         pointDemandCmdActor ! cmdMessage.controlCommand
         Behavior.same
-      }
-      case Commands.DATUM => {
+      case Commands.DATUM =>
         log.info("Received datum command in HCD commandHandler")
-        val datumCmdActor: ActorRef[ControlCommand] =
-          ctx.spawn(DatumCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory),
-                    "DatumCmdActor")
+        val datumCmdActor: ActorRef[ControlCommand] = ctx.spawn(DatumCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode,
+          loggerFactory),"DatumCmdActor")
         datumCmdActor ! cmdMessage.controlCommand
         Behavior.same
-      }
-
-      case _ => {
+      case _ =>
         log.error(msg = s"Incorrect command is sent to MCS HCD : ${cmdMessage.controlCommand}")
         Behavior.unhandled
-      }
     }
   }
 }

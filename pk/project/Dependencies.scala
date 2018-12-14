@@ -4,10 +4,7 @@ object Dependencies {
 
   val PkAssembly = Seq(
     CSW.`csw-framework`,
-    CSW.`csw-command`,
-    CSW.`csw-location`,
-    CSW.`csw-messages`,
-    CSW.`csw-logging`,
+    CSW.`csw-testkit`,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test
@@ -15,10 +12,7 @@ object Dependencies {
 
   val PkClient = Seq(
     CSW.`csw-framework`,
-    CSW.`csw-command`,
-    CSW.`csw-location`,
-    CSW.`csw-messages`,
-    CSW.`csw-logging`,
+    CSW.`csw-testkit`,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test

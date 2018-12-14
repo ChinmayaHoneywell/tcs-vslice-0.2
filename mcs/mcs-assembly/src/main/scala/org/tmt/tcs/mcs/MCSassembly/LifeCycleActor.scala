@@ -52,11 +52,9 @@ case class LifeCycleActor(ctx: ActorContext[LifeCycleMessage],
       case msg: GetAssemblyConfig =>
         msg.sender ! AssemblyConfig(config)
         Behavior.same
-
       case _ =>
         log.error(s"Incorrect message is sent to LifeCycleActor : $msg")
         Behavior.unhandled
-
     }
     this
   }

@@ -1,7 +1,7 @@
 import sbt._
 
 object Libs {
-  val ScalaVersion = "2.12.4"
+  val ScalaVersion = "2.12.7"
 
   val `scalatest`       = "org.scalatest"          %% "scalatest"      % "3.0.5"  //Apache License 2.0
   val `scala-async`     = "org.scala-lang.modules" %% "scala-async"    % "0.9.7"  //BSD 3-clause "New" or "Revised" License
@@ -11,12 +11,8 @@ object Libs {
 }
 
 object CSW {
-  val Version = "0.5.0"
+  val Version = "0.1-SNAPSHOT"
 
-  val `csw-location`      = "org.tmt" %% "csw-location"      % Version
-  val `csw-config-client` = "org.tmt" %% "csw-config-client" % Version
-  val `csw-logging`       = "org.tmt" %% "csw-logging"       % Version
-  val `csw-framework`     = "org.tmt" %% "csw-framework"     % Version
-  val `csw-command`       = "org.tmt" %% "csw-command"       % Version
-  val `csw-messages`      = "org.tmt" %% "csw-messages"      % Version
+  val `csw-framework`     = "com.github.tmtsoftware.csw" %% "csw-framework"     % Version
+  val `csw-testkit`       = "com.github.tmtsoftware.csw" %% "csw-testkit"     % Version
 }

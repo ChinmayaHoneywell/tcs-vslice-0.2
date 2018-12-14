@@ -6,24 +6,24 @@ import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Adapter;
 import akka.stream.Materializer;
 import com.typesafe.config.Config;
+import csw.command.client.CommandResponseManager;
+import csw.command.client.messages.TopLevelActorMessage;
+import csw.command.client.models.framework.ComponentInfo;
+import csw.config.api.javadsl.IConfigClientService;
+import csw.config.api.models.ConfigData;
+import csw.config.client.internal.ActorRuntime;
+import csw.config.client.javadsl.JConfigClientFactory;
 import csw.framework.exceptions.FailureStop;
 import csw.framework.javadsl.JComponentHandlers;
 import csw.framework.CurrentStatePublisher;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.framework.ComponentInfo;
-import csw.messages.location.TrackingEvent;
-import csw.messages.TopLevelActorMessage;
-import csw.services.alarm.api.javadsl.IAlarmService;
-import csw.services.command.CommandResponseManager;
-import csw.services.config.api.javadsl.IConfigClientService;
-import csw.services.config.api.models.ConfigData;
-import csw.services.config.client.internal.ActorRuntime;
-import csw.services.config.client.javadsl.JConfigClientFactory;
-import csw.services.event.api.javadsl.IEventService;
-import csw.services.location.javadsl.ILocationService;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.location.api.javadsl.ILocationService;
+import csw.location.api.models.TrackingEvent;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.CommandResponse.ValidateCommandResponse;
+import csw.params.commands.CommandResponse.SubmitResponse;
+import csw.params.commands.ControlCommand;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -52,49 +52,31 @@ public class JPkAssemblyHandlers extends JComponentHandlers {
     private ActorRef<JPkLifecycleActor.LifecycleMessage> lifecycleActor;
     private ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor;
 
-    JPkAssemblyHandlers(
-            ActorContext<TopLevelActorMessage> ctx,
-            ComponentInfo componentInfo,
-            CommandResponseManager commandResponseManager,
-            CurrentStatePublisher currentStatePublisher,
-            ILocationService locationService,
-            IEventService eventService,
-            IAlarmService alarmService,
-            JLoggerFactory loggerFactory
-    ) {
-        super(ctx, componentInfo, commandResponseManager, currentStatePublisher, locationService, eventService, alarmService, loggerFactory);
-        this.currentStatePublisher = currentStatePublisher;
-        this.log = loggerFactory.getLogger(getClass());
-        this.commandResponseManager = commandResponseManager;
+    JPkAssemblyHandlers(ActorContext<TopLevelActorMessage> ctx, JCswContext cswContext) {
+        super(ctx, cswContext);
+        this.currentStatePublisher = cswContext.currentStatePublisher();
+        this.log = cswContext.loggerFactory().getLogger(getClass());
+        this.commandResponseManager = cswContext.commandResponseManager();
         this.actorContext = ctx;
-        this.locationService = locationService;
-        this.componentInfo = componentInfo;
-
-
+        this.locationService = cswContext.locationService();
+        this.componentInfo = cswContext.componentInfo();
         // Handle to the config client service
         clientApi = JConfigClientFactory.clientApi(Adapter.toUntyped(actorContext.getSystem()), locationService);
-
-
         // Load the configuration from the configuration service
         //Config assemblyConfig = getAssemblyConfig();
-
-        lifecycleActor = ctx.spawnAnonymous(JPkLifecycleActor.behavior(loggerFactory));
-        eventHandlerActor = ctx.spawnAnonymous(JPkEventHandlerActor.behavior(eventService, loggerFactory));
-        commandHandlerActor = ctx.spawnAnonymous(JPkCommandHandlerActor.behavior(commandResponseManager, Boolean.TRUE, loggerFactory, eventHandlerActor));
+        lifecycleActor = ctx.spawnAnonymous(JPkLifecycleActor.behavior(cswContext.loggerFactory()));
+        eventHandlerActor = ctx.spawnAnonymous(JPkEventHandlerActor.behavior(cswContext.eventService(), cswContext.loggerFactory()));
+        commandHandlerActor = ctx.spawnAnonymous(JPkCommandHandlerActor.behavior(commandResponseManager, Boolean.TRUE, cswContext.loggerFactory(), eventHandlerActor));
     }
 
     @Override
     public CompletableFuture<Void> jInitialize() {
-        return CompletableFuture.runAsync(() -> {
-            log.debug("Inside JPkAssemblyHandlers: initialize()");
-        });
+        return CompletableFuture.runAsync(() -> log.debug("Inside JPkAssemblyHandlers: initialize()"));
     }
 
     @Override
     public CompletableFuture<Void> jOnShutdown() {
-        return CompletableFuture.runAsync(() -> {
-            log.debug("Inside JPkAssemblyHandlers: onShutdown()");
-        });
+        return CompletableFuture.runAsync(() -> log.debug("Inside JPkAssemblyHandlers: onShutdown()"));
     }
 
     @Override
@@ -103,17 +85,17 @@ public class JPkAssemblyHandlers extends JComponentHandlers {
     }
 
     @Override
-    public CommandResponse validateCommand(ControlCommand controlCommand) {
+    public ValidateCommandResponse validateCommand(ControlCommand controlCommand) {
         log.debug("Inside JPkAssemblyHandlers: validateCommand()");
-
         return new CommandResponse.Accepted(controlCommand.runId());
     }
 
     @Override
-    public void onSubmit(ControlCommand controlCommand) {
+    public SubmitResponse onSubmit(ControlCommand controlCommand) {
         log.debug("Inside JPkAssemblyHandlers: onSubmit()");
 
         commandHandlerActor.tell(new JPkCommandHandlerActor.SubmitCommandMessage(controlCommand));
+        return new CommandResponse.Started(controlCommand.runId());
     }
 
     @Override

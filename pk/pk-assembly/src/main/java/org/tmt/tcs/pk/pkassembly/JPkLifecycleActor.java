@@ -1,22 +1,20 @@
 package org.tmt.tcs.pk.pkassembly;
 
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import com.typesafe.config.Config;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
 
-public class JPkLifecycleActor extends MutableBehavior<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage> {
+import csw.logging.javadsl.ILogger;
+import csw.logging.javadsl.JLoggerFactory;
+
+
+public class JPkLifecycleActor extends AbstractBehavior<JPkLifecycleActor.LifecycleMessage> {
 
 
     // add messages here
     interface LifecycleMessage {}
 
-    public static final class InitializeMessage implements LifecycleMessage { }
-    public static final class ShutdownMessage implements LifecycleMessage { }
+    private static final class InitializeMessage implements LifecycleMessage { }
+    private static final class ShutdownMessage implements LifecycleMessage { }
 
 
     private ActorContext<LifecycleMessage> actorContext;
@@ -33,13 +31,14 @@ public class JPkLifecycleActor extends MutableBehavior<org.tmt.tcs.pk.pkassembly
 
     public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(JLoggerFactory loggerFactory) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<LifecycleMessage>) new org.tmt.tcs.pk.pkassembly.JPkLifecycleActor((ActorContext<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage>) ctx, loggerFactory);
+            return (AbstractBehavior<LifecycleMessage>) new org.tmt.tcs.pk.pkassembly.JPkLifecycleActor(
+                    (ActorContext<org.tmt.tcs.pk.pkassembly.JPkLifecycleActor.LifecycleMessage>) ctx, loggerFactory);
         });
     }
 
 
     @Override
-    public Behaviors.Receive<LifecycleMessage> createReceive() {
+    public Receive<LifecycleMessage> createReceive() {
 
         ReceiveBuilder<LifecycleMessage> builder = receiveBuilder()
                 .onMessage(InitializeMessage.class,
@@ -58,13 +57,11 @@ public class JPkLifecycleActor extends MutableBehavior<org.tmt.tcs.pk.pkassembly
     }
 
     private void onInitialize(InitializeMessage message) {
-
-        log.info("Inside JPkLifecycleActor: Initialize Message Received ");
+        log.info(()->" Inside JPKLifecycleActor: initialize message received : "+message);
     }
 
     private void onShutdown(ShutdownMessage message) {
-
-        log.info("Inside JPkLifecycleActor: Shutdown Message Received ");
+        log.info(() -> "Inside JPkLifecycleActor: Shutdown Message Received : "+message);
     }
 
 

@@ -272,23 +272,14 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
       case true =>
         val hcdStateValidate = validateHCDState
         hcdStateValidate match {
-          case true => CommandResponse.Accepted(controlCommand.runId)
-          case false =>
-            CommandResponse.Invalid(
-              controlCommand.runId,
-              WrongInternalStateIssue(
+          case true => Accepted(controlCommand.runId)
+          case false => CommandResponse.Invalid(controlCommand.runId, WrongInternalStateIssue(
                 s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state" +
                 s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} " +
-                s"or ${HCDOperationalState.ServoOffDatumed} to process point  command"
-              )
-            )
+                s"or ${HCDOperationalState.ServoOffDatumed} to process point  command"))
         }
-
-      case false =>
-        CommandResponse.Invalid(controlCommand.runId,
-                                WrongNumberOfParametersIssue(s" axes parameter is not provided for point command"))
+      case false => CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue(s" axes parameter is not provided for point command"))
     }
-
   }
   /*
        This functions validates datum  command based upon paramters and hcd state
@@ -311,19 +302,13 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
         EventMessage.GetCurrentState(ref)
       }, 3.seconds)
       hcdCurrentState match {
-        case x: EventMessage.HcdCurrentState => {
+        case x: EventMessage.HcdCurrentState =>
           x.lifeCycleState match {
             case HCDLifeCycleState.Running if x.operationalState.equals(HCDOperationalState.DrivePowerOff) => return true
-            case _ =>
-              log.error(
-                msg =
-                  s" to execute datum command HCD Lifecycle state must be running and operational state must be ${HCDOperationalState.DrivePowerOff}"
-              )
-              return false
+            case _ => log.error(msg =s" to execute datum command HCD Lifecycle state must be running and operational state must be ${HCDOperationalState.DrivePowerOff}")
+                    return false
           }
-        }
-        case _ =>
-          log.error(msg = s"Incorrect state is sent to HCD handler by state publisher actor")
+        case _ => log.error(msg = s"Incorrect state is sent to HCD handler by state publisher actor")
           return false
       }
       false
@@ -333,20 +318,11 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
       case true =>
         val hcdState = validateHCDState
         hcdState match {
-          case true => CommandResponse.Accepted(controlCommand.runId)
-          case false =>
-            CommandResponse.Invalid(
-              controlCommand.runId,
-              WrongInternalStateIssue(
-                s" MCS HCD and subsystem must be  in ${HCDLifeCycleState.Running} state " +
-                s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or  ${HCDOperationalState.ServoOffDatumed} " +
-                s"to process datum  command"
-              )
-            )
+          case true => Accepted(controlCommand.runId)
+          case false => Invalid(controlCommand.runId, WrongInternalStateIssue(s" MCS HCD and subsystem must be  in ${HCDLifeCycleState.Running} state " +
+                s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or  ${HCDOperationalState.ServoOffDatumed} to process datum command"))
         }
-      case false =>
-        CommandResponse.Invalid(controlCommand.runId,
-                                WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
+      case false => Invalid(controlCommand.runId, WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }
   }
 
@@ -378,11 +354,7 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
           x.lifeCycleState match {
             case HCDLifeCycleState.Running if x.operationalState.equals(HCDOperationalState.ServoOffDatumed) =>
               return true
-            case _ =>
-              log.error(
-                msg = s" to execute Follow command HCD Lifecycle state must be running and operational state must " +
-                s"be ${HCDOperationalState.ServoOffDatumed}"
-              )
+            case _ => log.error( msg = s" to execute Follow command HCD Lifecycle state must be running and operational state must be ${HCDOperationalState.ServoOffDatumed}")
               return false
           }
         case _ =>
@@ -393,16 +365,10 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     }
     if (validateParamset) {
       if (validateHCDState) {
-        //executeFollowCommandAndSendResponse(controlCommand)
         Accepted(controlCommand.runId)
       } else {
-        CommandResponse.Invalid(
-          controlCommand.runId,
-          WrongInternalStateIssue(
-            s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state" +
-            s"and operational state must be in ${HCDOperationalState.ServoOffDatumed} to process follow command"
-          )
-        )
+        CommandResponse.Invalid(controlCommand.runId,WrongInternalStateIssue(s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state " +
+          s"and operational state must be in ${HCDOperationalState.ServoOffDatumed} to process follow command"))
       }
     } else {
       CommandResponse.Invalid(controlCommand.runId, WrongNumberOfParametersIssue("Follow command should not have any parameters"))
@@ -457,8 +423,8 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     controlCommand.commandName.name match {
       case Commands.STARTUP =>
         commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
-        log.info("On receipt of startup command changing MCS HCD state to Running")
         statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Running, HCDOperationalState.DrivePowerOff)
+        log.info("On receipt of startup command changing MCS HCD state to Running")
         Started(controlCommand.runId)
       case Commands.SHUTDOWN =>
         commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
