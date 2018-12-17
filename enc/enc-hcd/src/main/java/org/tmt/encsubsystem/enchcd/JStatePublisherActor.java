@@ -1,27 +1,23 @@
 package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import akka.actor.typed.javadsl.TimerScheduler;
+import akka.actor.typed.javadsl.*;
 import csw.framework.CurrentStatePublisher;
-import csw.messages.framework.ComponentInfo;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.generics.Key;
-import csw.messages.params.generics.Parameter;
-import csw.messages.params.models.ArrayData;
-import csw.messages.params.states.CurrentState;
-import csw.messages.params.states.StateName;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.core.generics.Key;
+import csw.params.core.generics.Parameter;
+import csw.params.core.models.ArrayData;
+import csw.params.core.states.CurrentState;
+import csw.params.core.states.StateName;
+import csw.params.javadsl.JKeyType;
+import csw.params.javadsl.JUnits;
 import org.tmt.encsubsystem.enchcd.models.*;
 import org.tmt.encsubsystem.enchcd.simplesimulator.SimpleSimulator;
 
 import java.time.Duration;
 import java.time.Instant;
 
-import static csw.messages.javadsl.JUnits.degree;
 import static org.tmt.encsubsystem.enchcd.Constants.*;
 
 /**
@@ -29,47 +25,47 @@ import static org.tmt.encsubsystem.enchcd.Constants.*;
  * This actor have timers for each current state which define schedule/frequency at which current states are published.
  * Each current state has it's own frequency and timer.
  */
-public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.StatePublisherMessage> {
+public class JStatePublisherActor extends AbstractBehavior<JStatePublisherActor.StatePublisherMessage> {
     //name, keys, frequency for assembly and hcd state
     public static final String ASSEMBLY_STATE = "assemblyState";
     public static final  String HCD_STATE = "HcdState";
-    public static final Key<String> LIFECYCLE_KEY = JKeyTypes.StringKey().make("LifecycleState");
-    public static final Key<String> OPERATIONAL_KEY = JKeyTypes.StringKey().make("OperationalState");
-    public static final Key<Instant> TIME_OF_STATE_DERIVATION = JKeyTypes.TimestampKey().make("TimeOfStateDerivation");
+    public static final Key<String> LIFECYCLE_KEY = JKeyType.StringKey().make("LifecycleState");
+    public static final Key<String> OPERATIONAL_KEY = JKeyType.StringKey().make("OperationalState");
+    public static final Key<Instant> TIME_OF_STATE_DERIVATION = JKeyType.TimestampKey().make("TimeOfStateDerivation");
     public  static final int ASSEMBLY_STATE_EVENT_FREQUENCY_IN_HERTZ = 20;
 
     //name, keys for current position
     public static final  String CURRENT_POSITION = "currentPosition";
-    public static final Key<Double> BASE_POS_KEY = JKeyTypes.DoubleKey().make("basePosKey");
-    public static final Key<Double> CAP_POS_KEY = JKeyTypes.DoubleKey().make("capPosKey");
+    public static final Key<Double> BASE_POS_KEY = JKeyType.DoubleKey().make("basePosKey");
+    public static final Key<Double> CAP_POS_KEY = JKeyType.DoubleKey().make("capPosKey");
 
 
     //name, keys for health
     public static final  String HEALTH = "health";
-    public static final Key<String> HEALTH_KEY = JKeyTypes.StringKey().make("healthKey");
-    public static final Key<String> HEALTH_REASON_KEY = JKeyTypes.StringKey().make("healthReasonKey");
-    public static final Key<Instant> HEALTH_TIME_KEY = JKeyTypes.TimestampKey().make("healthTimeKey");
+    public static final Key<String> HEALTH_KEY = JKeyType.StringKey().make("healthKey");
+    public static final Key<String> HEALTH_REASON_KEY = JKeyType.StringKey().make("healthReasonKey");
+    public static final Key<Instant> HEALTH_TIME_KEY = JKeyType.TimestampKey().make("healthTimeKey");
 
     //name, keys for diagnostic
     public static final  String DIAGNOSTIC = "diagnostic";
-    public static final  Key<ArrayData<Byte>> DIAGNOSTIC_KEY = JKeyTypes.ByteArrayKey().make("diagnosticBytesKey");
-    public static final  Key<Instant> DIAGNOSTIC_TIME_KEY = JKeyTypes.TimestampKey().make("diagnosticTimeKey");
+    public static final  Key<ArrayData<Byte>> DIAGNOSTIC_KEY = JKeyType.ByteArrayKey().make("diagnosticBytesKey");
+    public static final  Key<Instant> DIAGNOSTIC_TIME_KEY = JKeyType.TimestampKey().make("diagnosticTimeKey");
 
     //name, keys for demand positions
     public static final String DEMAND_POSITIONS = "encdemandpositions";
-    public static final Key<Double> DEMAND_POSITIONS_BASE_KEY = JKeyTypes.DoubleKey().make("ecs.base");
-    public static final Key<Double> DEMAND_POSITIONS_CAP_KEY = JKeyTypes.DoubleKey().make("ecs.cap");
+    public static final Key<Double> DEMAND_POSITIONS_BASE_KEY = JKeyType.DoubleKey().make("ecs.base");
+    public static final Key<Double> DEMAND_POSITIONS_CAP_KEY = JKeyType.DoubleKey().make("ecs.cap");
 
 
     //keys to hold timestamps. this will hold timestamp when was the event processed by any component.
     //this is the time when ENC Subsystem generated/sampled given information
-    public static final Key<Instant> SUBSYSTEM_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("subsystemTimestampKey");
+    public static final Key<Instant> SUBSYSTEM_TIMESTAMP_KEY = JKeyType.TimestampKey().make("subsystemTimestampKey");
     //this is the time when ENC HCD processed any event
-    public static final Key<Instant> HCD_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("hcdTimestampKey");
+    public static final Key<Instant> HCD_TIMESTAMP_KEY = JKeyType.TimestampKey().make("hcdTimestampKey");
     //this is the time when Assembly processed any event
-    public static final Key<Instant> ASSEMBLY_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("assemblyTimestampKey");
+    public static final Key<Instant> ASSEMBLY_TIMESTAMP_KEY = JKeyType.TimestampKey().make("assemblyTimestampKey");
     //this is the time when client processed any event
-    public static final Key<Instant> CLIENT_TIMESTAMP_KEY = JKeyTypes.TimestampKey().make("clientTimestampKey");
+    public static final Key<Instant> CLIENT_TIMESTAMP_KEY = JKeyType.TimestampKey().make("clientTimestampKey");
 
 
     //Unique keys for timers
@@ -79,27 +75,27 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
     private static final Object TIMER_KEY_DIAGNOSTIC = new Object();
 
 
-    private JLoggerFactory loggerFactory;
+    ;
     private CurrentStatePublisher currentStatePublisher;
     private ILogger log;
     private TimerScheduler<StatePublisherMessage> timer;
-    private ComponentInfo componentInfo;
+    JCswContext cswCtx;
 
     private HCDState hcdState;
 
 
-    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, HCDState hcdState) {
+    private JStatePublisherActor(TimerScheduler<StatePublisherMessage> timer, JCswContext cswCtx, HCDState hcdState) {
         this.timer = timer;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(this.getClass());
+        this.cswCtx = cswCtx;
+        this.log = cswCtx.loggerFactory().getLogger(JStatePublisherActor.class);
         this.currentStatePublisher = currentStatePublisher;
         this.hcdState = hcdState;
-        this.componentInfo = componentInfo;
+
     }
 
-    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(ComponentInfo componentInfo, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, HCDState hcdState) {
+    public static <StatePublisherMessage> Behavior<StatePublisherMessage> behavior(JCswContext cswCtx, HCDState hcdState) {
         return Behaviors.withTimers(timers -> {
-            return (MutableBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, componentInfo, currentStatePublisher, loggerFactory, hcdState);
+            return (AbstractBehavior<StatePublisherMessage>) new JStatePublisherActor((TimerScheduler<JStatePublisherActor.StatePublisherMessage>) timers, cswCtx, hcdState);
         });
     }
 
@@ -109,7 +105,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
      * @return
      */
     @Override
-    public Behaviors.Receive<StatePublisherMessage> createReceive() {
+    public Receive<StatePublisherMessage> createReceive() {
 
         ReceiveBuilder<StatePublisherMessage> builder = receiveBuilder()
                 .onMessage(StartMessage.class,
@@ -271,7 +267,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
      * publish Hcd lifecycle and operational state as per timer frequency.
      */
     private void publishHcdState() {
-        CurrentState currentState = new CurrentState(componentInfo.prefix().prefix(), new StateName(HCD_STATE))
+        CurrentState currentState = new CurrentState(this.cswCtx.componentInfo().prefix(), new StateName(HCD_STATE))
                 .madd(LIFECYCLE_KEY.set(hcdState.getLifecycleState().name()),OPERATIONAL_KEY.set(hcdState.getOperationalState().name()));
         currentStatePublisher.publish(currentState);
     }
@@ -283,14 +279,14 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         // example parameters for a current state
         CurrentPosition currentPosition = SimpleSimulator.getInstance().getCurrentPosition();
 
-        Parameter<Double> basePosParam = BASE_POS_KEY.set(currentPosition.getBase()).withUnits(degree);
-        Parameter<Double> capPosParam = CAP_POS_KEY.set(currentPosition.getCap()).withUnits(degree);
+        Parameter<Double> basePosParam = BASE_POS_KEY.set(currentPosition.getBase()).withUnits(JUnits.degree);
+        Parameter<Double> capPosParam = CAP_POS_KEY.set(currentPosition.getCap()).withUnits(JUnits.degree);
         //this is the time when subsystem published current position.
         Parameter<Instant> ecsSubsystemTimestampParam = SUBSYSTEM_TIMESTAMP_KEY.set(Instant.ofEpochMilli(currentPosition.getTime()));
         //this is the time when ENC HCD processed current position
         Parameter<Instant> encHcdTimestampParam = HCD_TIMESTAMP_KEY.set(Instant.now());
 
-        CurrentState currentStatePosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(CURRENT_POSITION))
+        CurrentState currentStatePosition = new CurrentState(this.cswCtx.componentInfo().prefix(), new StateName(CURRENT_POSITION))
                 .add(basePosParam)
                 .add(capPosParam)
                 .add(ecsSubsystemTimestampParam)
@@ -309,7 +305,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         Parameter<String> healthReasonParam = HEALTH_REASON_KEY.set(health.getReason());
         Parameter<Instant> healthTimeParam = HEALTH_TIME_KEY.set(Instant.ofEpochMilli(health.getTime()));
 
-        CurrentState currentStateHealth = new CurrentState(componentInfo.prefix().prefix(), new StateName(HEALTH))
+        CurrentState currentStateHealth = new CurrentState(this.cswCtx.componentInfo().prefix(), new StateName(HEALTH))
                 .add(healthParam)
                 .add(healthReasonParam)
                 .add(healthTimeParam);
@@ -326,7 +322,7 @@ public class JStatePublisherActor extends MutableBehavior<JStatePublisherActor.S
         Parameter<ArrayData<Byte>> diagnosticByteParam = DIAGNOSTIC_KEY.set(ArrayData.fromJavaArray(diagnostic.getDummyDiagnostic()));
         Parameter<Instant> diagnosticTimeParam = DIAGNOSTIC_TIME_KEY.set(Instant.ofEpochMilli(diagnostic.getTime()));
 
-        CurrentState currentStateDiagnostic = new CurrentState(componentInfo.prefix().prefix(), new StateName(DIAGNOSTIC))
+        CurrentState currentStateDiagnostic = new CurrentState(this.cswCtx.componentInfo().prefix(), new StateName(DIAGNOSTIC))
                 .add(diagnosticByteParam)
                 .add(diagnosticTimeParam);
 

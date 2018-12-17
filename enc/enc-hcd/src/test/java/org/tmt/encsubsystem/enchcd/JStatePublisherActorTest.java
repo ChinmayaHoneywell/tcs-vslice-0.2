@@ -2,14 +2,15 @@ package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.typed.ActorRef;
+import csw.command.client.models.framework.ComponentInfo;
+import csw.command.client.models.framework.LocationServiceUsage;
 import csw.framework.CurrentStatePublisher;
-import csw.messages.framework.ComponentInfo;
-import csw.messages.framework.LocationServiceUsage;
-import csw.messages.location.ComponentType;
-import csw.messages.location.Connection;
-import csw.messages.params.models.Prefix;
-import csw.messages.params.states.CurrentState;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.location.api.models.ComponentType;
+import csw.location.api.models.Connection;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.core.models.Prefix;
+import csw.params.core.states.CurrentState;
 import org.junit.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -57,7 +58,8 @@ public class JStatePublisherActorTest {
 
     @Mock
     CurrentStatePublisher currentStatePublisher;
-
+    @Mock
+    JCswContext cswCtx;
     @Mock
     ComponentType type;
 
@@ -80,7 +82,7 @@ public class JStatePublisherActorTest {
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         HCDState hcdState = new HCDState(HCDState.LifecycleState.Initialized, HCDState.OperationalState.Idle);
-        statePublisherActor = testKit.spawn(JStatePublisherActor.behavior(componentInfo,currentStatePublisher, jLoggerFactory, hcdState));
+        statePublisherActor = testKit.spawn(JStatePublisherActor.behavior(cswCtx,hcdState));
     }
 
     @After

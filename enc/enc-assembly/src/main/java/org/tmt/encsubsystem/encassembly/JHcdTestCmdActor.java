@@ -2,18 +2,14 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
+import akka.actor.typed.javadsl.*;
 import akka.util.Timeout;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.core.models.Prefix;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Optional;
@@ -23,30 +19,30 @@ import java.util.concurrent.TimeUnit;
  * This is a CommandWorkerActor for HcdTestCommand.
  * HcdTestCommand is a dummy command created for generating performance measures
  */
-public class JHcdTestCmdActor extends MutableBehavior<ControlCommand> {
+public class JHcdTestCmdActor extends AbstractBehavior<ControlCommand> {
     private Prefix templateHcdPrefix = new Prefix("tcs.encA");
-    private ActorContext<ControlCommand> actorContext;
-    private JLoggerFactory loggerFactory;
+    private ActorContext<ControlCommand> actorContext;JCswContext cswCtx;
+    ;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> hcdCommandService;
+
+    private Optional<ICommandService> hcdCommandService;
     private ActorRef<JMonitorActor.MonitorMessage> monitorActor;
 
 
-    private JHcdTestCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+    private JHcdTestCmdActor(ActorContext<ControlCommand> actorContext, JCswContext cswCtx,  Optional<ICommandService> hcdCommandService,   ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(JHcdTestCmdActor.class);
+
         this.hcdCommandService = hcdCommandService;
         this.monitorActor = monitorActor;
 
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(JCswContext cswCtx, Optional<ICommandService> hcdCommandService, ActorRef<JMonitorActor.MonitorMessage> monitorActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<ControlCommand>) new JHcdTestCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
-                    loggerFactory, monitorActor);
+            return (AbstractBehavior<ControlCommand>) new JHcdTestCmdActor((ActorContext<csw.params.commands.ControlCommand>) ctx, cswCtx,  hcdCommandService,
+                     monitorActor);
         });
     }
 
@@ -55,7 +51,7 @@ public class JHcdTestCmdActor extends MutableBehavior<ControlCommand> {
      * @return
      */
     @Override
-    public Behaviors.Receive<ControlCommand> createReceive() {
+    public Receive<ControlCommand> createReceive() {
 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
@@ -76,15 +72,15 @@ public class JHcdTestCmdActor extends MutableBehavior<ControlCommand> {
         if (hcdCommandService.isPresent()) {
             log.debug(() -> "Submitting HcdTestCommand command from assembly to hcd");
             hcdCommandService.get()
-                    .submitAndSubscribe(
+                    .submit(
                             controlCommand,
                             Timeout.durationToTimeout(FiniteDuration.apply(5, TimeUnit.SECONDS))
                     ).thenAccept(response -> {
                 log.debug(() -> "received response from hcd");
-                commandResponseManager.addOrUpdateCommand(controlCommand.runId(), response);
+                this.cswCtx.commandResponseManager().addOrUpdateCommand( response);
                     });
         } else {
-            commandResponseManager.addOrUpdateCommand(controlCommand.runId(), new CommandResponse.Error(controlCommand.runId(), "Can't locate HCD"));
+            this.cswCtx.commandResponseManager().addOrUpdateCommand( new CommandResponse.Error(controlCommand.runId(), "Can't locate HCD"));
 
         }
     }

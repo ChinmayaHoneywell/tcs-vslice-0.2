@@ -3,10 +3,11 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.services.command.CommandResponseManager;
-import csw.services.config.api.javadsl.IConfigClientService;
-import csw.services.config.api.models.ConfigData;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.client.CommandResponseManager;
+import csw.config.api.javadsl.IConfigClientService;
+import csw.config.api.models.ConfigData;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -30,7 +31,8 @@ public class JLifecycleActorTest {
 
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
-
+    @Mock
+    JCswContext cswCtx;
     @Mock
     CommandResponseManager commandResponseManager;
     @Mock
@@ -52,7 +54,7 @@ public class JLifecycleActorTest {
 
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         statePublisherMessageTestProbe = testKit.createTestProbe();
-        lifecycleCmdActor = testKit.spawn(JLifecycleActor.behavior(commandResponseManager, statePublisherMessageTestProbe.getRef(), configClientApi, jLoggerFactory));
+        lifecycleCmdActor = testKit.spawn(JLifecycleActor.behavior(cswCtx, statePublisherMessageTestProbe.getRef()));
 
     }
 

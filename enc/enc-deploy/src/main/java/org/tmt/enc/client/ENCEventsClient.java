@@ -2,22 +2,24 @@ package org.tmt.enc.client;
 
 import akka.Done;
 import akka.actor.ActorSystem;
-import csw.messages.events.Event;
-import csw.messages.events.EventKey;
-import csw.messages.events.EventName;
-import csw.messages.params.generics.Parameter;
-import csw.messages.params.models.Prefix;
-import csw.services.event.EventServiceFactory;
-import csw.services.event.api.javadsl.IEventService;
-import csw.services.event.api.javadsl.IEventSubscriber;
-import csw.services.event.api.javadsl.IEventSubscription;
-import csw.services.location.commons.ClusterAwareSettings;
-import csw.services.location.javadsl.ILocationService;
-import csw.services.location.javadsl.JLocationServiceFactory;
-import csw.services.logging.internal.LoggingSystem;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
-import csw.services.logging.javadsl.JLoggingSystemFactory;
+import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
+import csw.event.api.javadsl.IEventService;
+import csw.event.api.javadsl.IEventSubscriber;
+import csw.event.api.javadsl.IEventSubscription;
+import csw.event.client.EventServiceFactory;
+import csw.location.api.javadsl.ILocationService;
+import csw.location.client.javadsl.JHttpLocationServiceFactory;
+import csw.location.server.commons.ClusterAwareSettings;
+import csw.logging.internal.LoggingSystem;
+import csw.logging.javadsl.ILogger;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.logging.javadsl.JLoggingSystemFactory;
+import csw.params.core.generics.Parameter;
+import csw.params.core.models.Prefix;
+import csw.params.events.Event;
+import csw.params.events.EventKey;
+import csw.params.events.EventName;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -210,7 +212,8 @@ public class ENCEventsClient {
 
         public static void main(String[] args) throws Exception {
             ActorSystem system = ClusterAwareSettings.system();
-            ILocationService locationService = JLocationServiceFactory.make();
+            Materializer mat = ActorMaterializer.create(system);
+            ILocationService locationService = JHttpLocationServiceFactory.makeLocalClient(system, mat);
 
             //Optional<ObsId> maybeObsId = Optional.empty();
             String hostName = InetAddress.getLocalHost().getHostName();

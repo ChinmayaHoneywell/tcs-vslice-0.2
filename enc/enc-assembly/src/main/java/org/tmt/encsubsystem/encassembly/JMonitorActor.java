@@ -2,16 +2,13 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.params.generics.Parameter;
-import csw.messages.params.models.ArrayData;
-import csw.messages.params.states.CurrentState;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
+import csw.command.api.javadsl.ICommandService;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.core.generics.Parameter;
+import csw.params.core.models.ArrayData;
+import csw.params.core.states.CurrentState;
 import org.tmt.encsubsystem.encassembly.model.AssemblyState;
 import org.tmt.encsubsystem.encassembly.model.HCDState;
 
@@ -24,9 +21,9 @@ import static org.tmt.encsubsystem.encassembly.Constants.*;
  * Monitor actor track hcd connection, events coming from hcd.
  * based on provided data it determined assembly state and health
  */
-public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage> {
+public class JMonitorActor extends AbstractBehavior<JMonitorActor.MonitorMessage> {
     private ActorContext<MonitorMessage> actorContext;
-    private JLoggerFactory loggerFactory;
+    JCswContext cswCtx;
     private ILogger log;
 
     ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor;
@@ -34,18 +31,18 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
     private AssemblyState assemblyState;
     private Optional<HCDState> hcdState = Optional.empty();
 
-    private JMonitorActor(ActorContext<MonitorMessage> actorContext, AssemblyState assemblyState, JLoggerFactory loggerFactory, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
+    private JMonitorActor(ActorContext<MonitorMessage> actorContext, JCswContext cswCtx, AssemblyState assemblyState, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+        this.cswCtx = cswCtx;
+        this.log = cswCtx.loggerFactory().getLogger(JMonitorActor.class);
         this.assemblyState = assemblyState;
         this.eventHandlerActor = eventHandlerActor;
 
     }
 
-    public static <MonitorMessage> Behavior<MonitorMessage> behavior(AssemblyState assemblyState, JLoggerFactory loggerFactory, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor) {
+    public static <MonitorMessage> Behavior<MonitorMessage> behavior(JCswContext cswCtx,AssemblyState assemblyState, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<MonitorMessage>) new JMonitorActor((ActorContext<JMonitorActor.MonitorMessage>) ctx, assemblyState, loggerFactory, eventHandlerActor);
+            return (AbstractBehavior<MonitorMessage>) new JMonitorActor((ActorContext<JMonitorActor.MonitorMessage>) ctx, cswCtx, assemblyState, eventHandlerActor);
         });
     }
 
@@ -55,7 +52,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
      * @return
      */
     @Override
-    public Behaviors.Receive<MonitorMessage> createReceive() {
+    public Receive<MonitorMessage> createReceive() {
 
         ReceiveBuilder<MonitorMessage> builder = receiveBuilder()
                 .onMessage(InitializedMessage.class,
@@ -96,7 +93,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
     private Behavior<MonitorMessage> handleInitializedMessage(InitializedMessage message) {
         this.assemblyState.setLifecycleState(AssemblyState.LifecycleState.Running);
         this.assemblyState.setOperationalState(AssemblyState.OperationalState.Ready);
-        return JMonitorActor.behavior(assemblyState, loggerFactory, eventHandlerActor);
+        return JMonitorActor.behavior(cswCtx,assemblyState, eventHandlerActor);
     }
 
     /**
@@ -107,7 +104,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
     private Behavior<MonitorMessage> handleUnInitializedMessage(UnInitializedMessage message) {
         this.assemblyState.setLifecycleState(AssemblyState.LifecycleState.Initialized);
         this.assemblyState.setOperationalState(AssemblyState.OperationalState.Idle);
-        return JMonitorActor.behavior(assemblyState, loggerFactory, eventHandlerActor);
+        return JMonitorActor.behavior(cswCtx,assemblyState,  eventHandlerActor);
     }
 
     /**
@@ -126,7 +123,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
             assemblyState.setOperationalState(AssemblyState.OperationalState.Faulted);
         }
         forwardToEventHandlerActor(new JEventHandlerActor.AssemblyStateMessage(assemblyState, ASSEMBLY_STATE_TIME_KEY.set(Instant.now())));
-        return JMonitorActor.behavior(assemblyState, loggerFactory, eventHandlerActor);
+        return JMonitorActor.behavior(cswCtx,assemblyState,  eventHandlerActor);
 
     }
 
@@ -137,12 +134,12 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
                 log.debug(() -> "HCD lifecycle,operational states received - "+currentState);
                 hcdState = Optional.of(getHcdState(currentState));
                 forwardToEventHandlerActor(new JEventHandlerActor.AssemblyStateMessage(DeriveAssemblyState(), ASSEMBLY_STATE_TIME_KEY.set(Instant.now())));//assembly state derivation can be scheduled using timer.
-                return JMonitorActor.behavior(assemblyState, loggerFactory, eventHandlerActor);
+                return JMonitorActor.behavior(cswCtx,assemblyState,  eventHandlerActor);
             case CURRENT_POSITION:
                 log.debug(() -> "Current position received - " + currentState);
                 //Compare Current position and demand position to determine if assembly is slewing or tracking or in position.
                 forwardToEventHandlerActor(getCurrentPosition(currentState));
-                return JMonitorActor.behavior(assemblyState, loggerFactory, eventHandlerActor);
+                return JMonitorActor.behavior(cswCtx,assemblyState,  eventHandlerActor);
             case HEALTH:
                 log.debug(() -> "Health received from HCD- " + currentState);
                 forwardToEventHandlerActor(getHealth(currentState));
@@ -154,7 +151,7 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
                 return Behaviors.same();
             default:
                 log.error("This current state is not handled");
-                return JMonitorActor.behavior(assemblyState, loggerFactory, eventHandlerActor);
+                return JMonitorActor.behavior(cswCtx,assemblyState,  eventHandlerActor);
         }
 
     }
@@ -246,9 +243,9 @@ public class JMonitorActor extends MutableBehavior<JMonitorActor.MonitorMessage>
     }
     public static final class LocationEventMessage implements MonitorMessage {
 
-        public final Optional<JCommandService> hcdCommandService;
+        public final Optional<ICommandService> hcdCommandService;
 
-        public LocationEventMessage(Optional<JCommandService> hcdCommandService) {
+        public LocationEventMessage(Optional<ICommandService> hcdCommandService) {
             this.hcdCommandService = hcdCommandService;
         }
     }

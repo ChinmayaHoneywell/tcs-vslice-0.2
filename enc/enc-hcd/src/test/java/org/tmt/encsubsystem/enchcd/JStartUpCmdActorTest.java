@@ -3,13 +3,14 @@ package org.tmt.encsubsystem.enchcd;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -53,7 +54,8 @@ public class JStartUpCmdActorTest {
 
     @Mock
     CommandResponseManager commandResponseManager;
-
+    @Mock
+    JCswContext cswCtx;
     JLoggerFactory jLoggerFactory;
     TestProbe<JStatePublisherActor.StatePublisherMessage> statePublisherMessageTestProbe;
     ActorRef<ControlCommand> startUpCmdActor;
@@ -62,7 +64,7 @@ public class JStartUpCmdActorTest {
     public void setUp() throws Exception {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         statePublisherMessageTestProbe = testKit.createTestProbe();
-        startUpCmdActor = testKit.spawn(JStartUpCmdActor.behavior(commandResponseManager, statePublisherMessageTestProbe.getRef(), jLoggerFactory));
+        startUpCmdActor = testKit.spawn(JStartUpCmdActor.behavior(cswCtx, statePublisherMessageTestProbe.getRef()));
     }
 
     @After
@@ -81,6 +83,6 @@ public class JStartUpCmdActorTest {
         startUpCmdActor.tell(startupCmd);
         //checking if statePublisher Actor received state change message
         statePublisherMessageTestProbe.expectMessage(Duration.ofSeconds(10), new JStatePublisherActor.InitializedMessage());
-        verify(commandResponseManager).addOrUpdateCommand(startupCmd.runId(), new CommandResponse.Completed(startupCmd.runId()));
+        verify(commandResponseManager).addOrUpdateCommand( new CommandResponse.Completed(startupCmd.runId()));
     }
 }

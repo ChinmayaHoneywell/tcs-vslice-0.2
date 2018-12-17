@@ -5,23 +5,21 @@ import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.*;
 import akka.stream.Materializer;
 import com.typesafe.config.Config;
+import csw.config.api.javadsl.IConfigClientService;
+import csw.config.api.models.ConfigData;
+import csw.config.client.internal.ActorRuntime;
 import csw.framework.exceptions.FailureStop;
-import csw.messages.commands.ControlCommand;
-
-import csw.services.command.CommandResponseManager;
-import csw.services.config.api.javadsl.IConfigClientService;
-import csw.services.config.api.models.ConfigData;
-import csw.services.config.client.internal.ActorRuntime;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.ControlCommand;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-//import akka.actor.typed.javadsl.MutableBehavior;
+//import akka.actor.typed.javadsl.AbstractBehavior;
 
-public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMessage> {
+public class JLifecycleActor extends AbstractBehavior<JLifecycleActor.LifecycleMessage> {
     interface LifecycleMessage {
     }
 
@@ -48,26 +46,27 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
 
 
     private ActorContext<LifecycleMessage> actorContext;
-    private JLoggerFactory loggerFactory;
+    JCswContext cswCtx;
+    ;
     //private Config assemblyConfig;
     private ILogger log;
     private IConfigClientService configClientApi;
-    private CommandResponseManager commandResponseManager;
+
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
 
 
-    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.configClientApi = configClientApi;
-        this.commandResponseManager = commandResponseManager;
+    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, JCswContext cswCtx,  ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor ) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(JLifecycleActor.class);
+        this.configClientApi = cswCtx.configClientService();
+
         this.statePublisherActor = statePublisherActor;
     }
 
-    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor, IConfigClientService configClientApi, JLoggerFactory loggerFactory) {
+    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(JCswContext cswCtx, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor ) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, statePublisherActor, configClientApi, loggerFactory);
+            return (AbstractBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, cswCtx,  statePublisherActor);
         });
     }
 
@@ -77,7 +76,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
      * @return
      */
     @Override
-    public Behaviors.Receive<LifecycleMessage> createReceive() {
+    public Receive<LifecycleMessage> createReceive() {
 
         ReceiveBuilder<LifecycleMessage> builder = receiveBuilder()
                 .onMessage(InitializeMessage.class,

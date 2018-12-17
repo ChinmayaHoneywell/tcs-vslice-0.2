@@ -3,11 +3,12 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.config.api.javadsl.IConfigClientService;
-import csw.services.config.api.models.ConfigData;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.config.api.javadsl.IConfigClientService;
+import csw.config.api.models.ConfigData;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -32,9 +33,10 @@ public class JLifecycleActorTest {
 
     @Mock
     CommandResponseManager commandResponseManager;
-
     @Mock
-    JCommandService hcdCommandService;
+    JCswContext cswCtx;
+    @Mock
+    ICommandService hcdCommandService;
 
     @Mock
     private IConfigClientService configClientApi;
@@ -59,7 +61,7 @@ public class JLifecycleActorTest {
         jLoggerFactory = new JLoggerFactory("enc-test-logger");
         commandHandlerActor = testKit.createTestProbe();
         eventHandlerActor = testKit.createTestProbe();
-        lifecycleCmdActor = testKit.spawn(JLifecycleActor.behavior(commandResponseManager, Optional.of(hcdCommandService), configClientApi, commandHandlerActor.getRef(), eventHandlerActor.getRef(), jLoggerFactory));
+        lifecycleCmdActor = testKit.spawn(JLifecycleActor.behavior(cswCtx, Optional.of(hcdCommandService), commandHandlerActor.getRef(), eventHandlerActor.getRef()));
     }
 
     @After

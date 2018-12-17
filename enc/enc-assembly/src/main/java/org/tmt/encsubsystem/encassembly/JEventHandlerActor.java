@@ -4,26 +4,22 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.Cancellable;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
+import akka.actor.typed.javadsl.*;
+import csw.event.api.javadsl.IEventService;
+import csw.event.api.javadsl.IEventSubscriber;
+import csw.event.api.javadsl.IEventSubscription;
 import csw.framework.CurrentStatePublisher;
-import csw.messages.events.Event;
-import csw.messages.events.EventKey;
-import csw.messages.events.EventName;
-import csw.messages.events.SystemEvent;
-import csw.messages.framework.ComponentInfo;
-import csw.messages.params.generics.Parameter;
-import csw.messages.params.models.ArrayData;
-import csw.messages.params.models.Prefix;
-import csw.messages.params.states.CurrentState;
-import csw.messages.params.states.StateName;
-import csw.services.event.api.javadsl.IEventService;
-import csw.services.event.api.javadsl.IEventSubscriber;
-import csw.services.event.api.javadsl.IEventSubscription;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.core.generics.Parameter;
+import csw.params.core.models.ArrayData;
+import csw.params.core.models.Prefix;
+import csw.params.core.states.CurrentState;
+import csw.params.core.states.StateName;
+import csw.params.events.Event;
+import csw.params.events.EventKey;
+import csw.params.events.EventName;
+import csw.params.events.SystemEvent;
 import org.tmt.encsubsystem.encassembly.model.AssemblyState;
 
 import java.time.Duration;
@@ -38,13 +34,13 @@ import static org.tmt.encsubsystem.encassembly.Constants.*;
  * it takes data from other actors like monitor actor and publish event using event service.
  * it also subscribes to events from other assemblies and provide data to other actors.
  */
-public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.EventMessage> {
+public class JEventHandlerActor extends AbstractBehavior<JEventHandlerActor.EventMessage> {
 
-    private ActorContext<EventMessage> actorContext;
-    private ComponentInfo componentInfo;
+    private ActorContext<EventMessage> actorContext;JCswContext cswCtx;
+    ;
     private IEventService eventService;
     private CurrentStatePublisher currentStatePublisher;
-    private JLoggerFactory loggerFactory;
+
     private ILogger log;
     private IEventSubscription positionDemandsSubscription;
     private Optional<Cancellable> cancellable = Optional.empty();
@@ -55,19 +51,18 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
     private AssemblyStateMessage assemblyState;
 
 
-    private JEventHandlerActor(ActorContext<EventMessage> actorContext, ComponentInfo componentInfo, IEventService eventService, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, AssemblyState assemblyState) {
-        this.actorContext = actorContext;
-        this.componentInfo = componentInfo;
-        this.eventService = eventService;
-        this.currentStatePublisher = currentStatePublisher;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());// how expensive is this operation?
+    private JEventHandlerActor(ActorContext<EventMessage> actorContext, JCswContext cswCtx, AssemblyState assemblyState) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+        this.eventService = cswCtx.eventService();
+        this.currentStatePublisher = cswCtx.currentStatePublisher();
+        this.log = cswCtx.loggerFactory().getLogger(JEventHandlerActor.class);// how expensive is this operation?
         this.assemblyState = new AssemblyStateMessage(assemblyState, ASSEMBLY_STATE_TIME_KEY.set(Instant.now()));
     }
 
-    public static <EventMessage> Behavior<EventMessage> behavior(ComponentInfo componentInfo, IEventService eventService, CurrentStatePublisher currentStatePublisher, JLoggerFactory loggerFactory, AssemblyState assemblyState) {
+    public static <EventMessage> Behavior<EventMessage> behavior(JCswContext cswCtx, AssemblyState assemblyState) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<EventMessage>) new JEventHandlerActor((ActorContext<JEventHandlerActor.EventMessage>) ctx, componentInfo, eventService, currentStatePublisher, loggerFactory, assemblyState);
+            return (AbstractBehavior<EventMessage>) new JEventHandlerActor((ActorContext<JEventHandlerActor.EventMessage>) ctx, cswCtx, assemblyState);
         });
     }
 
@@ -77,7 +72,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
      * @return
      */
     @Override
-    public Behaviors.Receive<EventMessage> createReceive() {
+    public Receive<EventMessage> createReceive() {
 
         ReceiveBuilder<EventMessage> builder = receiveBuilder()
                 .onMessage(CurrentPositionMessage.class,
@@ -153,7 +148,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         Parameter capParam = event.paramSet().find(x -> x.keyName().equals(DEMAND_POSITIONS_CAP_KEY)).get();
         Parameter<Instant> clientTimeParam = CLIENT_TIMESTAMP_KEY.set(event.eventTime().time());
         Parameter<Instant> assemblyTimeParam = ASSEMBLY_TIMESTAMP_KEY.set(Instant.now());
-        CurrentState demandPosition = new CurrentState(componentInfo.prefix().prefix(), new StateName(DEMAND_POSITIONS))
+        CurrentState demandPosition = new CurrentState(this.cswCtx.componentInfo().prefix(), new StateName(DEMAND_POSITIONS))
                 .add(baseParam)
                 .add(capParam)
                 .add(clientTimeParam)
@@ -167,7 +162,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
      * @param message
      */
     private void publishCurrentPosition(CurrentPositionMessage message) {
-        SystemEvent currentPositionEvent = new SystemEvent(componentInfo.prefix(), new EventName(Constants.CURRENT_POSITION))
+        SystemEvent currentPositionEvent = new SystemEvent(this.cswCtx.componentInfo().prefix(), new EventName(Constants.CURRENT_POSITION))
                 .madd(message.basePosParam, message.capPosParam, message.subsystemTimestamp, message.hcdTimestamp, message.assemblyTimestamp);
         eventService.defaultPublisher().publish(currentPositionEvent);
     }
@@ -177,7 +172,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
      * @param message
      */
     private void publishHealth(HealthMessage message) {
-        SystemEvent healthEvent = new SystemEvent(componentInfo.prefix(), new EventName(Constants.HEALTH))
+        SystemEvent healthEvent = new SystemEvent(this.cswCtx.componentInfo().prefix(), new EventName(Constants.HEALTH))
                 .madd(message.healthParam, message.assemblyTimestamp, message.healthReasonParam, message.healthTimeParam);
         eventService.defaultPublisher().publish(healthEvent);
     }
@@ -187,7 +182,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
      * @param message
      */
     private void publishDiagnostic(DiagnosticMessage message) {
-        SystemEvent diagnosticEvent = new SystemEvent(componentInfo.prefix(), new EventName(Constants.DIAGNOSTIC))
+        SystemEvent diagnosticEvent = new SystemEvent(this.cswCtx.componentInfo().prefix(), new EventName(Constants.DIAGNOSTIC))
                 .madd(message.diagnosticByteParam, message.diagnosticTimeParam);
         eventService.defaultPublisher().publish(diagnosticEvent);
     }
@@ -198,7 +193,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
      * @return
      */
     private Cancellable startPublishingAssemblyState(){
-        Event baseEvent = new SystemEvent(componentInfo.prefix(), new EventName(Constants.ASSEMBLY_STATE));
+        Event baseEvent = new SystemEvent(this.cswCtx.componentInfo().prefix(), new EventName(Constants.ASSEMBLY_STATE));
         return eventService.defaultPublisher().publish(()->
              ((SystemEvent) baseEvent)
                      .add(LIFECYCLE_KEY.set(this.assemblyState.assemblyState.getLifecycleState().name()))
@@ -219,7 +214,7 @@ public class JEventHandlerActor extends MutableBehavior<JEventHandlerActor.Event
         public final AssemblyState assemblyState;
         public final Parameter<Instant> time;
 
-        public  AssemblyStateMessage(AssemblyState assemblyState, Parameter<Instant>  time){
+        public  AssemblyStateMessage(AssemblyState assemblyState, Parameter<Instant> time){
             this.assemblyState = assemblyState;
             this.time = time;
         }

@@ -3,22 +3,18 @@ package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
 
 /**
  * This is a typed mutable actor class
  * This class acts as a router for commands it routes each command to individual
  * CommandWorkerActor,
  */
-public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.CommandMessage> {
+public class JCommandHandlerActor extends AbstractBehavior<JCommandHandlerActor.CommandMessage> {
 
 
     // add messages here
@@ -50,9 +46,9 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     }
 
     public static final class ImmediateResponseMessage implements CommandMessage {
-        public final CommandResponse commandResponse;
+        public final CommandResponse.SubmitResponse commandResponse;
 
-        public ImmediateResponseMessage(CommandResponse commandResponse) {
+        public ImmediateResponseMessage(CommandResponse.SubmitResponse commandResponse) {
             this.commandResponse = commandResponse;
         }
 
@@ -69,26 +65,28 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
 
 
     private ActorContext<CommandMessage> actorContext;
-    private JLoggerFactory loggerFactory;
+    JCswContext cswCtx;
+    ;
     private ILogger log;
 
-    private CommandResponseManager commandResponseManager;
+
     ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor;
 
 
-    private JCommandHandlerActor(ActorContext<CommandMessage> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+    private JCommandHandlerActor(ActorContext<CommandMessage> actorContext, JCswContext cswCtx,    ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
+        this.cswCtx = cswCtx;
 
-        this.commandResponseManager = commandResponseManager;
+          this.log = cswCtx.loggerFactory().getLogger(JCommandHandlerActor.class);
+
+
         this.statePublisherActor = statePublisherActor;
 
     }
 
-    public static <CommandMessage> Behavior<CommandMessage> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory, ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
+    public static <CommandMessage> Behavior<CommandMessage> behavior(JCswContext cswCtx,   ActorRef<JStatePublisherActor.StatePublisherMessage> statePublisherActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, commandResponseManager, loggerFactory, statePublisherActor);
+            return (AbstractBehavior<CommandMessage>) new JCommandHandlerActor((ActorContext<JCommandHandlerActor.CommandMessage>) ctx, cswCtx,   statePublisherActor);
         });
     }
 
@@ -98,7 +96,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
      * @return
      */
     @Override
-    public Behaviors.Receive<CommandMessage> createReceive() {
+    public Receive<CommandMessage> createReceive() {
 
         ReceiveBuilder<CommandMessage> builder = receiveBuilder()
                 .onMessage(SubmitCommandMessage.class,
@@ -153,7 +151,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     private void handleHcdTestCommand(ControlCommand controlCommand) {
         log.debug(() -> "handleHcdTestCommand = " + controlCommand);
         ActorRef<ControlCommand> hcdTestCmdActor =
-                actorContext.spawnAnonymous(JHcdTestCmdActor.behavior(commandResponseManager, loggerFactory));
+                actorContext.spawnAnonymous(JHcdTestCmdActor.behavior(cswCtx ));
         hcdTestCmdActor.tell(controlCommand);
     }
     /**
@@ -163,7 +161,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     private void handleStartupCommand(ControlCommand controlCommand) {
         log.debug(() -> "handle Startup Command = " + controlCommand);
         ActorRef<ControlCommand> startupCmdActor =
-                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
+                actorContext.spawnAnonymous(JStartUpCmdActor.behavior(cswCtx, statePublisherActor ));
         startupCmdActor.tell(controlCommand);
     }
     /**
@@ -174,7 +172,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
 
         log.debug(() -> "handle shutdown Command = " + controlCommand);
         ActorRef<ControlCommand> shutdownCmdActor =
-                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(commandResponseManager, statePublisherActor, loggerFactory));
+                actorContext.spawnAnonymous(JShutdownCmdActor.behavior(cswCtx, statePublisherActor ));
 
         shutdownCmdActor.tell(controlCommand);
     }
@@ -185,7 +183,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     private void handleFastMoveCommand(ControlCommand controlCommand) {
         log.debug(() -> "HCD handling fastMove command = " + controlCommand);
         ActorRef<ControlCommand> fastMoveCmdActor =
-                actorContext.spawnAnonymous(JFastMoveCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
+                actorContext.spawnAnonymous(JFastMoveCmdActor.behavior(cswCtx,  statePublisherActor));
         fastMoveCmdActor.tell(controlCommand);
 
 
@@ -198,7 +196,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     private void handleTrackOffCommand(ControlCommand controlCommand) {
         log.debug(() -> "HCD handling trackOff command = " + controlCommand);
         ActorRef<ControlCommand> trackOffCmdActor =
-                actorContext.spawnAnonymous(JTrackOffCmdActor.behavior(commandResponseManager, loggerFactory));
+                actorContext.spawnAnonymous(JTrackOffCmdActor.behavior(cswCtx ));
         trackOffCmdActor.tell(controlCommand);
     }
     /**
@@ -208,7 +206,7 @@ public class JCommandHandlerActor extends MutableBehavior<JCommandHandlerActor.C
     private void handleFollowCommand(ImmediateCommandMessage message) {
         log.debug(() -> "HCD handling follow command = " + message.controlCommand);
         ActorRef<JFollowCmdActor.FollowMessage> followCmdActor =
-                actorContext.spawnAnonymous(JFollowCmdActor.behavior(commandResponseManager, loggerFactory, statePublisherActor));
+                actorContext.spawnAnonymous(JFollowCmdActor.behavior(cswCtx,  statePublisherActor));
         followCmdActor.tell(new JFollowCmdActor.FollowCommandMessage(message.controlCommand, message.replyTo));
     }
 

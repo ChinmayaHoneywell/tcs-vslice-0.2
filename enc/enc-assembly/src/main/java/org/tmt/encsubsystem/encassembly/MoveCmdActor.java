@@ -1,24 +1,19 @@
 package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
+import akka.actor.typed.javadsl.*;
 import akka.util.Timeout;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.params.generics.Parameter;
-import csw.messages.params.models.Id;
-import csw.messages.params.models.ObsId;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandName;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.generics.Parameter;
+import csw.params.core.models.Id;
+import csw.params.core.models.ObsId;
+import csw.params.core.models.Prefix;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -27,33 +22,33 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 
-public class MoveCmdActor extends MutableBehavior<ControlCommand> {
+public class MoveCmdActor extends AbstractBehavior<ControlCommand> {
 
 
     // Add messages here
     // No sealed trait/interface or messages for this actor.  Always accepts the Submit command message.
 
 
-    private ActorContext<ControlCommand> actorContext;
-    private JLoggerFactory loggerFactory;
+    private ActorContext<ControlCommand> actorContext;JCswContext cswCtx;
+    ;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> hcdCommandService;
+
+    private Optional<ICommandService> hcdCommandService;
 
 
-    private MoveCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+    private MoveCmdActor(ActorContext<ControlCommand> actorContext, JCswContext cswCtx, Optional<ICommandService> hcdCommandService ) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(MoveCmdActor.class);
+
         this.hcdCommandService = hcdCommandService;
 
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, JLoggerFactory loggerFactory) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(JCswContext cswCtx, Optional<ICommandService> hcdCommandService ) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<ControlCommand>) new MoveCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, hcdCommandService,
-                    loggerFactory);
+            return (AbstractBehavior<ControlCommand>) new MoveCmdActor((ActorContext<csw.params.commands.ControlCommand>) ctx, cswCtx,  hcdCommandService
+                    );
         });
     }
 
@@ -63,7 +58,7 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
      * @return
      */
     @Override
-    public Behaviors.Receive<ControlCommand> createReceive() {
+    public Receive<ControlCommand> createReceive() {
 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
@@ -85,16 +80,16 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
         Parameter mode = message.paramSet().find(x -> x.keyName().equals("mode")).get();
         Parameter timeDuration = message.paramSet().find(x -> x.keyName().equals("timeDuration")).get();
 
-        CompletableFuture<CommandResponse> moveFuture = move(message.maybeObsId(), operation, baseParam, capParam, mode, timeDuration);
+        CompletableFuture<CommandResponse.SubmitResponse> moveFuture = move(message.maybeObsId(), operation, baseParam, capParam, mode, timeDuration);
 
         moveFuture.thenAccept((response) -> {
 
             log.debug(() -> "response = " + response);
             log.debug(() -> "runId = " + message.runId());
 
-            commandResponseManager.addSubCommand(message.runId(), response.runId());
+            cswCtx.commandResponseManager().addSubCommand(message.runId(), response.runId());
 
-            commandResponseManager.updateSubCommand(response.runId(), response);
+            cswCtx.commandResponseManager().updateSubCommand(response);
 
             log.debug(() -> "move command message handled");
 
@@ -106,7 +101,7 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
 
     private Prefix templateHcdPrefix = new Prefix("tcs.encA");
 
-    CompletableFuture<CommandResponse> move(Option<ObsId> obsId,
+    CompletableFuture<CommandResponse.SubmitResponse> move(Option<ObsId> obsId,
                                             Parameter operation,
                                             Parameter baseParam,
                                             Parameter capParam,
@@ -124,8 +119,8 @@ public class MoveCmdActor extends MutableBehavior<ControlCommand> {
                         .add(operation);
 
 
-                CompletableFuture<CommandResponse> commandResponse = hcdCommandService.get()
-                        .submitAndSubscribe(
+                CompletableFuture<CommandResponse.SubmitResponse> commandResponse = hcdCommandService.get()
+                        .submit(
                                 fastMoveSetupCmd,
                                 Timeout.durationToTimeout(FiniteDuration.apply(5, TimeUnit.SECONDS))
                         );

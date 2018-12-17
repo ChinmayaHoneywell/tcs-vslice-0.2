@@ -1,3 +1,13 @@
+lazy val aggregatedProjects: Seq[ProjectReference] = Seq(
+  `enc-assembly`,
+  `enc-hcd`,
+  `enc-deploy`
+)
+
+lazy val `enc` = project
+  .in(file("."))
+  .aggregate(aggregatedProjects: _*)
+
 lazy val `enc-assembly` = project
   .settings(
     libraryDependencies ++= Dependencies.EncAssembly

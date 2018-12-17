@@ -4,10 +4,7 @@ object Dependencies {
 
   val EncAssembly = Seq(
     CSW.`csw-framework`,
-    CSW.`csw-command`,
-    CSW.`csw-location`,
-    CSW.`csw-messages`,
-    CSW.`csw-logging`,
+    CSW.`csw-testkit` % Test,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test,
@@ -18,10 +15,7 @@ object Dependencies {
 
   val EncHcd = Seq(
     CSW.`csw-framework`,
-    CSW.`csw-command`,
-    CSW.`csw-location`,
-    CSW.`csw-messages`,
-    CSW.`csw-logging`,
+    CSW.`csw-testkit` % Test,
     Libs.`scalatest` % Test,
     Libs.`junit` % Test,
     Libs.`junit-interface` % Test,
@@ -29,6 +23,7 @@ object Dependencies {
   )
 
   val EncDeploy = Seq(
-    CSW.`csw-framework`
+    CSW.`csw-framework`,
+    CSW.`csw-testkit` % Test
   )
 }

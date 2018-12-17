@@ -1,41 +1,37 @@
 package org.tmt.encsubsystem.enchcd;
 
 import akka.actor.typed.Behavior;
-import akka.actor.typed.javadsl.ActorContext;
-import akka.actor.typed.javadsl.Behaviors;
-import akka.actor.typed.javadsl.MutableBehavior;
-import akka.actor.typed.javadsl.ReceiveBuilder;
-import csw.messages.commands.CommandResponse;
-import csw.messages.commands.ControlCommand;
-import csw.services.command.CommandResponseManager;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import akka.actor.typed.javadsl.*;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandResponse;
+import csw.params.commands.ControlCommand;
 
-public class JTrackOffCmdActor extends MutableBehavior<ControlCommand> {
+public class JTrackOffCmdActor extends AbstractBehavior<ControlCommand> {
 
 
     // Add messages here
     // No sealed trait/interface or messages for this actor.  Always accepts the Submit command message.
 
 
-    private ActorContext<ControlCommand> actorContext;
-    private JLoggerFactory loggerFactory;
+    private ActorContext<ControlCommand> actorContext;JCswContext cswCtx;
+    ;
     private ILogger log;
-    private CommandResponseManager commandResponseManager;
 
 
-    private JTrackOffCmdActor(ActorContext<ControlCommand> actorContext, CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.commandResponseManager = commandResponseManager;
+
+    private JTrackOffCmdActor(ActorContext<ControlCommand> actorContext, JCswContext cswCtx) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+
+          this.log = cswCtx.loggerFactory().getLogger(JTrackOffCmdActor.class);
+
 
 
     }
 
-    public static <ControlCommand> Behavior<ControlCommand> behavior(CommandResponseManager commandResponseManager, JLoggerFactory loggerFactory) {
+    public static <ControlCommand> Behavior<ControlCommand> behavior(JCswContext cswCtx ) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<ControlCommand>) new JTrackOffCmdActor((ActorContext<csw.messages.commands.ControlCommand>) ctx, commandResponseManager, loggerFactory);
+            return (AbstractBehavior<ControlCommand>) new JTrackOffCmdActor((ActorContext<csw.params.commands.ControlCommand>) ctx, cswCtx );
         });
     }
 
@@ -45,7 +41,7 @@ public class JTrackOffCmdActor extends MutableBehavior<ControlCommand> {
      * @return
      */
     @Override
-    public Behaviors.Receive<ControlCommand> createReceive() {
+    public Receive<ControlCommand> createReceive() {
 
         ReceiveBuilder<ControlCommand> builder = receiveBuilder()
                 .onMessage(ControlCommand.class,
@@ -68,7 +64,7 @@ public class JTrackOffCmdActor extends MutableBehavior<ControlCommand> {
             Thread.sleep(500);
             //Serialize command data, submit to subsystem using ethernet ip connection
             log.debug(() -> "Got response from enc susbystem for trackOff command");
-            commandResponseManager.addOrUpdateCommand(message.runId(), new CommandResponse.Completed(message.runId()));
+            this.cswCtx.commandResponseManager().addOrUpdateCommand(new CommandResponse.Completed(message.runId()));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -2,17 +2,16 @@ package org.tmt.encsubsystem.encassembly;
 
 import akka.actor.testkit.typed.javadsl.BehaviorTestKit;
 import akka.actor.testkit.typed.javadsl.TestInbox;
-import akka.actor.typed.javadsl.ActorContext;
-import csw.messages.commands.CommandName;
-import csw.messages.commands.ControlCommand;
-import csw.messages.commands.Setup;
-import csw.messages.javadsl.JUnits;
-import csw.messages.params.generics.JKeyTypes;
-import csw.messages.params.models.Prefix;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.CommandName;
+import csw.params.commands.ControlCommand;
+import csw.params.commands.Setup;
+import csw.params.core.models.Prefix;
+import csw.params.javadsl.JKeyType;
+import csw.params.javadsl.JUnits;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,10 +22,6 @@ import org.mockito.junit.MockitoRule;
 
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.when;
-
 public class JCommandHandlerActorTest {
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -34,12 +29,12 @@ public class JCommandHandlerActorTest {
     CommandResponseManager commandResponseManager;
 
     @Mock
-    JLoggerFactory jLoggerFactory;
+    JCswContext cswCtx;
     @Mock
     ILogger logger;
 
     @Mock
-    JCommandService hcdCommandService;
+    ICommandService hcdCommandService;
 
     TestInbox<JMonitorActor.MonitorMessage> monitorActor;
 
@@ -50,10 +45,10 @@ public class JCommandHandlerActorTest {
 
     @Before
     public void setUp() throws Exception {
-        when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
+      //  when(jLoggerFactory.getLogger(isA(ActorContext.class), any())).thenReturn(logger);
         replyTo = TestInbox.create();
         monitorActor= TestInbox.create();
-        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(commandResponseManager, Optional.of(hcdCommandService), true, jLoggerFactory, Optional.empty(), monitorActor.getRef()));
+        commandHandlerBehaviourKit = BehaviorTestKit.create(JCommandHandlerActor.behavior(cswCtx, Optional.of(hcdCommandService), true, Optional.empty(), monitorActor.getRef()));
     }
 
     @After
@@ -102,11 +97,11 @@ public class JCommandHandlerActorTest {
         Long[] timeValue = new Long[1];
         timeValue[0] = 10L;
         Setup moveSetupCmd = new Setup(new Prefix("enc.enc-test"), new CommandName("move"), Optional.empty())
-                .add(JKeyTypes.DoubleKey().make("az").set(2.64))
-                .add(JKeyTypes.DoubleKey().make("el").set(5.34))
-                .add(JKeyTypes.StringKey().make("mode").set("fast"))
-                .add(JKeyTypes.StringKey().make("operation").set("On"))
-                .add(JKeyTypes.LongKey().make("timeDuration").set(timeValue, JUnits.second));
+                .add(JKeyType.DoubleKey().make("az").set(2.64))
+                .add(JKeyType.DoubleKey().make("el").set(5.34))
+                .add(JKeyType.StringKey().make("mode").set("fast"))
+                .add(JKeyType.StringKey().make("operation").set("On"))
+                .add(JKeyType.LongKey().make("timeDuration").set(timeValue, JUnits.second));
         commandHandlerBehaviourKit.run(new JCommandHandlerActor.SubmitCommandMessage(moveSetupCmd));
         //   commandHandlerBehaviourKit.expectEffect(Effects.spawnedAnonymous(JFastMoveCmdActor.behavior(commandResponseManager,jLoggerFactory, statePublisherActorInbox.getRef()),Props.empty()));
         TestInbox<ControlCommand> commandWorkerActorInbox = commandHandlerBehaviourKit.childInbox("$a");

@@ -7,15 +7,13 @@ import akka.actor.typed.javadsl.*;
 import akka.stream.Materializer;
 import akka.util.Timeout;
 import com.typesafe.config.Config;
+import csw.command.api.javadsl.ICommandService;
+import csw.config.api.models.ConfigData;
+import csw.config.client.internal.ActorRuntime;
 import csw.framework.exceptions.FailureStop;
-import csw.messages.commands.ControlCommand;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.config.api.javadsl.IConfigClientService;
-import csw.services.config.api.models.ConfigData;
-import csw.services.config.client.internal.ActorRuntime;
-import csw.services.logging.javadsl.ILogger;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.ILogger;
+import csw.params.commands.ControlCommand;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,12 +21,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-//import akka.actor.typed.javadsl.MutableBehavior;
+//import akka.actor.typed.javadsl.AbstractBehavior;
 
 /**
  * Lifecycle Actor receive lifecycle messages and perform initialization, config loading, shutdown operations.
  */
-public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMessage> {
+public class JLifecycleActor extends AbstractBehavior<JLifecycleActor.LifecycleMessage> {
 
 
     // add messages here
@@ -62,40 +60,36 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
 
     public static final class UpdateHcdCommandServiceMessage implements LifecycleMessage {
 
-        public final Optional<JCommandService> commandServiceOptional;
+        public final Optional<ICommandService> commandServiceOptional;
 
-        public UpdateHcdCommandServiceMessage(Optional<JCommandService> commandServiceOptional) {
+        public UpdateHcdCommandServiceMessage(Optional<ICommandService> commandServiceOptional) {
             this.commandServiceOptional = commandServiceOptional;
         }
     }
 
 
     private ActorContext<LifecycleMessage> actorContext;
-    private JLoggerFactory loggerFactory;
+    JCswContext cswCtx;
     //private Config assemblyConfig;
     private ILogger log;
-    private IConfigClientService configClientApi;
-    private CommandResponseManager commandResponseManager;
-    private Optional<JCommandService> hcdCommandService;
+    private Optional<ICommandService> hcdCommandService;
     ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor;
     ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor;
 
 
-    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, JLoggerFactory loggerFactory) {
-        this.actorContext = actorContext;
-        this.loggerFactory = loggerFactory;
-        this.log = loggerFactory.getLogger(actorContext, getClass());
-        this.configClientApi = configClientApi;
-        this.commandResponseManager = commandResponseManager;
+    private JLifecycleActor(ActorContext<LifecycleMessage> actorContext, JCswContext cswCtx, Optional<ICommandService> hcdCommandService, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor) {
+        this.actorContext = actorContext;this.cswCtx = cswCtx;
+        this.cswCtx = cswCtx;
+        this.log = cswCtx.loggerFactory().getLogger(JEventHandlerActor.class);
         this.hcdCommandService = hcdCommandService;
         this.commandHandlerActor = commandHandlerActor;
         this.eventHandlerActor = eventHandlerActor;
 
     }
 
-    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(CommandResponseManager commandResponseManager, Optional<JCommandService> hcdCommandService, IConfigClientService configClientApi, ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor, JLoggerFactory loggerFactory) {
+    public static <LifecycleMessage> Behavior<LifecycleMessage> behavior(JCswContext cswCtx, Optional<ICommandService> hcdCommandService,ActorRef<JCommandHandlerActor.CommandMessage> commandHandlerActor, ActorRef<JEventHandlerActor.EventMessage> eventHandlerActor) {
         return Behaviors.setup(ctx -> {
-            return (MutableBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, commandResponseManager, hcdCommandService, configClientApi, commandHandlerActor, eventHandlerActor, loggerFactory);
+            return (AbstractBehavior<LifecycleMessage>) new JLifecycleActor((ActorContext<JLifecycleActor.LifecycleMessage>) ctx, cswCtx, hcdCommandService, commandHandlerActor, eventHandlerActor);
         });
     }
 
@@ -105,7 +99,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
      * @return
      */
     @Override
-    public Behaviors.Receive<LifecycleMessage> createReceive() {
+    public Receive<LifecycleMessage> createReceive() {
 
         ReceiveBuilder<LifecycleMessage> builder = receiveBuilder()
                 .onMessage(InitializeMessage.class,
@@ -124,7 +118,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
                         command -> {
                             log.debug(() -> "UpdateTemplateHcdMessage Received");
                             // update the template hcd
-                            return behavior(commandResponseManager, command.commandServiceOptional, configClientApi, commandHandlerActor, eventHandlerActor, loggerFactory);
+                            return behavior(cswCtx, hcdCommandService, commandHandlerActor, eventHandlerActor);
                         });
         return builder.build();
     }
@@ -199,7 +193,7 @@ public class JLifecycleActor extends MutableBehavior<JLifecycleActor.LifecycleMe
         // construct the path
         Path filePath = Paths.get("/org/tmt/tcs/enc/enc_assembly.conf");
 
-        ConfigData activeFile = configClientApi.getActive(filePath).get().get();
+        ConfigData activeFile = cswCtx.configClientService().getActive(filePath).get().get();
 
         return activeFile;
     }

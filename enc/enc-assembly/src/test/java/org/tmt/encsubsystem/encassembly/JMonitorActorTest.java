@@ -3,9 +3,10 @@ package org.tmt.encsubsystem.encassembly;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
-import csw.services.command.CommandResponseManager;
-import csw.services.command.javadsl.JCommandService;
-import csw.services.logging.javadsl.JLoggerFactory;
+import csw.command.api.javadsl.ICommandService;
+import csw.command.client.CommandResponseManager;
+import csw.framework.models.JCswContext;
+import csw.logging.javadsl.JLoggerFactory;
 import org.junit.*;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -25,13 +26,14 @@ public class JMonitorActorTest {
 
     @Mock
     CommandResponseManager commandResponseManager;
-
+    @Mock
+    JCswContext cswCtx;
     TestProbe<JEventHandlerActor.EventMessage> eventHandlerActor;
     TestProbe<JCommandHandlerActor.CommandMessage> commandHandlerActor;
 
 
     @Mock
-    JCommandService hcdCommandService;
+    ICommandService hcdCommandService;
 
     ActorRef<JMonitorActor.MonitorMessage> monitorActor;
     JLoggerFactory jLoggerFactory;
@@ -42,7 +44,7 @@ public class JMonitorActorTest {
         eventHandlerActor = testKit.createTestProbe();
         commandHandlerActor = testKit.createTestProbe();
         AssemblyState assemblyState = new AssemblyState(AssemblyState.LifecycleState.Initialized, AssemblyState.OperationalState.Idle);
-        monitorActor = testKit.spawn(JMonitorActor.behavior(assemblyState, jLoggerFactory, eventHandlerActor.getRef()));
+        monitorActor = testKit.spawn(JMonitorActor.behavior(cswCtx,assemblyState, eventHandlerActor.getRef()));
     }
 
     @After
