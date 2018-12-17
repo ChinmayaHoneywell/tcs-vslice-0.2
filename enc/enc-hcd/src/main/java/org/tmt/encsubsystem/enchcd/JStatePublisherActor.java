@@ -88,7 +88,7 @@ public class JStatePublisherActor extends AbstractBehavior<JStatePublisherActor.
         this.timer = timer;
         this.cswCtx = cswCtx;
         this.log = cswCtx.loggerFactory().getLogger(JStatePublisherActor.class);
-        this.currentStatePublisher = currentStatePublisher;
+        this.currentStatePublisher = cswCtx.currentStatePublisher();
         this.hcdState = hcdState;
 
     }
