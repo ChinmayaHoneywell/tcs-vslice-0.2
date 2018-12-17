@@ -62,16 +62,16 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         msg.sender ! SimpleSimResp(CommandResponse.Completed(msg.command.runId))
         Behavior.same
       case msg: ProcOneWayDemand =>
-        val simulatorRecTime                 = System.currentTimeMillis()
-        val paramSet                         = msg.command.paramSet
-        val azPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
-        val elPosParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
+        val simulatorRecTime                    = System.currentTimeMillis()
+        val paramSet                            = msg.command.paramSet
+        val azPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
+        val elPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
         val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
-        val azPos           = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
-        val elPos           = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
-        val sentTime        = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
-        val assemblyRecTime = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
-        val hcdRecTime      = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
+        val azPos                               = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
+        val elPos                               = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
+        val sentTime                            = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(System.currentTimeMillis()))
+        val assemblyRecTime                     = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
+        val hcdRecTime                          = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
         log.error(
           s"${azPos.head}, ${elPos.head}, ${sentTime.head}, ${assemblyRecTime.head}, ${hcdRecTime.head}, $simulatorRecTime"
         )
@@ -98,7 +98,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
-       /* log.info(
+        /* log.info(
           s"Received demanded positions :${longBitsToDouble(this.azPosDemand.get())}, ${longBitsToDouble(this.elPosDemand.get())}," +
           s" $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime"
         )*/
@@ -134,25 +134,25 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
     var elC: Double = 0
     var azC: Double = 0
     def updateElC() = {
-      if (elC == longBitsToDouble(this.elPosDemand.get())) {
+      if (elC >= longBitsToDouble(this.elPosDemand.get())) {
         elC = this.elPosDemand.get()
       } else if (longBitsToDouble(this.elPosDemand.get()) > 0.0) {
         // demanded positions are positive
-        elC = elC + 0.05
+        elC = elC + 0.0005
       } else {
         // for -ve demanded el positions
-        elC = elC - 0.05
+        elC = elC - 0.0005
       }
       log.info(s"Updated el position is : $elC")
     }
     def updateAzC = {
-      if (azC == longBitsToDouble(this.azPosDemand.get())) {
+      if (azC >= longBitsToDouble(this.azPosDemand.get())) {
         azC = this.azPosDemand.get()
       } else if (longBitsToDouble(this.azPosDemand.get()) > 0.0) {
         //for positive demanded positions
-        azC = azC + 0.05
+        azC = azC + 0.0005
       } else {
-        azC = azC - 0.05
+        azC = azC - 0.0005
       }
       log.info(s"Updated az position is : $azC")
     }

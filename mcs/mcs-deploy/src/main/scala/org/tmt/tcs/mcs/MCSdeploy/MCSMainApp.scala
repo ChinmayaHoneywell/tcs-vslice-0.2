@@ -2,7 +2,7 @@ package org.tmt.tcs.mcs.MCSdeploy
 
 import java.net.InetAddress
 
-import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
+import akka.actor.{ActorRefFactory, ActorSystem, Scheduler, typed}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.actor.typed.scaladsl.adapter._
@@ -16,7 +16,7 @@ import csw.location.api.models.Connection.AkkaConnection
 import csw.location.client.ActorSystemFactory
 import csw.location.client.scaladsl.HttpLocationServiceFactory
 import csw.logging.scaladsl.LoggingSystemFactory
-
+import csw.params.commands.CommandResponse.SubmitResponse
 import csw.params.commands.{CommandName, CommandResponse, Setup}
 import csw.params.core.generics.{Key, KeyType, Parameter}
 import csw.params.core.models.{Id, Prefix}
@@ -56,7 +56,7 @@ object MCSMainApp extends App {
    */
   private def getAssembly: CommandService = {
     implicit val sys: typed.ActorSystem[Nothing] = system.toTyped
-    val akkaLocations: List[AkkaLocation] = Await.result(locationService.listByPrefix("tcs.mcs.assembly"), 10.seconds)
+    val akkaLocations: List[AkkaLocation]        = Await.result(locationService.listByPrefix("tcs.mcs.assembly"), 10.seconds)
     CommandServiceFactory.make(akkaLocations.head)(sys)
   }
   private def getEventService: EventService = {
@@ -69,11 +69,8 @@ object MCSMainApp extends App {
 
 //  var count: Integer = 0
   var simulationMode               = "SimpleSimulator"
-  var simulationModeSentTime: Long = System.currentTimeMillis()
-  val resp0                        = Await.result(sendSimulationModeCommand(simulationMode), 6.seconds)
-  println(
-    s"SimulationMode command response is : $resp0 total time taken is : ${System.currentTimeMillis() - simulationModeSentTime}"
-  )
+  val resp0                        = sendSimulationModeCommand(simulationMode)
+
 
   var startupSentTime: Long = System.currentTimeMillis()
   val resp1                 = Await.result(sendStartupCommand(), 10.seconds)
@@ -190,13 +187,16 @@ object MCSMainApp extends App {
     followCmdSentTime = System.currentTimeMillis()
     commandService.submit(setup)
   }
-  def sendSimulationModeCommand(simulationMode: String): Future[CommandResponse] = {
+  def sendSimulationModeCommand(simulationMode: String): SubmitResponse = {
     val simulationModeKey: Key[String]    = KeyType.StringKey.make("SimulationMode")
     val simulModeParam: Parameter[String] = simulationModeKey.set(simulationMode)
     val commandService                    = getAssembly
     val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
-    simulationModeSentTime = System.currentTimeMillis()
-    commandService.submit(setup)
+    val simulationModeSentTime: Long =  System.currentTimeMillis()
+    val response = Await.result(commandService.submit(setup), 1.seconds)
+    println(
+      s"SimulationMode command response is : $response total time taken is : ${System.currentTimeMillis() - simulationModeSentTime}"
+    )
   }
   def sendMoveCommand(): Future[CommandResponse] = {
     val axesParam: Parameter[String] = axesKey.set("BOTH")

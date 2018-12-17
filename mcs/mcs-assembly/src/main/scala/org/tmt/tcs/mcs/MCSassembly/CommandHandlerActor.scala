@@ -81,7 +81,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     working to it
    */
   def handleSubmitCommand(msg: submitCommandMsg): Unit = {
-      msg.controlCommand.commandName.name match {
+    msg.controlCommand.commandName.name match {
       case Commands.STARTUP  => handleStartupCommand(msg)
       case Commands.SHUTDOWN => handleShutDownCommand(msg)
 
@@ -104,12 +104,12 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     }
   }
   def handleStartupCommand(msg: submitCommandMsg): Unit = {
- //   val setup = Setup(mcsHCDPrefix, CommandName(Commands.STARTUP), msg.controlCommand.maybeObsId)
+    //   val setup = Setup(mcsHCDPrefix, CommandName(Commands.STARTUP), msg.controlCommand.maybeObsId)
     hcdLocation match {
       case Some(commandService: CommandService) =>
         val response = Await.result(commandService.submit(msg.controlCommand), 5.seconds)
         //log.info(msg = s" Result of startup command is : $response")
-       /* commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
+        /* commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
         commandResponseManager.updateSubCommand(response)*/
         commandResponseManager.addOrUpdateCommand(response)
         log.info(msg = s"Successfully updated status of startup command in commandResponseManager : $response")

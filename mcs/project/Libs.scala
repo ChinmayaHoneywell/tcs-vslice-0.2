@@ -16,16 +16,7 @@ object Libs {
 
 object CSW {
   val Version = "0.1-SNAPSHOT"
-//0.1-SNAPSHOT
-/*  val `csw-location`      = "com.github.tmtsoftware.csw" %% "csw-location"      % Version
-  val `csw-config-client` = "com.github.tmtsoftware.csw" %% "csw-config-client" % Version
-  val `csw-logging`       = "com.github.tmtsoftware.csw" %% "csw-logging"       % Version*/
   val `csw-framework`     = "com.github.tmtsoftware.csw" %% "csw-framework"     % Version
   val `csw-testkit`       = "com.github.tmtsoftware.csw" %% "csw-testkit"     % Version
- /* val `csw-command`       = "com.github.tmtsoftware.csw" %% "csw-command"       % Version
-  val `csw-messages`      = "com.github.tmtsoftware.csw" %% "csw-messages"      % Version
-  val `csw-event-api`     = "com.github.tmtsoftware.csw" %% "csw-event-api"     % Version
-  val `csw-event-client`  = "com.github.tmtsoftware.csw" %% "csw-event-client"  % Version
-  val `csw-event-impl`    = "com.github.tmtsoftware.csw" %% "csw-event-impl"    % Version
-*/
+
 }

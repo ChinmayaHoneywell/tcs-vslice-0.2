@@ -126,7 +126,7 @@ class McsAssemblyHandlers(
       case Commands.STARTUP             => Accepted(controlCommand.runId)
       case Commands.SHUTDOWN            => Accepted(controlCommand.runId)
       case Commands.SET_SIMULATION_MODE => Accepted(controlCommand.runId)
-      case x => Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
+      case x                            => Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
   def executeDummyImmediateCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
@@ -292,8 +292,9 @@ class McsAssemblyHandlers(
     controlCommand.commandName.name match {
       case Commands.FOLLOW              => executeFollowCommandAndSendResponse(controlCommand)
       case Commands.SET_SIMULATION_MODE => executeSimModeAndSendResp(controlCommand)
-      case _ => commandHandlerActor ! submitCommandMsg(controlCommand)
-                Started(controlCommand.runId)
+      case _ =>
+        commandHandlerActor ! submitCommandMsg(controlCommand)
+        Started(controlCommand.runId)
     }
   }
 

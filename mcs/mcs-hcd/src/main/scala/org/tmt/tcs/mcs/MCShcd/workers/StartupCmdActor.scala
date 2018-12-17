@@ -35,7 +35,7 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
   private val log: Logger = loggerFactory.getLogger
 
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
-      simulatorMode match {
+    simulatorMode match {
       case Commands.REAL_SIMULATOR => {
         submitToRealSim(msg)
         Behaviors.stopped
@@ -48,6 +48,7 @@ case class StartupCmdActor(ctx: ActorContext[ControlCommand],
 
     Behavior.stopped
   }
+  //TODO : Replace ask calls to simulator with commandResponseManager in simple and real simulator actors
   private def submitToSimpleSim(msg: ControlCommand): Unit = {
     implicit val duration: Timeout = 2 seconds
     implicit val scheduler         = ctx.system.scheduler
