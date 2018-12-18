@@ -3,6 +3,7 @@
 This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
 ## Subprojects
+
 * enc-assembly - a template assembly that implements several command types, monitors state, and loads configuration
 
 * enc-hcd - an HCD that the assembly communicates with
@@ -13,26 +14,28 @@ This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 ### CSW Setup
 
 #### Set up appropriate environment variables
+
 Add the following lines to ~/.bashrc (on linux, or startup file appropriate to your linux shell):
 
-export interfaceName=machine interface name;   (The interface name of your machine can be obtained by running: ifconfig)
-export clusterSeeds=IP:5552
+`export interfaceName=machine interface name;`  
+`export clusterSeeds=IP:5552`
+
+The IP and interface name of your machine can be obtained by running: ifconfig
 
 #### Download and Run CSW
 
-Download CSW-APP to a directory of choice and extract
+Download CSW-APP to a directory of choice and extract  
 https://github.com/tmtsoftware/csw/releases
 
-cd csw-apps-0.6.0/bin
-
+Download and unzip csw app.  
 For the first time start location service and configuration service using initRepo argument.
+`cd csw-apps-0.6.0/bin`  
+`./csw-cluster-seed --clusterPort 5552`  
+`./csw-config-server --initRepo`
 
-./csw-cluster-seed --clusterPort 5552
-./csw-config-server --initRepo
-
-Then later all csw services can be started or stopped using
-./csw-services.sh start
-./csw-services.sh stop
+Then later all csw services can be started or stopped using  
+`./csw-services.sh start`  
+`./csw-services.sh stop`  
 
 ## Build and Running the Template
 
@@ -42,31 +45,30 @@ Clone or download tmtsoftware/tcs-vslice-0.2/enc to a directory of choice
 
 ### Building the template
 
-cd tcs-vslice-0.2/enc
-
-sbt stage publishLocal
+`cd tcs-vslice-0.2/enc`  
+`sbt stage publishLocal`  
 
 ### Populate configurations for Assembly and HCD
 
 #### Create Assembly configuration
-cd enc-deploy/src/main/resources/
-curl -X  POST --data '@enc_assembly.conf' http://192.168.1.8:5000/config/org/tmt/tcs/enc/enc_assembly.conf
+
+`cd enc-deploy/src/main/resources/`  
+`curl -X  POST --data '@enc_assembly.conf' http://192.168.1.8:5000/config/org/tmt/tcs/enc/enc_assembly.conf`
 
 #### Create HCD configuration
-cd enc-hcd/src/main/resources/
-curl -X  POST --data '@enc_hcd.conf' http://192.168.1.8:5000/config/org/tmt/tcs/enc/enc_hcd.conf
+
+`cd enc-hcd/src/main/resources/`  
+`curl -X  POST --data '@enc_hcd.conf' http://192.168.1.8:5000/config/org/tmt/tcs/enc/enc_hcd.conf`  
 
 ### Start the enc Assembly
 
-cd enc-deploy/target/universal/stage/bin
-
-./enc-container-cmd-app --local ../../../../src/main/resources/EncContainer.conf
+`cd enc-deploy/target/universal/stage/bin`  
+`./enc-container-cmd-app --local ../../../../src/main/resources/EncContainer.conf`
 
 ### Run the Client App
 
-cd enc-deploy/target/universal/stage/bin
-
-./enc-template-java-client
+`cd enc-deploy/target/universal/stage/bin`  
+`./enc-template-java-client`
 
 The Client App accept user input on console. Following command can be submitted to assembly by typing their name on console.
 [startup, invalidMove, move, follow, shutdown]
@@ -75,8 +77,6 @@ Or user can type 'exit' to stop client.
 
 ### Run Junit Tests
 sbt test
-
-
 
 ## Examples in the ENC POC
 
