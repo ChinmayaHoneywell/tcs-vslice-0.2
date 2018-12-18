@@ -11,7 +11,7 @@ import csw.params.events.Event;
 import csw.params.events.EventName;
 import csw.params.events.SystemEvent;
 import csw.params.javadsl.JKeyType;
-
+import java.time.Instant;
 
 public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.EventMessage> {
 
@@ -69,11 +69,11 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
         log.info("Inside JPkEventHandlerActor: Publishing Mcs Demand ");
         Key<Double> azDoubleKey = JKeyType.DoubleKey().make("mcs.az");
         Key<Double> elDoubleKey = JKeyType.DoubleKey().make("mcs.el");
-        Key<Long>  publishTimeKey             = JKeyType.LongKey().make("timeStamp");
+        Key<Instant>  publishTimeKey             = JKeyType.TimestampKey().make("timeStamp");
         Event event = new SystemEvent(prefix, new EventName("mcsdemandpositions"))
                 .add(azDoubleKey.set(message.getAz()))
                 .add(elDoubleKey.set(message.getEl()))
-                .add(publishTimeKey.set(System.currentTimeMillis()));
+                .add(publishTimeKey.set(Instant.now()));
         eventService.defaultPublisher().publish(event);
     }
 
