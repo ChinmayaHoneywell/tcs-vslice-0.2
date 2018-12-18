@@ -1,10 +1,6 @@
-# TCS ENC Assembly POC (Java, CSW 0.5.0)
+# TCS ENC Assembly POC (Java, CSW 0.6.0)
 
 This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
-
-([CSW](https://github.com/tmtsoftware/csw-prod)) APIs. 
-
-
 
 ## Subprojects
 * enc-assembly - a template assembly that implements several command types, monitors state, and loads configuration
@@ -12,6 +8,31 @@ This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 * enc-hcd - an HCD that the assembly communicates with
 
 * enc-deploy - for starting/deploying the Assembly and HCD, Client to submit commands to enc-assembly and log events.
+
+
+### CSW Setup
+
+#### Set up appropriate environment variables
+Add the following lines to ~/.bashrc (on linux, or startup file appropriate to your linux shell):
+
+export interfaceName=machine interface name;   (The interface name of your machine can be obtained by running: ifconfig)
+export clusterSeeds=IP:5552
+
+#### Download and Run CSW
+
+Download CSW-APP to a directory of choice and extract
+https://github.com/tmtsoftware/csw/releases
+
+cd csw-apps-0.6.0/bin
+
+For the first time start location service and configuration service using initRepo argument.
+
+./csw-cluster-seed --clusterPort 5552
+./csw-config-server --initRepo
+
+Then later all csw services can be started or stopped using
+./csw-services.sh start
+./csw-services.sh stop
 
 ## Build and Running the Template
 
@@ -25,42 +46,15 @@ cd tcs-vslice-0.2/enc
 
 sbt stage publishLocal
 
-### Deploying/Running the Template Assembly
-
-#### Set up appropriate environment variables
-Add the following lines to ~/.bashrc (on linux, or startup file appropriate to your linux shell):
-
-export interfaceName=&lt;machine interface name&gt;   (The interface name of your machine can be obtained by running: ifconfig -a | sed &#39;s/[\t].\*//;/^$/d&#39;)
-
-export clusterSeeds=&lt;machine IP&gt;:5552
-
-#### Download and Run CSW
-
-Download CSW-APP to a directory of choice and extract
-https://github.com/tmtsoftware/csw/releases
-
-cd csw-apps-0.5.0/bin
-
-#### Start the csw-prod Location Service:
-
-./csw-cluster-seed --clusterPort 7777
-
-#### Start the csw-prod Configuration Service:
-
-./csw-config-server --initRepo
-
-following can be used to start or stop csw services as well
-./csw-services.sh start
-
 ### Populate configurations for Assembly and HCD
 
-#### Create assembly configuration
+#### Create Assembly configuration
 cd enc-deploy/src/main/resources/
-curl -X  POST --data '@enc_assembly.conf' http://192.168.122.1:4000/config/org/tmt/tcs/enc/enc_assembly.conf
+curl -X  POST --data '@enc_assembly.conf' http://192.168.1.8:5000/config/org/tmt/tcs/enc/enc_assembly.conf
 
 #### Create HCD configuration
 cd enc-hcd/src/main/resources/
-curl -X  POST --data '@enc_hcd.conf' http://192.168.122.1:4000/config/org/tmt/tcs/enc/enc_hcd.conf
+curl -X  POST --data '@enc_hcd.conf' http://192.168.1.8:5000/config/org/tmt/tcs/enc/enc_hcd.conf
 
 ### Start the enc Assembly
 
@@ -70,9 +64,9 @@ cd enc-deploy/target/universal/stage/bin
 
 ### Run the Client App
 
-cd tcs-deploy/target/universal/stage/bin
+cd enc-deploy/target/universal/stage/bin
 
-./tcs-template-java-client
+./enc-template-java-client
 
 The Client App accept user input on console. Following command can be submitted to assembly by typing their name on console.
 [startup, invalidMove, move, follow, shutdown]
