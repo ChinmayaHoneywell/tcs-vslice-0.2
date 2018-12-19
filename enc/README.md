@@ -30,7 +30,7 @@ https://github.com/tmtsoftware/csw/releases
 Download and unzip csw app.  
 For the first time start location service and configuration service using initRepo argument.
 `cd csw-apps-0.6.0/bin`  
-`./csw-cluster-seed --clusterPort 5552`  
+`./csw-location-server --clusterPort 5552`  
 `./csw-config-server --initRepo`
 
 Then later all csw services can be started or stopped using  
