@@ -1,5 +1,7 @@
 package org.tmt.tcs.mcs.MCSassembly
 
+import java.time.Instant
+
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import csw.command.api.scaladsl.CommandService
@@ -114,29 +116,24 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
   def onCurrentStateChange(x: MonitorMessage with currentStateChangeMsg): Behavior[MonitorMessage] = {
 
     val currentState: CurrentState = x.currentState
-    //log.info(msg = s"Received currentState from HCD")
-    val assemblyEventRecvTime = System.currentTimeMillis()
-
     currentState.stateName.name match {
       case HCDLifecycleState =>
         updateAssemblyState(currentState)
-
       case CURRENT_POSITION =>
-        val currentPosition: SystemEvent = eventTransformer.getCurrentPositionEvent(currentState, assemblyEventRecvTime)
+        val currentPosition: SystemEvent = eventTransformer.getCurrentPositionEvent(currentState, Instant.now())
         eventHandlerActor ! PublishHCDState(currentPosition)
         MonitorActor.createObject(assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
       case DIAGNOSIS_STATE =>
-        eventHandlerActor ! PublishHCDState(eventTransformer.getDiagnosisEvent(currentState, assemblyEventRecvTime))
+        eventHandlerActor ! PublishHCDState(eventTransformer.getDiagnosisEvent(currentState, Instant.now()))
         Behavior.same
       case HEALTH_STATE =>
-        val health = eventTransformer.getHealthEvent(currentState, assemblyEventRecvTime)
+        val health = eventTransformer.getHealthEvent(currentState, Instant.now())
         eventHandlerActor ! PublishHCDState(health)
         MonitorActor.createObject(assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
       case DRIVE_STATE =>
-        val driveState = eventTransformer.getDriveState(currentState, assemblyEventRecvTime)
+        val driveState = eventTransformer.getDriveState(currentState, Instant.now())
         eventHandlerActor ! PublishHCDState(driveState)
         Behavior.same
-
     }
   }
   /*

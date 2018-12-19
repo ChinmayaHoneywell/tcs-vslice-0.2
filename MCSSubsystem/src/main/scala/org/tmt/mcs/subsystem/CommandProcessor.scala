@@ -2,6 +2,9 @@ package org.tmt.mcs.subsystem
 
 
 
+import java.time.Instant
+
+import com.google.protobuf.Timestamp
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse.CmdError
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.PointDemandCommand
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse
@@ -22,11 +25,11 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
     println("Initializing MCS subsystem ZeroMQ command Processor")
 
     val pullSocketAddr = addr + pullSocketPort
-    println(s"pull socket address is  :${pullSocketAddr}")
+    println(s"pull socket address is  :$pullSocketAddr")
     pullSocket.connect(pullSocketAddr)
 
     val pushSocketAddr = addr + pushSocketPort
-    println(s"push socket address is : ${pushSocketAddr}")
+    println(s"push socket address is : $pushSocketAddr")
     pushSocket.bind(pushSocketAddr)
 
 
@@ -36,20 +39,21 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
     println("Process Command Thread Started")
     while(true){
       val commandName: String = pullSocket.recvStr()
-      println(s"Received command is : ${commandName}")
+      println(s"Received command is : $commandName")
       if(commandName != null ){
-        println(s"Processing ${commandName} command ")
+        println(s"Processing $commandName command ")
         updateSimulator(commandName)
         val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
         if (pushSocket.sendMore(commandName)) {
-          println(s"Sending response for : ${commandName} command ")
+          println(s"Sending response for : $commandName command ")
+          val instant = Instant.now()
           val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder()
             .setCmdError(CmdError.OK)
             .setErrorInfo("No error")
-            .setProcessedTime(1234.50)
+            .setProcessedTime(Timestamp.newBuilder().setSeconds(instant.getEpochSecond).setNanos(instant.getNano))
             .setErrorState(MCSCommandResponse.ErrorState.FAILED)
             .build()
-          println(s"${commandName} command response is : ${commandResponse}")
+          println(s"$commandName command response is : $commandResponse")
           pushSocket.send(commandResponse.toByteArray,ZMQ.NOBLOCK)
         }else{
           println(s"Unable to send command response ")
@@ -66,7 +70,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
  }
   def updateSimulator(commandName : String):Unit = {
       commandName match {
-        case "Startup" => {
+        case "Startup" =>
           new Thread(new Runnable {
             override def run(): Unit =  eventProcessor.startPublishingCurrPos()
           }).start()
@@ -76,16 +80,13 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
             override def run(): Unit = eventProcessor.startPublishingHealth()
           }).start()
 
-        }
-        case "ShutDown" => {
+        case "ShutDown" =>
           eventProcessor.updateCurrPosPublisher(false)
           eventProcessor.updateHealthPublisher(false)
           eventProcessor.updatePosDemandSubscriber(false)
           println("Updating current position publisher and health publisher to false")
-        }
-        case _=>{
+        case _=>
           println("Not changing publisher thread state")
-        }
       }
   }
 

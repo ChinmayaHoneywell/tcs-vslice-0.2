@@ -1,5 +1,7 @@
 package org.tmt.tcs.mcs.MCShcd.constants
 
+import java.time.Instant
+
 import csw.params.core.generics.{Key, KeyType}
 import csw.params.core.models.Prefix
 import csw.params.events.{EventKey, EventName}
@@ -30,19 +32,19 @@ object EventConstants {
   val EL_InPosition_Key: Key[Boolean] = KeyType.BooleanKey.make(EL_InPosition)
 
   // used by all currentStates published by StatePublisherActor
-  val TIMESTAMP: String                     = "timeStamp"
-  val HCD_ReceivalTime: String              = "HcdReceivalTime"
-  val ASSEMBLY_RECEIVAL_TIME: String        = "assemblyReceivalTime"
-  val TimeStampKey: Key[Long]               = KeyType.LongKey.make(TIMESTAMP)
-  val HcdReceivalTime_Key: Key[Long]        = KeyType.LongKey.make(HCD_ReceivalTime)
-  val ASSEMBLY_RECEIVAL_TIME_KEY: Key[Long] = KeyType.LongKey.make(ASSEMBLY_RECEIVAL_TIME)
+  val TIMESTAMP: String                        = "timeStamp"
+  val HCD_ReceivalTime: String                 = "HcdReceivalTime"
+  val ASSEMBLY_RECEIVAL_TIME: String           = "assemblyReceivalTime"
+  val TimeStampKey: Key[Instant]               = KeyType.TimestampKey.make(TIMESTAMP)
+  val HcdReceivalTime_Key: Key[Instant]        = KeyType.TimestampKey.make(HCD_ReceivalTime)
+  val ASSEMBLY_RECEIVAL_TIME_KEY: Key[Instant] = KeyType.TimestampKey.make(ASSEMBLY_RECEIVAL_TIME)
 
   //LifecycleState currentState
   val HCDLifecycleState: String     = "HCDLifecycleState"
   val HCD_EventReceivalTime: String = "HCDEventReceivalTime"
   val LifeCycleStateKey             = KeyType.StringKey.make(HCDLifecycleState)
 
-  val hcdEventReceivalTime_Key: Key[Long] = KeyType.LongKey.make(HCD_EventReceivalTime)
+  val hcdEventReceivalTime_Key: Key[Instant] = KeyType.TimestampKey.make(HCD_EventReceivalTime)
 
   //MCS Simulator currentPosition state
   val CURRENT_POSITION: String = "CurrentPosition"

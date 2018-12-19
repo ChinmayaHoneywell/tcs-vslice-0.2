@@ -1,5 +1,6 @@
+syntax = "proto3";
 package commandpoc;
-
+import "google/protobuf/timestamp.proto";
 option java_package = "org.tmt.mcs.subsystem.protos";
 option java_outer_classname = "TcsMcsCommandProtos";
 
@@ -11,7 +12,7 @@ message LifeCycleCommand {
     SHUTDOWN = 3;
   }
 
-  required TransitionType transitionType = 1 [default = STARTUP];
+   TransitionType transitionType = 1;
   
 }
 
@@ -31,27 +32,27 @@ enum Operation{
 	off = 1;
 }
 message AxisCommand{
-	required Axes axes = 1 [default = BOTH];
-	required Operation ops = 2 [default = on];
+	 Axes axes = 1;
+	 Operation ops = 2;
 }
 message DatumCommand{
-	required  Axes axes = 1 [default = BOTH];
+	  Axes axes = 1;
 }
 message PointCommand{
-	required  Axes axes = 1 [default = BOTH];
+	  Axes axes = 1;
 }
 message PointDemandCommand{
-	required  double  AZ = 1;
-	required  double  EL = 2;
+	  double  AZ = 1;
+	  double  EL = 2;
 }
 message ServoOffCommand{
-	required  Axes axes = 1 [default = BOTH];
+	  Axes axes = 1;
 }
 message ResetCommand{
-	required  Axes axes = 1 [default = BOTH];
+	  Axes axes = 1;
 }
 message SetDiagnosticCommand{
-	required Operation ops = 2 [default = on];
+	 Operation ops = 2;
 }
 message CancelProcessingCommand{
 }
@@ -62,14 +63,14 @@ enum Direction{
 	out = 1;
 }
 message ElevationStowLockCommand{
-	required Direction dir = 1 [default = in];
+	 Direction dir = 1;
 }
 enum Position{
 	zero_degree = 0;
 	ninety_degree = 1;
 }
 message ElevationStowPositionCommand{
-	required Position pos = 1 [default = zero_degree];
+	 Position pos = 1;
 }
 message MCSCommandResponse {
   enum ErrorState {
@@ -84,8 +85,8 @@ message MCSCommandResponse {
     OK = 0;
     ERROR = 1;
   }
-  required CmdError cmdError= 1 [default = OK];
-  required ErrorState errorState = 2 [default = NONE];
-  required string errorInfo = 3;
-  required double processedTime = 4;
+   CmdError cmdError= 1;
+   ErrorState errorState=2;
+   string errorInfo = 3;
+   google.protobuf.Timestamp processedTime = 4;
 }

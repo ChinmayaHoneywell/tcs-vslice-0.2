@@ -335,7 +335,7 @@ mode: string
 
 timeduration: long
 
-#### FastMoveCmdActor
+#### MoveCmdActor
 HCD Actor to handle incoming command
 
 Setup(Prefix(&quot;tcs.encA&quot;), CommandName(&quot;follow&quot;), None).add(operation).add(az).add(el).add(mode)

@@ -1,83 +1,151 @@
-# MCS
+# TCS MCS Assembly POC (Java, CSW 0.6.0)
 
-This project implements an HCD (Hardware Control Daemon) and Assembly using 
-TMT Common Software ([CSW](https://github.com/tmtsoftware/csw-prod)) APIs. 
+This project implements a TCS-MCS Assembly and MCS HCD using TMT Common Software
 
 ## Subprojects
 
-* MCS-assembly - an assembly that talks to the MCS HCD
-* MCS-hcd - an HCD that talks to the MCS hardware
-* MCS-deploy - for starting/deploying HCD's and Assembly's
+* MCS-assembly - a template assembly that implements several command types, monitors state, and loads configuration
 
-## Build Instructions
+* MCS-hcd - an HCD that the assembly communicates with
 
-The build is based on sbt and depends on libraries published to bintray from the 
-[csw-prod](https://github.com/tmtsoftware/csw-prod) project.
-
-See [here](https://www.scala-sbt.org/1.0/docs/Setup.html) for instructions on installing sbt.
-
-## Pre-requisites before running Components
-
-Make sure that the necessary environment variables are set. For example:
-
-* Set the environment variables (Replace interface name, IP address and port with your own values):
-```bash
-export interfaceName=enp0s31f6
-export clusterSeeds=192.168.178.77:7777
-```
-for bash shell, or 
-```csh
-setenv interfaceName enp0s31f6
-setenv clusterSeeds 192.168.178.77:7777
-```
-
-for csh or tcsh. The list of available network interfaces can be found using the _ifconfig -a_ command.
-If you don't specify the network interface this way, a default will be chosen, which might sometimes not be
-the one you expect. 
-
-Before running any components, follow below steps:
- - Download csw-apps zip from https://github.com/tmtsoftware/csw-prod/releases.
- - Unzip the downloaded zip
- - Go to the bin directory where you will find `csw-services.sh` script.
- - Run `./csw_services.sh --help` to see more information
- - Run `./csw_services.sh start` to start location service and config server
-
-## Running HCD and Assembly
-
- - Run `sbt MCS-deploy/universal:packageBin`, this will create self contained zip in target/universal directory
- - Unzip generate zip and enter into bin directory
- - Run container cmd script or host config app script
-
-Running MCS POC 
-go to folder : mcs-deply/target/universal/stage/bin
-
-./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf
-
-Running PK POC
-go to folder : pk-deply/target/universal/stage/bin
-
-./pk-container-cmd-app --local ../../../../src/main/resources/PkContainer.conf 
+* MCS-deploy - for starting/deploying the Assembly and HCD, Client to submit commands to MCS-assembly and log events.
 
 
-starting  all services: 
-go to csw/target/universal/stage/bin folder and run below command:
-./csw-services.sh start
+### CSW Setup
 
-for starting config service 1st time on machine:
-./csw-cluster-seed --clusterPort 5552
-./csw-config-server --initRepo
+#### Set up appropriate environment variables
 
-checking port is open or not:
-netstat -na|grep 5552
-killing service on port
-kill -9 processID
+Add the following lines to ~/.bashrc (on linux, or startup file appropriate to your linux shell):
 
-for saving mcs assembly file on config server:
-curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
-curl -X POST --data 'tmt{tcs{mcs{zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf
+`export interfaceName=machine interface name;`  
+`export clusterSeeds=IP:5552`
 
-for getting mcs_assembly file from config server:
-curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf
-curl -X GET http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf
+The IP and interface name of your machine can be obtained by running: ifconfig
 
-curl -X GET http://192.168.1.13:4000/config/org/tmt/tcs/enc/enc_assembly.conf
+#### Download and Run CSW
+
+Download CSW-APP to a directory of choice and extract  
+https://github.com/tmtsoftware/csw/releases
+
+Download and unzip csw app.  
+For the first time start location service and configuration service using initRepo argument.
+`cd csw-apps-0.6.0/bin`  
+`./csw-cluster-seed --clusterPort 5552`  
+`./csw-config-server --initRepo`
+
+Then later all csw services can be started or stopped using  
+`./csw-services.sh start`  
+`./csw-services.sh stop`  
+
+## Build and Running the Template
+
+### Downloading the template
+
+Clone or download tmtsoftware/tcs-vslice-0.2/MCS to a directory of choice
+
+### Building the template
+
+`cd tcs-vslice-0.2/MCS`  
+`sbt stage publishLocal`  
+
+### Populate configurations for Assembly and HCD
+
+#### Create Assembly configuration
+
+`cd MCS-deploy/src/main/resources/`  
+`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf`
+
+#### Create HCD configuration
+
+`cd MCS-hcd/src/main/resources/`  
+`curl -X POST --data 'tmt{tcs{mcs{zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf`  
+
+### Start the MCS Assembly
+
+`cd MCS-deploy/target/universal/stage/bin`  
+`./MCS-container-cmd-app --local ../../../../src/main/resources/MCSContainer.conf`
+
+### Run the Client App
+
+`cd MCS-deploy/target/universal/stage/bin`  
+`./mcs-main-app`
+
+
+
+### Run Junit Tests
+sbt test
+
+## Examples in the MCS POC
+
+This template shows working examples of:
+
+1. Create typed actors for each of the internal components in the TCS architecture doc:
+	Lifecycle Actor, Monitor Actor, Command Handler Actor, Event Handler Actor, State Publisher Actor
+
+2. Move Command with parameters
+
+	2.1 Parameter based validation inside 'onValidate'
+
+	2.2 Subscribe to response for long running command
+
+	2.3 Point and PointDemand command as child command to HCD
+
+	2.4 Failing validation for invalid parameter
+
+	2.5 State based validation using ask pattern, Accept command only if Operational state is ready.
+
+	2.6 State transition to InPosition
+
+3. Follow Command with parameters as Immediate command
+
+	3.1 follow command to assembly then hcd
+
+	3.2 Using ask pattern to implement immediate command
+
+	3.3 State transition to Slewing
+
+4. HCD to Assembly CurrentState publish/subscribe using Current State publisher
+
+5. Lifecycle Commands(StartUp/Shutdown)
+
+	5.1 Submit lifecycle command to assembly and hcd
+
+	5.2 Transition assembly and hcd state from initialized to running and vice-versa
+
+6. Loading and using configuration with the configuration service
+
+7. Lifecycle and Operational states
+
+	7.1 Transition between states
+
+	7.2 Communicating states between actors
+
+	7.3 Communicating states from hcd to assembly
+
+8. Client app to submit commands to assembly
+
+	8.1 Submit command by typing on console.
+
+##  Documentation
+
+### Creating Typed Actors
+The template code creates Typed Actors for the following assembly subcomponents:
+Lifecycle Actor, Monitor Actor, Command Handler Actor and EventPublisher Actor.  
+Also actors for each command:  Move, Track, FastMove, TrackOff
+
+#### Lifecycle Actor
+The lifecycle actor contains all lifecycle related functions: functions that are performed at startup and shutdown.  Loading configuration and connecting to HCDs and other Assemblies as needed.
+
+#### Monitor Actor
+Health monitoring for the assembly.  Tracks dependMCSy location changes and monitors health and state of the assembly.
+
+#### Command Handler Actor
+Directs submit commands to appropriate workers.  Handles onGoOnline and onGoOffline actions (for now, going offline means ignoring incoming commands)
+
+#### Event Handler Actor
+Event Handler Actor will receive Current States changes from Monitor actor, then convert them to events to publish using CSW Event Service.
+
+#### State Publisher Actor
+State Publisher Actor in HCD publishes Current State to Assembly by using Current State Publisher of CSW.
+Current State is events published by MCS simulator and current state of HCD.
+

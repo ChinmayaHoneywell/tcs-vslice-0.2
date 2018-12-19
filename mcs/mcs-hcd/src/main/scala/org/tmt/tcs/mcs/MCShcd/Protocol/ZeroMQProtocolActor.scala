@@ -1,11 +1,13 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
+import java.time.Instant
+
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import com.typesafe.config.Config
 import csw.logging.scaladsl.{Logger, LoggerFactory}
 import csw.params.commands.CommandResponse.{Error, SubmitResponse}
-import csw.params.commands.{CommandIssue, CommandResponse, ControlCommand}
+import csw.params.commands.{CommandResponse, ControlCommand}
 import csw.params.core.models.Id
 import csw.params.core.states.CurrentState
 import csw.params.events.SystemEvent
@@ -48,10 +50,6 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private val addr: String                             = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer  = ProtoBuffMsgTransformer.create(loggerFactory)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
-  private var commandSendTime: Long                    = 0
-  private var commandResponseTime: Long                = 0
-  private var commandEncodeTime: Long                  = 0
-  private var commandDecodeTime: Long                  = 0
   private var zeroMQPullSocketStr: String              = ""
   private var zeroMQPushSocketStr: String              = ""
   private var zeroMQSubScribeSocketStr: String         = ""
@@ -105,37 +103,29 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         Behavior.same
     }
   }
-  private def startSubscrToSimulEvents() = {
+  private def startSubscrToSimulEvents(): Unit = {
     while (true) {
       val eventName: String = subscribeSocket.recvStr()
-      //log.info(s"Received event: ${eventName} from Simulator")
       if (subscribeSocket.hasReceiveMore) {
         val eventData       = subscribeSocket.recv(ZMQ.DONTWAIT)
-        val hcdReceivalTime = System.currentTimeMillis()
+        val hcdReceivalTime = Instant.now
         val currentState    = messageTransformer.decodeEvent(eventName, eventData)
         val currState       = currentState.add(EventConstants.hcdEventReceivalTime_Key.set(hcdReceivalTime))
-        // log.info(s"Publishing event: $currState from HCD.")
         statePublisherActor ! PublishState(currState)
       } else {
         log.error(s"No event data is received for event: $eventName")
-        Thread.sleep(1000)
       }
     }
   }
-  private def submitCommandToMCS(msg: SubmitCommand) = {
+  private def submitCommandToMCS(msg: SubmitCommand): Unit = {
     val controlCommand: ControlCommand = msg.controlCommand
     val commandName: String            = controlCommand.commandName.name
     val commandNameSent                = pushSocket.sendMore(commandName)
     if (commandNameSent) {
-      commandEncodeTime = System.currentTimeMillis()
       val encodedCommand = messageTransformer.encodeMessage(controlCommand)
-      // log.info(s" ** Time required to encode command: ${commandName} is: ${System.currentTimeMillis() - commandEncodeTime} ** ")
-      commandSendTime = System.currentTimeMillis()
       if (pushSocket.send(encodedCommand, ZMQ.NOBLOCK)) {
-        // log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
         msg.sender ! MCSResponse(readCommandResponse(commandName, controlCommand.runId))
       } else {
-        //log.info(s" ** Time required to send command: ${commandName} is: ${System.currentTimeMillis() - commandSendTime} ** ")
         msg.sender ! MCSResponse(CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem."))
       }
     } else {
@@ -148,8 +138,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
     if (commandName == responseCommandName) {
       if (pullSocket.hasReceiveMore) {
         val responsePacket: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
-        commandDecodeTime = System.currentTimeMillis()
-        val response: SubystemResponse = messageTransformer.decodeCommandResponse(responsePacket)
+        val response: SubystemResponse  = messageTransformer.decodeCommandResponse(responsePacket)
         paramSetTransformer.getCSWResponse(runId, response)
       } else {
         Error(runId, "unknown command send")
@@ -160,24 +149,23 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   }
 
   private def initMCSConnection(config: Config): Boolean = {
-    log.info(s"config object is :${config}")
+    log.info(s"config object is :$config")
     zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
     val pushSocketConn = pushSocket.bind(zeroMQPushSocketStr)
-    log.info(msg = s"ZeroMQ push socket is : ${zeroMQPushSocketStr} and connection : ${pushSocketConn}")
+    log.info(msg = s"ZeroMQ push socket is : $zeroMQPushSocketStr and connection : $pushSocketConn")
 
     zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
     val pullSocketConn = pullSocket.connect(zeroMQPullSocketStr)
-    log.info(msg = s"ZeroMQ pull socket is : ${zeroMQPullSocketStr} and connection : ${pullSocketConn}")
+    log.info(msg = s"ZeroMQ pull socket is : $zeroMQPullSocketStr and connection : $pullSocketConn")
 
     zeroMQSubScribeSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQSub")
-    //subscribeSocket.subscribe("Welcome to MCS Events".getBytes)
     val subSockConn = subscribeSocket.connect(zeroMQSubScribeSocketStr)
     subscribeSocket.subscribe(ZMQ.SUBSCRIPTION_ALL) // added this becz unable to receive msgs without this.
-    log.info(msg = s"ZeroMQ subscribe socket is : ${zeroMQSubScribeSocketStr} and connection is : ${subSockConn}")
+    log.info(msg = s"ZeroMQ subscribe socket is : $zeroMQSubScribeSocketStr and connection is : $subSockConn")
 
     zeroMQPubSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPub")
     val pubSockConn = pubSocket.bind(zeroMQPubSocketStr)
-    log.info(msg = s"ZeroMQ pub socket is : ${zeroMQPubSocketStr} and connection is : ${pubSockConn}")
+    log.info(msg = s"ZeroMQ pub socket is : $zeroMQPubSocketStr and connection is : $pubSockConn")
 
     pushSocketConn && pullSocketConn && subSockConn && pubSockConn
   }

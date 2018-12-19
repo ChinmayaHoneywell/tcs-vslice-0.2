@@ -1,8 +1,9 @@
 package org.tmt.tcs.mcs.MCSdeploy
 
 import java.net.InetAddress
+import java.time.Instant
 
-import akka.actor.{ActorRefFactory, ActorSystem, Scheduler, typed}
+import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import akka.actor.typed.scaladsl.adapter._
@@ -68,22 +69,11 @@ object MCSMainApp extends App {
   val prefix = Prefix("tmt.tcs.McsAssembly-Client")
 
 //  var count: Integer = 0
-  var simulationMode               = "SimpleSimulator"
-  val resp0                        = sendSimulationModeCommand(simulationMode)
-
-
-  var startupSentTime: Long = System.currentTimeMillis()
-  val resp1                 = Await.result(sendStartupCommand(), 10.seconds)
-  println(s"Startup command response is : $resp1 total time taken is : ${System.currentTimeMillis() - startupSentTime}")
-
-  var datumCommandSentTime: Long = System.currentTimeMillis()
-  val resp2                      = Await.result(sendDatumCommand(), 50.seconds)
-  println(s"Datum command response is : $resp2 total time taken is : ${System.currentTimeMillis() - datumCommandSentTime}")
-
-  var followCmdSentTime: Long = System.currentTimeMillis()
-  val resp3                   = Await.result(sendFollowCommand(), 10.seconds)
-  println(s"Follow command response is : $resp3 total time taken is : ${System.currentTimeMillis() - followCmdSentTime}")
-
+  var simulationMode = "SimpleSimulator"
+  val resp0          = sendSimulationModeCommand(simulationMode)
+  val resp1          = sendStartupCommand()
+  val resp2          = sendDatumCommand()
+  val resp3          = sendFollowCommand()
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
   //println(s"Move command response is : $resp4 at : ${System.currentTimeMillis()}")
 
@@ -127,12 +117,12 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        println(s"Health, $simulatorPublishTime, $hcdReceiveTime, $assemblyRecTime, $clientAppRecTime")
+      // println(s"Health, $simulatorPublishTime, $hcdReceiveTime, $assemblyRecTime, $clientAppRecTime")
     }
     Future.successful[String]("Successfully processed Health event from assembly")
   }
   def processCurrentPosition(event: Event): Future[_] = {
-    val clientAppRecTime = System.currentTimeMillis()
+    val clientAppRecTime = Instant.now()
     // println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
     event match {
       case systemEvent: SystemEvent =>
@@ -163,42 +153,70 @@ object MCSMainApp extends App {
     commandService.submit(dummyLong)
   }
 
-  def sendStartupCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
-    val commandService = getAssembly
-    val setup          = Setup(prefix, CommandName("Startup"), None)
-    startupSentTime = System.currentTimeMillis()
-    commandService.submit(setup)
+  def sendStartupCommand()(implicit ec: ExecutionContext): CommandResponse = {
+    val commandService  = getAssembly
+    val setup           = Setup(prefix, CommandName("Startup"), None)
+    val startUpSentTime = Instant.now
+    val response        = Await.result(commandService.submit(setup), 10.seconds)
+    val startUpRespTime = Instant.now
+    import java.time.Duration
+    val diff      = Duration.between(startUpSentTime, startUpRespTime).toNanos
+    val millidiff = Duration.between(startUpSentTime, startUpRespTime).toMillis
+    println(s"Startup command response is :$response time is : $diff, $millidiff")
+    response
   }
-  def sendShutDownCmd()(implicit ec: ExecutionContext): Future[CommandResponse] = {
-    val commandService = getAssembly
-    val setup          = Setup(prefix, CommandName("ShutDown"), None)
-    commandService.submit(setup)
+  def sendShutDownCmd()(implicit ec: ExecutionContext): CommandResponse = {
+    val commandService   = getAssembly
+    val setup            = Setup(prefix, CommandName("ShutDown"), None)
+    val shutDownSentTime = Instant.now
+    val response         = Await.result(commandService.submit(setup), 10.seconds)
+    val shutDownRespTime = Instant.now
+    import java.time.Duration
+    val diff     = Duration.between(shutDownSentTime, shutDownRespTime).toNanos
+    val millDiff = Duration.between(shutDownSentTime, shutDownRespTime).toMillis
+    println(s"Shutdown command response is :$response time is : $diff, $millDiff")
+    response
   }
-  def sendDatumCommand(): Future[CommandResponse] = {
+  def sendDatumCommand(): CommandResponse = {
     val datumParam: Parameter[String] = axesKey.set("BOTH")
     val setup                         = Setup(prefix, CommandName("Datum"), None).add(datumParam)
     val commandService                = getAssembly
-    datumCommandSentTime = System.currentTimeMillis()
-    commandService.submit(setup)
+    val datumSentTime                 = Instant.now
+    val response                      = Await.result(commandService.submit(setup), 10.seconds)
+    val datumRespTime                 = Instant.now
+    import java.time.Duration
+    val diff      = Duration.between(datumSentTime, datumRespTime).toNanos
+    val milliDiff = Duration.between(datumSentTime, datumRespTime).toMillis
+    println(s"Datum command response is :$response time is : $diff, $milliDiff")
+    response
   }
-  def sendFollowCommand(): Future[CommandResponse] = {
+  def sendFollowCommand(): SubmitResponse = {
     val setup          = Setup(prefix, CommandName("Follow"), None)
     val commandService = getAssembly
-    followCmdSentTime = System.currentTimeMillis()
-    commandService.submit(setup)
+    val followSentTime = Instant.now
+    val response       = Await.result(commandService.submit(setup), 10.seconds)
+    val followRespTime = Instant.now
+    import java.time.Duration
+    val diff      = Duration.between(followSentTime, followRespTime).toNanos
+    val milliDiff = Duration.between(followSentTime, followRespTime).toMillis
+    println(s"Follow command response is :$response time is : $diff, $milliDiff")
+    response
   }
   def sendSimulationModeCommand(simulationMode: String): SubmitResponse = {
     val simulationModeKey: Key[String]    = KeyType.StringKey.make("SimulationMode")
     val simulModeParam: Parameter[String] = simulationModeKey.set(simulationMode)
     val commandService                    = getAssembly
     val setup                             = Setup(prefix, CommandName("setSimulationMode"), None).add(simulModeParam)
-    val simulationModeSentTime: Long =  System.currentTimeMillis()
-    val response = Await.result(commandService.submit(setup), 1.seconds)
-    println(
-      s"SimulationMode command response is : $response total time taken is : ${System.currentTimeMillis() - simulationModeSentTime}"
-    )
+    val simModeSentTime                   = Instant.now()
+    val response                          = Await.result(commandService.submit(setup), 10.seconds)
+    val simModeRespTime                   = Instant.now()
+    import java.time.Duration
+    val diff      = Duration.between(simModeSentTime, simModeRespTime).toNanos
+    val milliDiff = Duration.between(simModeSentTime, simModeRespTime).toMillis
+    println(s"SimulationMode command response is : $response total time taken is : $diff, milli difference : $milliDiff")
+    response
   }
-  def sendMoveCommand(): Future[CommandResponse] = {
+  def sendMoveCommand(): SubmitResponse = {
     val axesParam: Parameter[String] = axesKey.set("BOTH")
     val azParam: Parameter[Double]   = azKey.set(1.5)
     val elParam: Parameter[Double]   = elKey.set(10)
@@ -207,7 +225,14 @@ object MCSMainApp extends App {
       .add(axesParam)
       .add(azParam)
       .add(elParam)
-    commandService.submit(setup)
+    val moveSentTime = Instant.now()
+    val response     = Await.result(commandService.submit(setup), 10.seconds)
+    val moveRespTime = Instant.now()
+    import java.time.Duration
+    val diff      = Duration.between(moveSentTime, moveRespTime).toNanos
+    val milliDiff = Duration.between(moveSentTime, moveRespTime).toMillis
+    println(s"Move command response is : $response total time taken is : $diff, milli diff.n is : $milliDiff")
+    response
   }
 
 }

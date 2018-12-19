@@ -1,18 +1,20 @@
-syntax = "proto2";
+syntax = "proto3";
+
 package eventpoc;
+import "google/protobuf/timestamp.proto";
 option java_package = "org.tmt.tcs.mcs.MCShcd.msgTransformers.protos";
 option java_outer_classname = "TcsMcsEventsProtos";
 
 
 message TcsPositionDemandEvent {
-  required double azimuth = 1; // azimuth position
-  required double elevation = 2; // elevation position
-  required int64 tpkPublishTime = 3; // time at which tpk event sampled
-  required int64 assemblyReceivalTime=4;
-  required int64 hcdReceivalTime=5;
+  double azimuth = 1; // azimuth position
+  double elevation = 2; // elevation position
+  google.protobuf.Timestamp tpkPublishTime = 3; // time at which tpk event sampled
+  google.protobuf.Timestamp assemblyReceivalTime=4;
+  google.protobuf.Timestamp hcdReceivalTime=5;
 }
 message TcsHeartbeat{
-	required int32 sequence = 1;
+	 int32 sequence = 1;
 }
 message McsHealth{
 	enum Health {
@@ -22,12 +24,12 @@ message McsHealth{
 		interlocked = 3;
 		unknown =4;
 	}
-	required Health health = 1 [ default = Good];
-	required string reason = 2;
-	required int64 time = 3; 
+	Health health = 1;
+	string reason = 2;
+	google.protobuf.Timestamp time = 3; 
 }
 message McsAlarm{ 
-	required string source = 1;
+	 string source = 1;
 	enum Category{
 		emerg = 0;
 		alert = 1;
@@ -36,25 +38,25 @@ message McsAlarm{
 		warning = 4;
 		notice = 5;
 	}
-	required Category category = 2 [ default = emerg];
+	Category category = 2;
 	enum Severity{
 		major = 0;
 		minor = 1;
 		normal = 2;
 	}	
-	required Severity severity = 3 [ default = major];
-	required string reason = 4;
-	required int64 time = 5;
+	 Severity severity = 3;
+	 string reason = 4;
+	 google.protobuf.Timestamp time = 5;
 }
 message McsDriveStatus{ 
-	required bool processing = 1;
+	 bool processing = 1;
 	enum Lifecycle {
 		ready = 0;
 		loaded = 1;
 		initialized = 2;
 		running = 3;
 	}
-	required Lifecycle lifecycle = 2 [ default = ready];
+	 Lifecycle lifecycle = 2;
 	enum Azstate{
 		az_drive_power_off = 0;
 		az_servo_off = 1;
@@ -64,7 +66,7 @@ message McsDriveStatus{
 		az_following = 5;
 		az_faulted = 6;
 	}
-	required Azstate azstate = 3 [default = az_drive_power_off];
+	 Azstate azstate = 3;
 	enum Elstate{
 		el_drive_power_off = 0;
 		el_servo_off = 1;
@@ -74,14 +76,14 @@ message McsDriveStatus{
 		el_following = 5;
 		el_faulted = 6;
 	}
-	required Elstate elstate = 4 [ default = el_drive_power_off] ;
-	required bool azMotorTemps = 5;
-	required bool elMotorTemps = 6;
-	required bool azAmplTemps = 7;
-	required bool elAmplTemps = 8;
-	required bool azLimits = 9;
-	required bool elLimits = 10;
-	required bool mcsDiagEnabled = 11;
+	 Elstate elstate = 4;
+	 bool azMotorTemps = 5;
+	 bool elMotorTemps = 6;
+	 bool azAmplTemps = 7;
+	 bool elAmplTemps = 8;
+	 bool azLimits = 9;
+	 bool elLimits = 10;
+	 bool mcsDiagEnabled = 11;
 	enum ServoTestMon{
 		None = 0; 
 		AzPosn = 1;
@@ -91,12 +93,12 @@ message McsDriveStatus{
 		ElMaxVal = 5;
 		ElMinVal = 6;
 	}
-	required ServoTestMon servoTestMon = 12 [default = None];
+	 ServoTestMon servoTestMon = 12;
 	enum Local{ 
 		local = 0;
 		remote = 1;
 	}
-	required Local local_Enum = 13 [default = local];
+	 Local local_Enum = 13;
 	enum ControlRight{
 		MCU = 0;
 		AZ_Drv1 = 1;
@@ -109,151 +111,151 @@ message McsDriveStatus{
 		eui4 = 8; 
 		eui5 = 9;
 	}
-	required ControlRight controlRight = 14 [ default = MCU];
+	 ControlRight controlRight = 14;
 	enum AzDriveMode{
 		az_standby = 0;
 		az_pointing_mode = 1;
 		az_slewing  = 2;
 		az_following_mode = 3;
 	}
-	required AzDriveMode azDriveMode = 15 [default = az_standby];
+	 AzDriveMode azDriveMode = 15;
 	enum ElDriveMode{
 		el_standby = 0;
 		el_pointing_mode = 1;
 		el_slewing = 2;
 		el_following_mode = 3;
 	}
-	required ElDriveMode elDriveMode = 16 [default = el_standby];
-	required bool azBrakeReleased = 17;
-	required bool elBrakeReleased = 18;
-	required bool azWrapBrakeReleased = 19;
-	required bool azServoOnOpn = 20;
-	required bool azServoOnRdy = 21;
-	required bool elServoOnOpn = 22;
-	required bool elServoOnRdy = 23;
-	required bool azLimitRecoveryOpn = 24;
-	required bool azLimitRecoveryRdy = 25;
-	required bool elLimitRecoveryOpn = 26;
-	required bool elLimitRecoveryRdy = 27;
-	required bool azWrapServoOnOpn = 28;
-	required bool wrapServoOnRdy = 29;
-	required bool wrapLimitRecoveryOpn = 30;
-	required bool wrapLimitRecoveryRdy = 31;
-	required bool azOverlap = 32;
-	required bool azAbsIncDeviationLimit = 33;
-	required bool elAbsIncDeviationLimit = 34;
-	required bool azEncdrUnitInitFin =35;
-	required bool elEncdrUnitInitFin =36;
-	required bool absEncdrUnitInitFin =37;
-	required bool azDatumOpn = 38;
-	required bool elDatumOpn = 39;
-	required bool azDatumRun = 40;
-	required bool elDatumRun = 41;
-	required bool azDatumRdy = 42;
-	required bool elDatumRdy = 43;
-	required bool azEncdrDatumed = 44;
-	required bool elEncdrDatumed = 45;
-	required bool azEncdrHeadNotUsed = 46;
-	required bool elEncdrHeadNotUsed = 47;
-	required bool azAbsEncdrNotUsed = 48;
-	required bool elAbsEncdrNotUsed = 49;
-	required bool azAmplNotUsed = 50;
-	required bool elAmplNotUsed = 51;
-	required bool stowPosnOpn = 52;
-	required bool stowPosnRun = 53;
-	required bool stowPosnRdy = 54;
-	required bool stowInsrOpn = 55;
-	required bool stowInsrRun = 56;
-	required bool stowInsrRdy = 57;
-	required bool stowRetrOpn = 58;
-	required bool stowRetrRun = 59;
-	required bool stowRetrRdy = 60;
-	required bool azTapeEncdrDataLeapDet = 61;
-	required bool elTapeEncdrDataLeapDet = 62;
-	required bool azAbsEncdrDataLeapDet = 63;
-	//required bool azMotorTemps = 64;
-	//required bool elMotorTemps = 64;
-	required int64 time = 64;
+	 ElDriveMode elDriveMode = 16;
+	 bool azBrakeReleased = 17;
+	 bool elBrakeReleased = 18;
+	 bool azWrapBrakeReleased = 19;
+	 bool azServoOnOpn = 20;
+	 bool azServoOnRdy = 21;
+	 bool elServoOnOpn = 22;
+	 bool elServoOnRdy = 23;
+	 bool azLimitRecoveryOpn = 24;
+	 bool azLimitRecoveryRdy = 25;
+	 bool elLimitRecoveryOpn = 26;
+	 bool elLimitRecoveryRdy = 27;
+	 bool azWrapServoOnOpn = 28;
+	 bool wrapServoOnRdy = 29;
+	 bool wrapLimitRecoveryOpn = 30;
+	 bool wrapLimitRecoveryRdy = 31;
+	 bool azOverlap = 32;
+	 bool azAbsIncDeviationLimit = 33;
+	 bool elAbsIncDeviationLimit = 34;
+	 bool azEncdrUnitInitFin =35;
+	 bool elEncdrUnitInitFin =36;
+	 bool absEncdrUnitInitFin =37;
+	 bool azDatumOpn = 38;
+	 bool elDatumOpn = 39;
+	 bool azDatumRun = 40;
+	 bool elDatumRun = 41;
+	 bool azDatumRdy = 42;
+	 bool elDatumRdy = 43;
+	 bool azEncdrDatumed = 44;
+	 bool elEncdrDatumed = 45;
+	 bool azEncdrHeadNotUsed = 46;
+	 bool elEncdrHeadNotUsed = 47;
+	 bool azAbsEncdrNotUsed = 48;
+	 bool elAbsEncdrNotUsed = 49;
+	 bool azAmplNotUsed = 50;
+	 bool elAmplNotUsed = 51;
+	 bool stowPosnOpn = 52;
+	 bool stowPosnRun = 53;
+	 bool stowPosnRdy = 54;
+	 bool stowInsrOpn = 55;
+	 bool stowInsrRun = 56;
+	 bool stowInsrRdy = 57;
+	 bool stowRetrOpn = 58;
+	 bool stowRetrRun = 59;
+	 bool stowRetrRdy = 60;
+	 bool azTapeEncdrDataLeapDet = 61;
+	 bool elTapeEncdrDataLeapDet = 62;
+	 bool azAbsEncdrDataLeapDet = 63;
+	// bool azMotorTemps = 64;
+	// bool elMotorTemps = 64;
+	 google.protobuf.Timestamp time = 64;
 }
 message MountControlDiags{
-	 required bool mcsInPosition = 1;
-	 required bool azInPosition = 2;
-	 required bool elInPosition = 3; 
-	 required double azPosition = 4;
-	 required double elPosition = 5;
-	 required double azPosDemand = 6;
-	 required double elPosDemand = 7;
-	 required double azPosError = 8; 
-	 required double elPosError = 9;
-	 required double azVelocity = 10;
-	 required double elVelocity = 11;
-	 required double azVelocityDemand = 12;
-	 required double elVelocityDemand = 13;
-	 required double azVelocityError = 14;
-	 required double elVelocityError = 15;
-	 required double azAcceleration = 16;
-	 required double elAcceleration = 17;
-	 required double azTorqueDemand = 18;	
-	 required double elTorqueDemand = 19;
-	 required int32 azEncoderPositions = 20;
-	 required int32 elEncoderPositions = 21;	
-	 required float azDriveCurrents = 22;
-	 required float elDriveCurrents = 23;
-	 required double encoderLatchingTime = 24;
-	 required double azWrapPos = 25;
-	 required double azWrapPosDemand = 26;
-	 required double azWrapPosError = 27;
-	 required double azWrapVelocity = 28;
-	 required double azWrapVelocityDemand = 29;
-	 required double azWrapVelocityError = 30;
-	 required double azWrapAcceleration = 31;
-	 required double azWrapTorqueDemand = 32;
-	 required float azWrapDriveCurrents = 33;
-	 required double azPosXp = 34;
-	 required double azPosXm = 35;
-	 required double elPosXp = 36;
-	 required double elPosXm = 37;
-	 required double azPosByHead = 38;
-	 required double elPosByHead = 39;
-	 required int32 azNumOfStoredDemand = 40;
-	 required int32 elNumOfStoredDemand = 41;
-	 required int32 eibTriggerCounter = 42;
-	 required int32 eibStatusWord = 43;
-	 required int32 eibTimestamp = 44;
-	 required int64 eibReferencePosition1 = 45;
-	 required int64 eibDCReferencePosition = 46;
-	 required double azPosByAbs = 47;
-	 required double elPosByAbs = 48;
-	 required double azPosErrA = 49;
-	 required double azPosErrB = 50;
-	 required double elPosErrA = 51;
-	 required double elPosErrB = 52;
-	 required double azPosTestInput = 53;
-	 required double elPosTestInput = 54;
-	 required double azMaxVelTestInput = 55;
-	 required double elMaxVelTestInput = 56;
-	 required double azMinVelTestInput = 57;
-	 required double elMinVelTestInput = 58;
-	 required double azTrqTestInput = 59;
-	 required double elTrqTestInput = 60;
-	 required int64 time = 61;			
+	  bool mcsInPosition = 1;
+	  bool azInPosition = 2;
+	  bool elInPosition = 3; 
+	  double azPosition = 4;
+	  double elPosition = 5;
+	  double azPosDemand = 6;
+	  double elPosDemand = 7;
+	  double azPosError = 8; 
+	  double elPosError = 9;
+	  double azVelocity = 10;
+	  double elVelocity = 11;
+	  double azVelocityDemand = 12;
+	  double elVelocityDemand = 13;
+	  double azVelocityError = 14;
+	  double elVelocityError = 15;
+	  double azAcceleration = 16;
+	  double elAcceleration = 17;
+	  double azTorqueDemand = 18;	
+	  double elTorqueDemand = 19;
+	  int32 azEncoderPositions = 20;
+	  int32 elEncoderPositions = 21;	
+	  float azDriveCurrents = 22;
+	  float elDriveCurrents = 23;
+	  google.protobuf.Timestamp encoderLatchingTime = 24;
+	  double azWrapPos = 25;
+	  double azWrapPosDemand = 26;
+	  double azWrapPosError = 27;
+	  double azWrapVelocity = 28;
+	  double azWrapVelocityDemand = 29;
+	  double azWrapVelocityError = 30;
+	  double azWrapAcceleration = 31;
+	  double azWrapTorqueDemand = 32;
+	  float azWrapDriveCurrents = 33;
+	  double azPosXp = 34;
+	  double azPosXm = 35;
+	  double elPosXp = 36;
+	  double elPosXm = 37;
+	  double azPosByHead = 38;
+	  double elPosByHead = 39;
+	  int32 azNumOfStoredDemand = 40;
+	  int32 elNumOfStoredDemand = 41;
+	  int32 eibTriggerCounter = 42;
+	  int32 eibStatusWord = 43;
+	  google.protobuf.Timestamp eibTimestamp = 44;
+	  int64 eibReferencePosition1 = 45;
+	  int64 eibDCReferencePosition = 46;
+	  double azPosByAbs = 47;
+	  double elPosByAbs = 48;
+	  double azPosErrA = 49;
+	  double azPosErrB = 50;
+	  double elPosErrA = 51;
+	  double elPosErrB = 52;
+	  double azPosTestInput = 53;
+	  double elPosTestInput = 54;
+	  double azMaxVelTestInput = 55;
+	  double elMaxVelTestInput = 56;
+	  double azMinVelTestInput = 57;
+	  double elMinVelTestInput = 58;
+	  double azTrqTestInput = 59;
+	  double elTrqTestInput = 60;
+	  google.protobuf.Timestamp time = 61;			
 }
 message McsCurrentPositionEvent {
   // conjunction of azInPosition and elInPosition
-  required bool mcsInPosition = 1;
-  required double azPos = 2;
-  required double azPosDemand = 3;
-  required double azPosError = 4;
-  required bool azInPosition = 5;
-  required double elPos = 6;
-  required double elPosDemand = 7;
-  required double elPosError = 8;
-  required bool elInPosition = 9;
-  required double encodeLatchingTime = 10;
-  required int32 azPosDmdErrCount = 11;
-  required int32 elPosDmdErrCount = 12;
-  required double azWrapPos = 13;
-  required double azWrapPosDemand = 14;
-  required double azWrapPosError = 15;
-  required int64 time = 16;
+   bool mcsInPosition = 1;
+   double azPos = 2;
+   double azPosDemand = 3;
+   double azPosError = 4;
+   bool azInPosition = 5;
+   double elPos = 6;
+   double elPosDemand = 7;
+   double elPosError = 8;
+   bool elInPosition = 9;
+   google.protobuf.Timestamp encodeLatchingTime = 10;
+   int32 azPosDmdErrCount = 11;
+   int32 elPosDmdErrCount = 12;
+   double azWrapPos = 13;
+   double azWrapPosDemand = 14;
+   double azWrapPosError = 15;
+   google.protobuf.Timestamp time = 16;
 }

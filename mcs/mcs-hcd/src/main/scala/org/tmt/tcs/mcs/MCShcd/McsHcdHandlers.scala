@@ -1,5 +1,7 @@
 package org.tmt.tcs.mcs.MCShcd
 
+import java.time.Instant
+
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
@@ -479,15 +481,14 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
 
   override def onOneway(controlCommand: ControlCommand): Unit = {
     // log.info(msg = s"*** Received position Demands : ${controlCommand} to HCD at : ${System.currentTimeMillis()} *** ")
-    val hcdRecTime      = System.currentTimeMillis()
+    val hcdRecTime      = Instant.now
     val setup           = Setup(Prefix(Subsystem.MCS.toString), CommandName(Commands.POSITION_DEMANDS), None)
     val azPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
     val elPosParam      = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
     val timeStamp       = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
     val assemblyRecTime = controlCommand.paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
     val hcdRecParam     = EventConstants.HcdReceivalTime_Key.set(hcdRecTime)
-
-    val cmd = setup.add(azPosParam).add(elPosParam).add(timeStamp).add(assemblyRecTime).add(hcdRecParam)
+    val cmd             = setup.add(azPosParam).add(elPosParam).add(timeStamp).add(assemblyRecTime).add(hcdRecParam)
     positionDemandActor ! cmd
   }
 
