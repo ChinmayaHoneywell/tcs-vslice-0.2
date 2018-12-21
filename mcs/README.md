@@ -31,9 +31,17 @@ Download and unzip csw app.
 For the first time start location service and configuration service using initRepo argument.
 `cd csw-apps-0.6.0/bin`  
 `./bin/csw-location-server --clusterPort=5552`  
+
+Once location server is started, In a new terminal initialize configuration repo using  
 `./bin/csw-config-server --initRepo`
 
-Then later all csw services can be started or stopped using  
+If init repo does not work try deleting 'csw-config-svn' folder
+`cd /tmp`  
+`rm -rf csw-config-svn`  
+
+Now again try to initialize config repo.
+
+Once config server is initialized properly, later all csw services can be started or stopped using  
 `./csw-services.sh start`  
 `./csw-services.sh stop`  
 
@@ -49,16 +57,19 @@ Clone or download tmtsoftware/tcs-vslice-0.2/MCS to a directory of choice
 `sbt stage publishLocal`  
 
 ### Populate configurations for Assembly and HCD
+These Below steps needs to be done everytime cofig service is re-initialized due to any issue because initializing config server deletes all the config data.
 
 #### Create Assembly configuration
-`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://<ip address of config service>:<config service port number>/config/org/tmt/tcs/mcs_assembly.conf`
-e.g.
-`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf`
+`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://<ip address of config service>:<config service port number>/config/org/tmt/tcs/mcs_assembly.conf`  
+e.g.  
+`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.122.1:5000/config/org/tmt/tcs/mcs_assembly.conf`
 
 #### Create HCD configuration
 `curl -X POST --data 'tmt{tcs{mcs{zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://<ip address of config service>:<config service port>/config/org/tmt/tcs/mcs_hcd.conf`  
-e.g.
-`curl -X POST --data 'tmt{tcs{mcs{zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf`  
+e.g.  
+`curl -X POST --data 'tmt{tcs{mcs{zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.122.1:5000/config/org/tmt/tcs/mcs_hcd.conf`  
+
+
 
 ### Start the MCS Assembly
 
