@@ -30,10 +30,10 @@ https://github.com/tmtsoftware/csw/releases
 Download and unzip csw app.  
 For the first time start location service and configuration service using initRepo argument.  
 `cd csw-apps-0.6.0/bin`  
-`./bin/csw-location-server --clusterPort=5552`  
+`./csw-location-server --clusterPort=5552`  
 
 Once location server is started, In a new terminal initialize configuration repo using  
-`./bin/csw-config-server --initRepo`
+`./csw-config-server --initRepo`
 
 If init repo does not work try deleting 'csw-config-svn' folder  
 `cd /tmp`  
@@ -85,9 +85,7 @@ e.g.
 `cd MCS-deploy/target/universal/stage/bin`  
 `./mcs-main-app`
 
-Client app sends setSimulationMode,startup,Datum,Follow commands to MCS Assembly.
-
-
+Client app sends setSimulationMode,startup,Datum,Follow commands to MCS Assembly.  
 
 ### Run Junit Tests
 sbt test
