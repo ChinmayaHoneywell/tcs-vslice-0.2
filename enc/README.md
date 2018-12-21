@@ -45,6 +45,10 @@ Once config server is initialized properly, later all csw services can be starte
 `./csw-services.sh start`  
 `./csw-services.sh stop`  
 
+####CSW Logs
+To varify if csw services are working properly, csw logs can be check at  
+`cd /tmp/csw`  
+
 ## Build and Running the Template
 
 ### Downloading the template
