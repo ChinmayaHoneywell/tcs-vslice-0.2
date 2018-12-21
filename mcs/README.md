@@ -28,14 +28,14 @@ Download CSW-APP to a directory of choice and extract
 https://github.com/tmtsoftware/csw/releases
 
 Download and unzip csw app.  
-For the first time start location service and configuration service using initRepo argument.
+For the first time start location service and configuration service using initRepo argument.  
 `cd csw-apps-0.6.0/bin`  
 `./bin/csw-location-server --clusterPort=5552`  
 
 Once location server is started, In a new terminal initialize configuration repo using  
 `./bin/csw-config-server --initRepo`
 
-If init repo does not work try deleting 'csw-config-svn' folder
+If init repo does not work try deleting 'csw-config-svn' folder  
 `cd /tmp`  
 `rm -rf csw-config-svn`  
 
@@ -44,6 +44,10 @@ Now again try to initialize config repo.
 Once config server is initialized properly, later all csw services can be started or stopped using  
 `./csw-services.sh start`  
 `./csw-services.sh stop`  
+
+####CSW Logs  
+To varify if csw services are working properly, csw logs can be check at  
+`cd /tmp/csw`  
 
 ## Build and Running the Template
 
