@@ -1,5 +1,7 @@
 package org.tmt.tcs.mcs.MCSassembly.msgTransformer
 
+import java.time.Instant
+
 import csw.logging.scaladsl.LoggerFactory
 import csw.params.commands.{CommandName, ControlCommand, Setup}
 import csw.params.core.generics.Parameter
@@ -50,9 +52,9 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
       val azParamOption: Option[Parameter[Double]] = event.get(EventHandlerConstants.AzPosKey)
       val elParamOption: Option[Parameter[Double]] = event.get(EventHandlerConstants.ElPosKey)
       //val trackIDOption: Option[Parameter[Int]]    = event.get(EventHandlerConstants.TrackIDKey)
-      val sentTimeOption: Option[Parameter[Long]] = event.get(EventHandlerConstants.TimeStampKey) //tpk publish time
+      val sentTimeOption: Option[Parameter[Instant]] = event.get(EventHandlerConstants.TimeStampKey) //tpk publish time
 
-      val assemblyRecTimeOpt: Option[Parameter[Long]] = event.get(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY)
+      val assemblyRecTimeOpt: Option[Parameter[Instant]] = event.get(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY)
 
       currentState = CurrentState(Prefix(EventConstants.TPK_PREFIX), StateName(EventConstants.MOUNT_DEMAND_POSITION))
         .add(azParamOption.get)
@@ -71,16 +73,16 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
   /*
     This function converts currentPosition from HCD wrapped in  currentState to systemEvent
    */
-  def getCurrentPositionEvent(currentState: CurrentState, assemblyEventRecvTime: Long): SystemEvent = {
+  def getCurrentPositionEvent(currentState: CurrentState, assemblyEventRecvTime: Instant): SystemEvent = {
     // log.info(s"Received event : $currentState from simulator")
-    val azPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.AzPosKey)
-    val elPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.ElPosKey)
-    val azPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
-    val elPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
-    val azInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
-    val elInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.EL_InPosition_Key)
-    val timeStampKey: Option[Parameter[Long]]      = currentState.get(EventHandlerConstants.TimeStampKey)
-    val hcdEventRecevKey: Option[Parameter[Long]]  = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
+    val azPosParam: Option[Parameter[Double]]        = currentState.get(EventHandlerConstants.AzPosKey)
+    val elPosParam: Option[Parameter[Double]]        = currentState.get(EventHandlerConstants.ElPosKey)
+    val azPosErrorParam: Option[Parameter[Double]]   = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
+    val elPosErrorParam: Option[Parameter[Double]]   = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
+    val azInPosKey: Option[Parameter[Boolean]]       = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
+    val elInPosKey: Option[Parameter[Boolean]]       = currentState.get(EventHandlerConstants.EL_InPosition_Key)
+    val timeStampKey: Option[Parameter[Instant]]     = currentState.get(EventHandlerConstants.TimeStampKey)
+    val hcdEventRecevKey: Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
 
     SystemEvent(EventHandlerConstants.CURRENT_POSITION_PREFIX, EventHandlerConstants.CURRENT_POSITION_STATE)
       .add(azPosParam.getOrElse(EventHandlerConstants.AzPosKey.set(0)))
@@ -94,15 +96,15 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
       .add(EventHandlerConstants.ASSEMBLY_EVENT_RECEV_TIME_KEY.set(assemblyEventRecvTime))
 
   }
-  def getDiagnosisEvent(currentState: CurrentState, assemblyEventRecvTime: Long): Event = {
-    val azPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.AzPosKey)
-    val elPosParam: Option[Parameter[Double]]      = currentState.get(EventHandlerConstants.ElPosKey)
-    val azPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
-    val elPosErrorParam: Option[Parameter[Double]] = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
-    val azInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
-    val elInPosKey: Option[Parameter[Boolean]]     = currentState.get(EventHandlerConstants.EL_InPosition_Key)
-    val timeStampKey: Option[Parameter[Long]]      = currentState.get(EventHandlerConstants.TimeStampKey)
-    val hcdEventRecevKey: Option[Parameter[Long]]  = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
+  def getDiagnosisEvent(currentState: CurrentState, assemblyEventRecvTime: Instant): Event = {
+    val azPosParam: Option[Parameter[Double]]        = currentState.get(EventHandlerConstants.AzPosKey)
+    val elPosParam: Option[Parameter[Double]]        = currentState.get(EventHandlerConstants.ElPosKey)
+    val azPosErrorParam: Option[Parameter[Double]]   = currentState.get(EventHandlerConstants.AZ_POS_ERROR_KEY)
+    val elPosErrorParam: Option[Parameter[Double]]   = currentState.get(EventHandlerConstants.EL_POS_ERROR_KEY)
+    val azInPosKey: Option[Parameter[Boolean]]       = currentState.get(EventHandlerConstants.AZ_InPosition_Key)
+    val elInPosKey: Option[Parameter[Boolean]]       = currentState.get(EventHandlerConstants.EL_InPosition_Key)
+    val timeStampKey: Option[Parameter[Instant]]     = currentState.get(EventHandlerConstants.TimeStampKey)
+    val hcdEventRecevKey: Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
 
     val event: SystemEvent = SystemEvent(
       EventHandlerConstants.DIAGNOSIS_PREFIX,
@@ -119,11 +121,11 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
     )
     event.add(EventHandlerConstants.ASSEMBLY_EVENT_RECEV_TIME_KEY.set(assemblyEventRecvTime))
   }
-  def getHealthEvent(currentState: CurrentState, assemblyEventRecvTime: Long): Event = {
-    val health: Option[Parameter[String]]         = currentState.get(EventHandlerConstants.HEALTH_KEY)
-    val healthReason: Option[Parameter[String]]   = currentState.get(EventHandlerConstants.HEALTH_REASON_KEY)
-    val timeStampKey: Option[Parameter[Long]]     = currentState.get(EventHandlerConstants.TimeStampKey)
-    val hcdEventRecevKey: Option[Parameter[Long]] = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
+  def getHealthEvent(currentState: CurrentState, assemblyEventRecvTime: Instant): Event = {
+    val health: Option[Parameter[String]]            = currentState.get(EventHandlerConstants.HEALTH_KEY)
+    val healthReason: Option[Parameter[String]]      = currentState.get(EventHandlerConstants.HEALTH_REASON_KEY)
+    val timeStampKey: Option[Parameter[Instant]]     = currentState.get(EventHandlerConstants.TimeStampKey)
+    val hcdEventRecevKey: Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
 
     val event: SystemEvent = SystemEvent(EventHandlerConstants.HEALTH_PREFIX, EventHandlerConstants.HEALTH_STATE)
       .add(health.get)
@@ -135,13 +137,13 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
       .add(hcdEventRecevKey.get)
 
   }
-  def getDriveState(currentState: CurrentState, assemblyEventRecvTime: Long): Event = {
-    val processing: Option[Parameter[Boolean]]    = currentState.get(EventHandlerConstants.PROCESSING_PARAM_KEY)
-    val lifecycleState: Option[Parameter[String]] = currentState.get(EventHandlerConstants.MCS_LIFECYCLE_STATTE_KEY)
-    val azState: Option[Parameter[String]]        = currentState.get(EventHandlerConstants.MCS_AZ_STATE)
-    val elState: Option[Parameter[String]]        = currentState.get(EventHandlerConstants.MCS_EL_STATE)
-    val timeStampKey: Option[Parameter[Long]]     = currentState.get(EventHandlerConstants.TimeStampKey)
-    val hcdEventRecevKey: Option[Parameter[Long]] = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
+  def getDriveState(currentState: CurrentState, assemblyEventRecvTime: Instant): Event = {
+    val processing: Option[Parameter[Boolean]]       = currentState.get(EventHandlerConstants.PROCESSING_PARAM_KEY)
+    val lifecycleState: Option[Parameter[String]]    = currentState.get(EventHandlerConstants.MCS_LIFECYCLE_STATTE_KEY)
+    val azState: Option[Parameter[String]]           = currentState.get(EventHandlerConstants.MCS_AZ_STATE)
+    val elState: Option[Parameter[String]]           = currentState.get(EventHandlerConstants.MCS_EL_STATE)
+    val timeStampKey: Option[Parameter[Instant]]     = currentState.get(EventHandlerConstants.TimeStampKey)
+    val hcdEventRecevKey: Option[Parameter[Instant]] = currentState.get(EventHandlerConstants.HCD_Event_RECEV_TIME_KEY)
 
     val event: SystemEvent = SystemEvent(
       EventHandlerConstants.HEALTH_PREFIX,
@@ -159,10 +161,10 @@ case class EventTransformerHelper(loggerFactory: LoggerFactory) {
    */
   def getOneWayCommandObject(systemEvent: SystemEvent): ControlCommand = {
     //log.info(s"Input one way command object is: $systemEvent")
-    val sentTimeOption: Option[Parameter[Long]]     = systemEvent.get(EventHandlerConstants.TimeStampKey) //tpk publish time
-    val assemblyRecTimeOpt: Option[Parameter[Long]] = systemEvent.get(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY)
-    val azParam: Option[Parameter[Double]]          = systemEvent.get(EventHandlerConstants.AzPosKey)
-    val elParamOption: Option[Parameter[Double]]    = systemEvent.get(EventHandlerConstants.ElPosKey)
+    val sentTimeOption: Option[Parameter[Instant]]     = systemEvent.get(EventHandlerConstants.TimeStampKey) //tpk publish time
+    val assemblyRecTimeOpt: Option[Parameter[Instant]] = systemEvent.get(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY)
+    val azParam: Option[Parameter[Double]]             = systemEvent.get(EventHandlerConstants.AzPosKey)
+    val elParamOption: Option[Parameter[Double]]       = systemEvent.get(EventHandlerConstants.ElPosKey)
 
     val setup = Setup(EventHandlerConstants.mcsHCDPrefix, CommandName(Commands.POSITION_DEMANDS), None)
       .add(azParam.get)

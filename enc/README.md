@@ -28,14 +28,26 @@ Download CSW-APP to a directory of choice and extract
 https://github.com/tmtsoftware/csw/releases
 
 Download and unzip csw app.  
-For the first time start location service and configuration service using initRepo argument.
+For the first time start location service and configuration service using initRepo argument.  
 `cd csw-apps-0.6.0/bin`  
-`./csw-cluster-seed --clusterPort 5552`  
-`./csw-config-server --initRepo`
+`./csw-location-server --clusterPort 5552`  
 
-Then later all csw services can be started or stopped using  
+Once location server is started, In a new terminal initialize configuration repo using  
+`./bin/csw-config-server --initRepo`
+
+If init repo does not work try deleting 'csw-config-svn' folder  
+`cd /tmp`  
+`rm -rf csw-config-svn`  
+
+Now again try to initialize config repo.  
+
+Once config server is initialized properly, later all csw services can be started or stopped using  
 `./csw-services.sh start`  
 `./csw-services.sh stop`  
+
+####CSW Logs
+To varify if csw services are working properly, csw logs can be check at  
+`cd /tmp/csw`  
 
 ## Build and Running the Template
 
@@ -49,6 +61,7 @@ Clone or download tmtsoftware/tcs-vslice-0.2/enc to a directory of choice
 `sbt stage publishLocal`  
 
 ### Populate configurations for Assembly and HCD
+These Below steps needs to be done everytime cofig service is re-initialized due to any issue because initializing config server deletes all the config data.  
 
 #### Create Assembly configuration
 
@@ -335,7 +348,7 @@ mode: string
 
 timeduration: long
 
-#### FastMoveCmdActor
+#### MoveCmdActor
 HCD Actor to handle incoming command
 
 Setup(Prefix(&quot;tcs.encA&quot;), CommandName(&quot;follow&quot;), None).add(operation).add(az).add(el).add(mode)

@@ -1,7 +1,7 @@
 package org.tmt.tcs.mcs.MCShcd.msgTransformers
 import java.time.Instant
 
-import com.google.protobuf.GeneratedMessage
+import com.google.protobuf.Timestamp
 import csw.logging.scaladsl.LoggerFactory
 import csw.params.commands.ControlCommand
 import csw.params.core.generics.Parameter
@@ -20,20 +20,14 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
 
   override def decodeCommandResponse(responsePacket: Array[Byte]): SubystemResponse = {
-
-    //log.info(msg = s"Decoding command Response")
-
     val commandResponse: MCSCommandResponse   = MCSCommandResponse.parseFrom(responsePacket)
     val cmdError: MCSCommandResponse.CmdError = commandResponse.getCmdError
-    //log.info(s"Command Response from Simulator is : ${commandResponse}")
-    var cmdErrorBool: Boolean = false
-    if (MCSCommandResponse.CmdError.OK.equals(cmdError)) {
-      //log.info("No Error from Simulator")
-      cmdErrorBool = true
-      SubystemResponse(cmdErrorBool, None, None)
-    } else {
-      //log.error(s"Error from simulator cmdError : ${cmdError} and expected : ${MCSCommandResponse.CmdError.OK}")
-      SubystemResponse(cmdErrorBool, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
+    var cmdErrorBool: Boolean                 = false
+    cmdError match {
+      case MCSCommandResponse.CmdError.OK =>
+        cmdErrorBool = true
+        SubystemResponse(cmdErrorBool, None, None)
+      case _ => SubystemResponse(cmdErrorBool, Some(commandResponse.getCmdError.toString), Some(commandResponse.getErrorInfo))
     }
 
   }
@@ -55,11 +49,14 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
         } catch {
           case e: Exception =>
             e.printStackTrace()
+            val instant = Instant.now()
+            val timestamp: com.google.protobuf.Timestamp =
+              Timestamp.newBuilder().setNanos(instant.getNano).setSeconds(instant.getEpochSecond).build()
             healthState = McsHealth
               .newBuilder()
               .setHealth(McsHealth.Health.Good)
               .setReason("All is well")
-              .setTime(Instant.now().toEpochMilli)
+              .setTime(timestamp)
               .build()
             log.error(s"Publishing dummy health from exception :$healthState")
         }
@@ -69,7 +66,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   }
 
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
-    //log.info(msg = s"Encoding command : ${controlCommand} with protobuff convertor")
+
     controlCommand.commandName.name match {
       case Commands.FOLLOW       => getFollowCommandBytes
       case Commands.DATUM        => getDatumCommandBytes(controlCommand)
@@ -80,36 +77,37 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     }
   }
   override def encodeCurrentState(currentState: CurrentState): Array[Byte] = {
-    var azPos    = 0.0
-    var elPos    = 0.0
-    val sentTime = System.currentTimeMillis() //current time of HCD
-    // log.info(s"Received current state for transformation to events : $currentState")
-    /* if (currentState.exists(EventConstants.TrackIDKey)) {
-      trackID = currentState.get(EventConstants.TrackIDKey).get.head
-    }*/
+    var azPos = 0.0
+    var elPos = 0.0
     if (currentState.exists(EventConstants.AzPosKey)) {
       azPos = currentState.get(EventConstants.AzPosKey).get.head
     }
     if (currentState.exists(EventConstants.ElPosKey)) {
       elPos = currentState.get(EventConstants.ElPosKey).get.head
     }
-    val event: GeneratedMessage =
-      TcsPositionDemandEvent
-        .newBuilder()
-        .setAzimuth(azPos)
-        .setElevation(elPos)
-        .setHcdReceivalTime(currentState.get(EventConstants.HcdReceivalTime_Key).get.head)
-        .setTpkPublishTime(currentState.get(EventConstants.TimeStampKey).get.head)
-        .setAssemblyReceivalTime(currentState.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head)
-        .build()
-    // log.info(s"converted current state to ${event.toByteArray}")
+
+    val hcdRecInstant   = currentState.get(EventConstants.HcdReceivalTime_Key).get.head
+    val hcdRecTimeStamp = Timestamp.newBuilder().setNanos(hcdRecInstant.getNano).setSeconds(hcdRecInstant.getEpochSecond).build()
+
+    val tpkPublishInstant = currentState.get(EventConstants.TimeStampKey).get.head
+    val tpkPubTimeStamp =
+      Timestamp.newBuilder().setNanos(tpkPublishInstant.getNano).setSeconds(tpkPublishInstant.getEpochSecond).build()
+
+    val assemblyRecInstant = currentState.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
+    val assemblyRecTimeStamp =
+      Timestamp.newBuilder().setNanos(assemblyRecInstant.getNano).setSeconds(assemblyRecInstant.getEpochSecond).build()
+    val event: TcsPositionDemandEvent = TcsPositionDemandEvent
+      .newBuilder()
+      .setAzimuth(azPos)
+      .setElevation(elPos)
+      .setHcdReceivalTime(hcdRecTimeStamp)
+      .setAssemblyReceivalTime(assemblyRecTimeStamp)
+      .setTpkPublishTime(tpkPubTimeStamp)
+      .build()
     event.toByteArray
   }
 
-  //TODO: Change this method for publishing assembly,hcd receival times
   override def encodeEvent(systemEvent: SystemEvent): Array[Byte] = {
-
-    //   val trackIDOption: Option[Parameter[Int]] = systemEvent.get(EventConstants.TrackIDKey)
 
     var azParam = 0.0
     if (systemEvent.exists(EventConstants.AzPosKey)) {
@@ -120,26 +118,35 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       elParam = systemEvent.get(EventConstants.ElPosKey).get.head
     }
 
-    // val trackID: Int = trackIDOption.get.head
-    var assemblySentTime = System.currentTimeMillis()
+    var assemblySentTime = Instant.now()
     if (systemEvent.exists(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY)) {
       assemblySentTime = systemEvent.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
     }
+
+    val hcdRecInstant   = systemEvent.get(EventConstants.HcdReceivalTime_Key).get.head
+    val hcdRecTimeStamp = Timestamp.newBuilder().setNanos(hcdRecInstant.getNano).setSeconds(hcdRecInstant.getEpochSecond).build()
+
+    val pkPubInstant   = systemEvent.get(EventConstants.TimeStampKey).get.head
+    val pkPubTimeStamp = Timestamp.newBuilder().setNanos(pkPubInstant.getNano).setSeconds(pkPubInstant.getEpochSecond).build()
+
+    val assemblyRecInstant = systemEvent.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
+    val assemblyRecTimeStamp =
+      Timestamp.newBuilder().setNanos(assemblyRecInstant.getNano).setSeconds(assemblyRecInstant.getEpochSecond).build()
 
     val event = TcsPositionDemandEvent
       .newBuilder()
       .setAzimuth(azParam)
       .setElevation(elParam)
-      .setHcdReceivalTime(systemEvent.get(EventConstants.HcdReceivalTime_Key).get.head)
-      .setTpkPublishTime(systemEvent.get(EventConstants.TimeStampKey).get.head)
-      .setAssemblyReceivalTime(assemblySentTime)
+      .setHcdReceivalTime(hcdRecTimeStamp)
+      .setTpkPublishTime(pkPubTimeStamp)
+      .setAssemblyReceivalTime(assemblyRecTimeStamp)
       .build()
     event.toByteArray
 
   }
 
   def getFollowCommandBytes: Array[Byte] = {
-    val command: GeneratedMessage = FollowCommand.newBuilder().build()
+    val command: FollowCommand = FollowCommand.newBuilder().build()
     command.toByteArray
   }
   def getDatumCommandBytes(controlCommand: ControlCommand): Array[Byte] = {
@@ -153,7 +160,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       axes = Axes.EL
     }
 
-    val command: GeneratedMessage = DatumCommand.newBuilder().setAxes(axes).build()
+    val command: DatumCommand = DatumCommand.newBuilder().setAxes(axes).build()
     command.toByteArray
   }
   def getPointCommandBytes(controlCommand: ControlCommand): Array[Byte] = {
@@ -167,25 +174,25 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       axes = Axes.EL
     }
 
-    val command: GeneratedMessage = PointCommand.newBuilder().setAxes(axes).build()
+    val command: PointCommand = PointCommand.newBuilder().setAxes(axes).build()
     command.toByteArray
   }
   def getPointDemandCommandBytes(controlCommand: ControlCommand): Array[Byte] = {
-    val azParam: Parameter[_]     = controlCommand.paramSet.find(msg => msg.keyName == "AZ").get
-    val azValue: Any              = azParam.head
-    val elParam: Parameter[_]     = controlCommand.paramSet.find(msg => msg.keyName == "EL").get
-    val elValue: Any              = elParam.head
-    val az: Double                = azValue.asInstanceOf[Number].doubleValue()
-    val el: Double                = elValue.asInstanceOf[Number].doubleValue()
-    val command: GeneratedMessage = PointDemandCommand.newBuilder().setAZ(az).setEL(el).build()
+    val azParam: Parameter[_]       = controlCommand.paramSet.find(msg => msg.keyName == "AZ").get
+    val azValue: Any                = azParam.head
+    val elParam: Parameter[_]       = controlCommand.paramSet.find(msg => msg.keyName == "EL").get
+    val elValue: Any                = elParam.head
+    val az: Double                  = azValue.asInstanceOf[Number].doubleValue()
+    val el: Double                  = elValue.asInstanceOf[Number].doubleValue()
+    val command: PointDemandCommand = PointDemandCommand.newBuilder().setAZ(az).setEL(el).build()
     command.toByteArray
   }
   def getStartupCommandBytes: Array[Byte] = {
-    val command: GeneratedMessage = Startup.newBuilder().build()
+    val command: Startup = Startup.newBuilder().build()
     command.toByteArray
   }
   def getShutdownCommandBytes: Array[Byte] = {
-    val command: GeneratedMessage = Shutdown.newBuilder().build()
+    val command: Shutdown = Shutdown.newBuilder().build()
     command.toByteArray
   }
 

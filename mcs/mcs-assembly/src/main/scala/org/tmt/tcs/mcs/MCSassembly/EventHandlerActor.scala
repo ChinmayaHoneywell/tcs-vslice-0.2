@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCSassembly
 
+import java.time.Instant
 import java.util.Calendar
 
 import akka.actor.typed.Behavior
@@ -67,28 +68,21 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   override def onMessage(msg: EventMessage): Behavior[EventMessage] = {
     msg match {
-      case x: StartEventSubscription => subscribeEventMsg()
-      case x: hcdLocationChanged     =>
-        // log.info(s"Changed HCD Location is : ${x.hcdLocation}")
+      case _: StartEventSubscription => subscribeEventMsg()
+      case x: hcdLocationChanged =>
         EventHandlerActor.createObject(eventService, x.hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
-
       case x: PublishHCDState => publishReceivedEvent(x.event)
-
-      case x: StartPublishingDummyEvent =>
-        //publishDummyEventFromAssembly()
-        //log.error(s"HCDLocation in publishDummyEvent is $hcdLocation")
+      case _: StartPublishingDummyEvent =>
         EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
-
       case _ =>
         log.error(s"************************ Received unknown message  in EventHandlerActor $msg *********************")
         EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
-
     }
   }
 
   private def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
     eventPublisher.publish(event)
-    log.info(s"Published event : $event")
+//    log.info(s"Published event : $event")
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -107,15 +101,10 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     msg match {
       case systemEvent: SystemEvent =>
-        //TODO : This time difference addition code is temporary it must removed once performance measurement is done
-        //log.info(s"Received event : $systemEvent")
-        val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
-        /*log.info(
-            s"** Received position demands to mcs Assmebly at : ${event.get(EventHandlerConstants.TimeStampKey).get.head}, ${System.currentTimeMillis()}"
-          )*/
+        // log.info(s"Received event : $systemEvent")
+        val event        = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(systemEvent.eventTime.time))
         val currentState = eventTransformer.getCurrentState(event)
         currentStatePublisher.publish(currentState)
-      //log.info(s"Published demands current state : ${currentState}")
       case _ => log.error(s"Unable to map received position demands from tpk assembly to systemEvent: $msg")
     }
     Future.successful("Successfully sent positionDemand by CurrentStatePublisher")
@@ -126,7 +115,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
   private def sendEventByEventPublisher(msg: Event): Future[_] = {
     msg match {
       case systemEvent: SystemEvent =>
-        val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
+        val event = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(Instant.now()))
         log.info(s" *** publishing positionDemand event: $msg from EventHandlerActor *** ")
         eventPublisher.publish(event)
     }
@@ -146,7 +135,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     msg match {
       case systemEvent: SystemEvent =>
-        val event                          = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(System.currentTimeMillis()))
+        val event                          = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(Instant.now()))
         val controlCommand: ControlCommand = eventTransformer.getOneWayCommandObject(event)
         //log.info(s"Transformed oneWay command object is: $controlCommand")
         hcdLocation match {
@@ -173,12 +162,10 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
     //new Thread(new Runnable { override def run(): Unit = sendDummyEvent }).start()
 
   }
-  def sendDummyEvent() = {
+  def sendDummyEvent(): Unit = {
     while (true) {
       Thread.sleep(80000)
-      log.info(s"Publishing Dummy event from assembly current time is : ${Calendar.getInstance.getTime}")
       val event: SystemEvent = eventTransformer.getDummyAssemblyEvent()
-      // eventPublisher.map(publisher => publisher.publish(event, 30.seconds))
       eventPublisher.publish(event, 80.seconds)
       log.info("Successfully published dummy event from assembly")
     }

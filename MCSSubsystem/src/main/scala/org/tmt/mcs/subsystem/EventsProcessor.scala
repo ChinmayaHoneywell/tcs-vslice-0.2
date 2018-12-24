@@ -4,6 +4,7 @@ import java.lang.Double.{doubleToLongBits, longBitsToDouble}
 import java.time.Instant
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
+import com.google.protobuf.Timestamp
 import org.tmt.mcs.subsystem.protos.TcsMcsEventsProtos
 import org.tmt.mcs.subsystem.protos.TcsMcsEventsProtos.{McsCurrentPositionEvent, McsDriveStatus, MountControlDiags, TcsPositionDemandEvent}
 import org.zeromq.ZMQ
@@ -33,13 +34,13 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   def initialize(addr: String, pubSocketPort : Int, subSocketPort : Int) : Unit = {
     val pubSocketAddr = addr + pubSocketPort
     pubSocket.bind(pubSocketAddr)
-    println(s"MCS Simulator  is publishing events on : ${pubSocketAddr}")
+    println(s"MCS Simulator  is publishing events on : $pubSocketAddr")
 
 
     val subSocketAddr = addr + subSocketPort
     subSocket.connect(subSocketAddr)
     subSocket.subscribe(ZMQ.SUBSCRIPTION_ALL)
-    println(s"MCS Simulator is subscribing on : ${subSocketAddr}")
+    println(s"MCS Simulator is subscribing on : $subSocketAddr")
 
   }
   def updateCurrPosPublisher(value : Boolean): Unit ={
@@ -58,61 +59,61 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   def startPublishingCurrPos(): Unit ={
 
-   /* var elC: Double = 0
-    var azC: Double = 0*/
-
+    var elC: Double = 0
+    var azC: Double = 0
+    def updateElC() = {
+      if (elC >= longBitsToDouble(this.elPosDemand.get())) {
+        elC = this.elPosDemand.get()
+      } else if (longBitsToDouble(this.elPosDemand.get()) > 0.0) {
+        // demanded positions are positive
+        elC = elC + 0.0005
+      } else {
+        // for -ve demanded el positions
+        elC = elC - 0.0005
+      }
+      println(s"Updated el position is : $elC")
+    }
+    def updateAzC = {
+      if (azC >= longBitsToDouble(this.azPosDemand.get())) {
+        azC = this.azPosDemand.get()
+      } else if (longBitsToDouble(this.azPosDemand.get()) > 0.0) {
+        //for positive demanded positions
+        azC = azC + 0.0005
+      } else {
+        azC = azC - 0.0005
+      }
+      println(s"Updated az position is : $azC")
+    }
     while(this.currentPosPublisher.get()){
-      Thread.sleep(10)
-      //println("Current position publisher thread started publishing")
-   /*   def getElCurrent() = {
-        if (elC == longBitsToDouble(this.elPosDemand.get())) {
-          elC = this.elPosDemand.get()
-        } else if (longBitsToDouble(this.elPosDemand.get()) > 0.0) {
-          // demanded positions are positive
-          elC = elC + 0.05
-        } else {
-          // for -ve demanded el positions
-          elC = elC - 0.05
-        }
-      }
-      def getCurrAz = {
-        if (azC == longBitsToDouble(this.azPosDemand.get())) {
-          azC = this.azPosDemand.get()
-        } else if (longBitsToDouble(this.azPosDemand.get()) > 0.0) {
-          //for positive demanded positions
-          azC = azC + 0.05
-        } else {
-          azC = azC - 0.05
-        }
-      }
-      getElCurrent
-      getCurrAz*/
-      //println(s"Publishing Az position : $azC and el position : $elC demanded az : ${longBitsToDouble(this.azPosDemand.get())}, el : ${longBitsToDouble(this.elPosDemand.get())}")
+      Thread.sleep(100)
+      val instant = Instant.now()
+      val timeStamp = Timestamp.newBuilder.setSeconds(instant.getEpochSecond).setNanos(instant.getNano).build()
+
       val mcsCurrentPosition : McsCurrentPositionEvent =  TcsMcsEventsProtos.McsCurrentPositionEvent.newBuilder()
-        .setAzPos(longBitsToDouble(this.azPosDemand.get()))
-        .setElPos(longBitsToDouble(this.elPosDemand.get()))
-        .setAzPosError(longBitsToDouble(this.azPosDemand.get()) )
-        .setElPosError(longBitsToDouble(this.elPosDemand.get()) )
+        .setAzPos(azC)
+        .setElPos(elC)
+        .setAzPosError(azC)
+        .setElPosError(elC)
         .setAzInPosition(true)
         .setElInPosition(true)
-        .setTime(Instant.now().toEpochMilli)
+        .setTime(timeStamp)
         //All dummy paramters below
         .setMcsInPosition(true)
-        .setAzPosDemand(longBitsToDouble(this.azPosDemand.get()) )
-        .setElPosDemand(longBitsToDouble(this.elPosDemand.get()))
-        .setEncodeLatchingTime(Instant.now().toEpochMilli)
+        .setAzPosDemand(azC)
+        .setElPosDemand(elC)
+        .setEncodeLatchingTime(timeStamp)
         .setAzPosDmdErrCount(1)
         .setElPosDmdErrCount(1)
-        .setAzWrapPos(longBitsToDouble(this.azPosDemand.get()))
-        .setAzWrapPosDemand(longBitsToDouble(this.azPosDemand.get()))
-        .setAzWrapPosError(longBitsToDouble(this.azPosDemand.get()))
+        .setAzWrapPos(azC)
+        .setAzWrapPosDemand(azC)
+        .setAzWrapPosError(azC)
         .build()
 
       //println("Publishing currentPosition : "+mcsCurrentPosition)
       if(pubSocket.sendMore("CurrentPosition")){
         println("Sent event: mcsCurrentPosition to MCS")
         if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
-          println(s"Published currentPosition: ${mcsCurrentPosition} event data")
+          println(s"Published currentPosition: $mcsCurrentPosition event data")
         }else{
           println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
         }
@@ -126,11 +127,13 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     //println("Publish Drive State Thread started")
     while(true) {
       Thread.sleep(1000)
+      val instant = Instant.now()
+      val timeStamp = Timestamp.newBuilder.setSeconds(instant.getEpochSecond).setNanos(instant.getNano).build()
       val driveStatus : McsDriveStatus = TcsMcsEventsProtos.McsDriveStatus.newBuilder()
         .setAzstate(McsDriveStatus.Azstate.az_following)
         .setElstate(McsDriveStatus.Elstate.el_following)
             .setLifecycle(McsDriveStatus.Lifecycle.running)
-        .setTime(Instant.now().toEpochMilli)
+        .setTime(timeStamp)
         .build()
       if(pubSocket.sendMore("DriveStatus")){
         pubSocket.send(driveStatus.toByteArray,ZMQ.NOBLOCK)
@@ -158,10 +161,12 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     while(this.healthPublisher.get()){
       Thread.sleep(1000)
      // println("Publishing Health information thread started.")
+      val instant = Instant.now()
+      val timeStamp = Timestamp.newBuilder.setSeconds(instant.getEpochSecond).setNanos(instant.getNano).build()
       val mcsHealth = TcsMcsEventsProtos.McsHealth.newBuilder()
         .setHealth(TcsMcsEventsProtos.McsHealth.Health.Good)
         .setReason("All is well")
-        .setTime(Instant.now().toEpochMilli)
+        .setTime(timeStamp)
         .build()
 
       if(pubSocket.sendMore("Health")){
@@ -196,19 +201,16 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   }
 */
   //Position Demands will be ignored if MCS is not in follow state
-  def subscribePositionDemands : Unit = {
-
+  def subscribePositionDemands() : Unit = {
     while (this.posDemandSubScriber.get()) {
-     // println("Subscribe position Demands thread started")
       val eventName: String = subSocket.recvStr()
-    //  println(s"Received : ${eventName} from MCS")
       if (subSocket.hasReceiveMore) {
         val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
         val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
         this.azPosDemand.set(doubleToLongBits(positionDemand.getAzimuth))
-        this.elPosDemand.set(doubleToLongBits((positionDemand.getElevation)))
-       /* println(s"Start,${longBitsToDouble(this.azPosDemand.get())},${longBitsToDouble(this.elPosDemand.get())},${positionDemand.getTpkPublishTime}," +
-          s"${positionDemand.getAssemblyReceivalTime},${positionDemand.getHcdReceivalTime},${System.currentTimeMillis()},Done")*/
+        this.elPosDemand.set(doubleToLongBits(positionDemand.getElevation))
+       println(s"Start,${longBitsToDouble(this.azPosDemand.get())},${longBitsToDouble(this.elPosDemand.get())},${positionDemand.getTpkPublishTime}," +
+          s"${positionDemand.getAssemblyReceivalTime},${positionDemand.getHcdReceivalTime},${System.currentTimeMillis()},Done")
       }else{
         println("Didn't get any position demands yet.")
       }
