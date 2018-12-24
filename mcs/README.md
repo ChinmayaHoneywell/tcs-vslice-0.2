@@ -78,7 +78,7 @@ e.g.
 ### Start the MCS Assembly
 
 `cd MCS-deploy/target/universal/stage/bin`  
-`./MCS-container-cmd-app --local ../../../../src/main/resources/MCSContainer.conf`
+`./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf`
 
 ### Run the Client App
 
