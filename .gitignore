@@ -100,6 +100,7 @@ enc/enc-hcd/target/**
 enc/project/project/**
 enc/project/target/**
 enc/target/**
+enc/.idea
 
 mcs/mcs-assembly/target/**
 mcs/mcs-deploy/target/**
