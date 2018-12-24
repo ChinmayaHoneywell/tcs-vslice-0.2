@@ -167,10 +167,10 @@ public class SimpleSimulator {
     public void setDemandPosition(DemandPosition demandPosition) {
         this.demandPosition = demandPosition;
         Instant subsystemTime = Instant.now();
-        long clientToAssemblyDuration = Duration.between(demandPosition.getClientTime(), demandPosition.getAssemblyTime()).toMillis();
-        long clientToHcdDuration = Duration.between(demandPosition.getClientTime(), demandPosition.getHcdTime()).toMillis();
-        long clientTosubsystemDuration = Duration.between(demandPosition.getClientTime(), subsystemTime).toMillis();
-        long assemblyToHcdDuration = Duration.between(demandPosition.getAssemblyTime(), demandPosition.getHcdTime()).toMillis();
+        long clientToAssemblyDuration = Duration.between(demandPosition.getClientTime(), demandPosition.getAssemblyTime()).toNanos();
+        long clientToHcdDuration = Duration.between(demandPosition.getClientTime(), demandPosition.getHcdTime()).toNanos();
+        long clientTosubsystemDuration = Duration.between(demandPosition.getClientTime(), subsystemTime).toNanos();
+        long assemblyToHcdDuration = Duration.between(demandPosition.getAssemblyTime(), demandPosition.getHcdTime()).toNanos();
         this.printStream.println("Event=Demand Position "+", "+ "Base="+demandPosition.getBase() + ", "+ "Cap="+demandPosition.getCap() + ", " + "Pointing Kernel Time="+demandPosition.getClientTime() + ", " +"Assembly Time=" + demandPosition.getAssemblyTime()+ ", " +"HCD Time="+ demandPosition.getHcdTime() + ", " + "Subsystem Time ="+ subsystemTime + ", " + "Duration(PKA to ENCA in ms)= "+ clientToAssemblyDuration + ", " + "Duration(PKA to HCD in ms)= "+ clientToHcdDuration + ", " + "Duration(PKA to Subsystem in ms) = "+ clientTosubsystemDuration + ", " + "Duration(Assembly to HCD in ms)= " + assemblyToHcdDuration);
         System.out.println("Event=Demand Position "+", "+ "Base="+demandPosition.getBase() + ", "+ "Cap="+demandPosition.getCap() + ", " + "Pointing Kernel Time="+demandPosition.getClientTime() + ", " +"Assembly Time=" + demandPosition.getAssemblyTime()+ ", " +"HCD Time="+ demandPosition.getHcdTime() + ", " + "Subsystem Time ="+ subsystemTime + ", " + "Duration(PKA to ENCA in ms)= "+ clientToAssemblyDuration + ", " + "Duration(PKA to HCD in ms)= "+ clientToHcdDuration + ", " + "Duration(PKA to Subsystem in ms) = "+ clientTosubsystemDuration + ", " + "Duration(Assembly to HCD in ms)= " + assemblyToHcdDuration);
 

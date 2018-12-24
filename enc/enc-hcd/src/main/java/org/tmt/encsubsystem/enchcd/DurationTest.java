@@ -26,7 +26,7 @@ public class DurationTest {
 			continue;
 		}
 		
-		System.out.println("Iteration=" + i+" , "+Duration.between(previous, current).toMillis());
+		System.out.println("Iteration=" + i+" , "+Duration.between(previous, current).toNanos());
 
 		long previousNano = System.nanoTime();
 		long currentNano = System.nanoTime();

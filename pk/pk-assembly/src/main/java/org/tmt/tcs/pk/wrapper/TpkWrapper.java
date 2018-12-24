@@ -17,7 +17,7 @@ public class TpkWrapper {
 
     private boolean publishDemands = false;
     private akka.actor.typed.ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor;
-
+    private int counter=0;
     public TpkWrapper(akka.actor.typed.ActorRef<JPkEventHandlerActor.EventMessage> eventHandlerActor){
         this.eventHandlerActor = eventHandlerActor;
     }
@@ -74,7 +74,7 @@ public class TpkWrapper {
             // Below condition will help in preventing TPK Default Demands
             // from getting published and Demand Publishing will start only
             // once New target or Offset Command is being received
-            if (publishDemands) {
+            if (publishDemands && counter++ < 100000) {
                 // System.out.printf("%.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n",
                 // mAz, mEl, base1, cap1, m3R, m3T);
 
@@ -86,6 +86,7 @@ public class TpkWrapper {
 
                 System.out.println("Inside TpkWrapper: rotation is: " + m3Rotation + ": tilt is: " + m3Tilt);
                 publishM3Demand(m3Rotation, m3Tilt);
+
 
             }
         }
