@@ -22,6 +22,12 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
 
     private static final Prefix prefix = new Prefix("tcs.pk");
 
+    private int counterEnc = 0 ;
+    private int counterMcs = 0 ;
+    private int counterM3 = 0 ;
+
+    private static final int LIMIT = 100000;
+
 
     private JPkEventHandlerActor(ActorContext<EventMessage> actorContext, IEventService eventService, JLoggerFactory loggerFactory) {
         this.actorContext = actorContext;
@@ -45,20 +51,35 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
         ReceiveBuilder<EventMessage> builder = receiveBuilder()
                 .onMessage(McsDemandMessage.class,
                         message -> {
-                            log.info("Inside JPkEventHandlerActor: McsDemandMessage Received");
-                            publishMcsDemand(message);
+                            if(this.counterMcs<LIMIT)
+                            {
+                                log.info("Inside JPkEventHandlerActor: McsDemandMessage Received");
+                                publishMcsDemand(message);
+                                this.counterMcs++;
+                            }
                             return Behaviors.same();
                         })
                 .onMessage(EncDemandMessage.class,
                         message -> {
-                            log.info("Inside JPkEventHandlerActor: EncDemandMessage Received");
-                            publishEncDemand(message);
+                          if(this.counterEnc<LIMIT)
+                          {
+                              publishEncDemand(message);
+                              log.info("Inside JPkEventHandlerActor: EncDemandMessage Received");
+                              this.counterEnc++;
+                          }
+
                             return Behaviors.same();
                         })
                 .onMessage(M3DemandMessage.class,
                         message -> {
-                            log.info("Inside JPkEventHandlerActor: M3DemandMessage Received");
-                            publishM3Demand(message);
+                            if(this.counterM3<LIMIT)
+                            {
+                                log.info("Inside JPkEventHandlerActor: M3DemandMessage Received");
+                                publishM3Demand(message);
+                                this.counterM3++;
+                            }
+
+
                             return Behaviors.same();
                         });
         return builder.build();
@@ -84,7 +105,9 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
         Key<Double> capDoubleKey = JKeyType.DoubleKey().make("ecs.cap");
 
         Event event = new SystemEvent(prefix, new EventName("encdemandpositions")).add(baseDoubleKey.set(message.getBase())).add(capDoubleKey.set(message.getCap()));
+
         eventService.defaultPublisher().publish(event);
+
     }
 
     private void publishM3Demand(M3DemandMessage message) {
