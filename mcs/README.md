@@ -82,7 +82,7 @@ e.g.
 
 ### Run the Client App
 
-`cd MCS-deploy/target/universal/stage/bin`  
+`cd mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`
 
 Client app sends setSimulationMode,startup,Datum,Follow commands to MCS Assembly.  
