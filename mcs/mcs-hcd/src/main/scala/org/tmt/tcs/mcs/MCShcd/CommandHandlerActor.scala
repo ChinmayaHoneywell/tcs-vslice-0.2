@@ -8,14 +8,7 @@ import csw.params.commands.CommandResponse.{SubmitResponse, ValidateCommandRespo
 import csw.params.commands.{CommandResponse, ControlCommand}
 import csw.params.core.generics.Parameter
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
-import org.tmt.tcs.mcs.MCShcd.workers.{
-  DatumCmdActor,
-  FollowCmdActor,
-  PointCmdActor,
-  PointDemandCmdActor,
-  ShutdownCmdActor,
-  StartupCmdActor
-}
+import org.tmt.tcs.mcs.MCShcd.workers._
 
 import scala.concurrent.ExecutionContextExecutor
 import org.tmt.tcs.mcs.MCShcd.HCDCommandMessage.{submitCommand, ImmediateCommand, SimulatorMode}
@@ -85,6 +78,13 @@ case class CommandHandlerActor(ctx: ActorContext[HCDCommandMessage],
   }
   private def processSubmitCommand(cmdMessage: submitCommand): Behavior[HCDCommandMessage] = {
     cmdMessage.controlCommand.commandName.name match {
+      case Commands.READCONFIGURATION =>
+        log.info("Received readConf command in HCD commandHandler")
+        val readConfCmdActor: ActorRef[ControlCommand] = ctx.spawnAnonymous(
+          ReadConfCmdActor.create(commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory)
+        )
+        readConfCmdActor ! cmdMessage.controlCommand
+        Behavior.same
       case Commands.STARTUP =>
         log.info("Starting MCS HCD")
         val startupCmdActor: ActorRef[ControlCommand] = ctx.spawn(

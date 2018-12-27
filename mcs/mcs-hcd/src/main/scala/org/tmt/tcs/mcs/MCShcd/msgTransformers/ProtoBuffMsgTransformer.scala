@@ -68,12 +68,13 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
   override def encodeMessage(controlCommand: ControlCommand): Array[Byte] = {
 
     controlCommand.commandName.name match {
-      case Commands.FOLLOW       => getFollowCommandBytes
-      case Commands.DATUM        => getDatumCommandBytes(controlCommand)
-      case Commands.POINT        => getPointCommandBytes(controlCommand)
-      case Commands.POINT_DEMAND => getPointDemandCommandBytes(controlCommand)
-      case Commands.STARTUP      => getStartupCommandBytes
-      case Commands.SHUTDOWN     => getShutdownCommandBytes
+      case Commands.FOLLOW            => getFollowCommandBytes
+      case Commands.DATUM             => getDatumCommandBytes(controlCommand)
+      case Commands.POINT             => getPointCommandBytes(controlCommand)
+      case Commands.POINT_DEMAND      => getPointDemandCommandBytes(controlCommand)
+      case Commands.STARTUP           => getStartupCommandBytes
+      case Commands.SHUTDOWN          => getShutdownCommandBytes
+      case Commands.READCONFIGURATION => getReadConfCmdBytes
     }
   }
   override def encodeCurrentState(currentState: CurrentState): Array[Byte] = {
@@ -144,7 +145,11 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     event.toByteArray
 
   }
+  def getReadConfCmdBytes: Array[Byte] = {
+    val command: ReadConfiguration = ReadConfiguration.newBuilder().build()
+    command.toByteArray
 
+  }
   def getFollowCommandBytes: Array[Byte] = {
     val command: FollowCommand = FollowCommand.newBuilder().build()
     command.toByteArray

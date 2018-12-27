@@ -1,7 +1,9 @@
 package org.tmt.tcs.mcs.MCSdeploy
 
+import java.io._
 import java.net.InetAddress
-import java.time.Instant
+import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.format.DateTimeFormatter
 
 import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
 import akka.stream.ActorMaterializer
@@ -51,6 +53,7 @@ object MCSMainApp extends App {
   private val axesKey: Key[String] = KeyType.StringKey.make("axes")
   private val azKey: Key[Double]   = KeyType.DoubleKey.make("AZ")
   private val elKey: Key[Double]   = KeyType.DoubleKey.make("EL")
+  // private val filePathKey : Key[String] = KeyType.StringKey.make("FILEPATH")
 
   /**
    * Gets a reference to the running assembly from the location service, if found.
@@ -70,10 +73,17 @@ object MCSMainApp extends App {
 
 //  var count: Integer = 0
   var simulationMode = "SimpleSimulator"
-  val resp0          = sendSimulationModeCommand(simulationMode)
-  val resp1          = sendStartupCommand()
-  val resp2          = sendDatumCommand()
-  val resp3          = sendFollowCommand()
+  try {
+    val resp0 = sendSimulationModeCommand(simulationMode)
+    val resp1 = sendStartupCommand()
+    val resp2 = sendDatumCommand()
+    val resp3 = sendFollowCommand()
+  } catch {
+    case e: Exception =>
+      e.printStackTrace()
+
+  }
+
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
   //println(s"Move command response is : $resp4 at : ${System.currentTimeMillis()}")
 
@@ -93,7 +103,49 @@ object MCSMainApp extends App {
     s"===========================================Command set completed ============================================================================="
   )
 
+  val currPosLogFile: File = new File(
+    "/home/tmt_tcs_2/LogFiles/scenario3/CurrentPosition_" + System.currentTimeMillis() + "_.txt"
+  )
+  currPosLogFile.createNewFile()
+  var currPosCounter: Long     = 0
+  val printStream: PrintStream = new PrintStream(new FileOutputStream(currPosLogFile))
+  this.printStream.println(
+    "Simulator publish timeStamp(t0),HCD receive timeStamp(t1),Assembly receive timeStamp(t2),ClientApp receive timeStamp(t3)"
+  )
+
   startSubscribingEvents()
+
+  val clientAppCmdFile: File = new File(
+    "/home/tmt_tcs_2/LogFiles/scenario3/ClientAppCmdTime_" + System.currentTimeMillis() + "_.txt"
+  )
+  clientAppCmdFile.createNewFile()
+  var cmdCounter: Long            = 0
+  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(clientAppCmdFile))
+  this.cmdPrintStream.println("ClientApp cmd Name,clientApp Publish Timestamp")
+
+  sendReadConfCommand()
+
+  def sendReadConfCommand()(implicit ec: ExecutionContext): Unit = {
+    val commandService    = getAssembly
+    val clientLogFilePath = clientAppCmdFile.getPath
+    println(s"cmd log file path is : $clientLogFilePath")
+    while (cmdCounter <= 100000) {
+      cmdCounter = cmdCounter + 1
+      val setup            = Setup(prefix, CommandName(DeployConstants.READ_CONFIGURATION), None)
+      val readConfSentTime = getDate()
+      val response         = Await.result(commandService.submit(setup), 10.seconds)
+      val cmdName          = setup.commandName.name + "_" + cmdCounter
+      println(s"Response for command : $cmdName is $response")
+      this.cmdPrintStream.println(s"$cmdName,$readConfSentTime")
+    }
+    println("Successfully sent 1,00,000 commands to assembly stopped sending commands now.")
+  }
+  def getDate(): String = {
+    LocalDateTime.ofInstant(Instant.now(), ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
+  }
+  def getDate(instant: Instant) = {
+    LocalDateTime.ofInstant(instant, ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
+  }
 
   def startSubscribingEvents(): Unit = {
     println(" ** Started subscribing Events from Assembly ** ")
@@ -109,7 +161,7 @@ object MCSMainApp extends App {
   }
   def processHealth(event: Event): Future[_] = {
     // println(s"*** Received health event: $event from assembly *** ")
-    val clientAppRecTime = System.currentTimeMillis()
+    val clientAppRecTime = Instant.now()
     event match {
       case systemEvent: SystemEvent =>
         val params                               = systemEvent.paramSet
@@ -117,25 +169,49 @@ object MCSMainApp extends App {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-      // println(s"Health, $simulatorPublishTime, $hcdReceiveTime, $assemblyRecTime, $clientAppRecTime")
+      //println(s"Health, $simulatorPublishTime, $hcdReceiveTime, $assemblyRecTime, $clientAppRecTime")
     }
     Future.successful[String]("Successfully processed Health event from assembly")
   }
   def processCurrentPosition(event: Event): Future[_] = {
-    val clientAppRecTime = Instant.now()
-    // println(s"** Received current position Event : ${event} at client app receival time is : ${today} ** ")
-    event match {
-      case systemEvent: SystemEvent =>
-        val params                               = systemEvent.paramSet
-        val azPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
-        val elPosParam: Parameter[_]             = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
-        val simulatorSentTimeParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
-        val simulatorPublishTime                 = simulatorSentTimeParam.head
-        val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
-        val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        println(
-          s"CurrentPosition:, $azPosParam, $elPosParam,  $simulatorPublishTime,$hcdReceiveTime, $assemblyRecTime,$clientAppRecTime"
-        )
+    currPosCounter = currPosCounter + 1
+    if (currPosCounter <= 100000) {
+      val clientAppRecTime = Instant.now()
+      event match {
+        case systemEvent: SystemEvent =>
+          val params                   = systemEvent.paramSet
+          val azPosParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
+          val elPosParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
+          val simulatorSentTimeParam   = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
+          val simulatorPublishTime     = simulatorSentTimeParam.head
+          val hcdReceiveTime           = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
+          val assemblyRecTime          = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
+          var simPubStr: String        = ""
+          var hcdRecStr: String        = ""
+          var assemblyReStr: String    = ""
+          var clientAppRecStr: String  = ""
+
+          simulatorPublishTime match {
+            case x: Instant => simPubStr = getDate(x)
+          }
+          hcdReceiveTime match {
+            case x: Instant => hcdRecStr = getDate(x)
+          }
+          assemblyRecTime match {
+            case x: Instant => assemblyReStr = getDate(x)
+          }
+          clientAppRecTime match {
+            case x: Instant => clientAppRecStr = getDate(x)
+          }
+          this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
+        /* println(
+            s"CurrentPosition:, $azPosParam, $elPosParam,${simPubStr.trim},${hcdRecStr.trim}, ${assemblyReStr.trim},${clientAppRecStr.trim}"
+          )*/
+      }
+
+    } else {
+      println("Stopped subscribing events as counter reached 1,00,000")
+      Thread.sleep(10000)
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
   }

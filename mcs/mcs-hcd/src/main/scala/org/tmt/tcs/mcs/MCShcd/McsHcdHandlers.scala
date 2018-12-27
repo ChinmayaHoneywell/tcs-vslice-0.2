@@ -1,13 +1,14 @@
 package org.tmt.tcs.mcs.MCShcd
 
-import java.time.Instant
+import java.io.{File, FileOutputStream, PrintStream}
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.util.Timeout
 import csw.framework.scaladsl.ComponentHandlers
 import csw.command.client.messages.TopLevelActorMessage
-import csw.params.commands._
+import csw.params.commands.{ControlCommand, _}
 import org.tmt.tcs.mcs.MCShcd.EventMessage._
 import org.tmt.tcs.mcs.MCShcd.LifeCycleMessage.ShutdownMsg
 import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
@@ -29,6 +30,7 @@ import org.tmt.tcs.mcs.MCShcd.workers.PositionDemandActor
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.language.postfixOps
 //import akka.pattern.ask
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
@@ -97,7 +99,6 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     //TODO : Commenting this for testing oneWayCommandExecution and CurrentStatePublisher
 
     if (connectToSimulator(lifecycleMsg)) {
-      //statePublisherActor ! StartEventSubscription(zeroMQProtoActor, simpleSimActor)
       statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Initialized, HCDOperationalState.DrivePowerOff)
     } else {
       log.error(msg = s"Unable to connect with MCS Simulator")
@@ -153,11 +154,12 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
   override def validateCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
     // log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
-      case Commands.DATUM        => validateDatumCommand(controlCommand)
-      case Commands.FOLLOW       => validateFollowCommand(controlCommand)
-      case Commands.POINT        => validatePointCommand(controlCommand)
-      case Commands.POINT_DEMAND => validatePointDemandCommand(controlCommand)
-      // position demands command is used during one way command tpk position demands
+      case Commands.DATUM  => validateDatumCommand(controlCommand)
+      case Commands.FOLLOW => validateFollowCommand(controlCommand)
+      case Commands.POINT =>
+        validatePointCommand(controlCommand)
+      case Commands.POINT_DEMAND        => validatePointDemandCommand(controlCommand)
+      case Commands.READCONFIGURATION   => Accepted(controlCommand.runId)
       case Commands.POSITION_DEMANDS    => Accepted(controlCommand.runId)
       case Commands.STARTUP             => Accepted(controlCommand.runId)
       case Commands.SHUTDOWN            => Accepted(controlCommand.runId)
@@ -444,6 +446,16 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     positionDemandActor ! controlCommand
     Completed(controlCommand.runId)
   }
+
+  val hcdCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_HCD" + System.currentTimeMillis() + "_.txt")
+  hcdCmdFile.createNewFile()
+  var cmdCounter: Long            = 0
+  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(hcdCmdFile))
+  this.cmdPrintStream.println("HCDReceiveTimeStamp")
+
+  def getDate(instant: Instant): String =
+    LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
+
   /*
        This functions routes all commands to commandhandler actor and bsed upon command execution updates states of HCD by sending it
        to StatePublisher actor
@@ -454,7 +466,13 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
       case Commands.STARTUP =>
         commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         statePublisherActor ! StateChangeMsg(HCDLifeCycleState.Running, HCDOperationalState.DrivePowerOff)
+        //This should be used in case of assembly to hcd position demands communication by eventservice
+        // statePublisherActor ! StartEventSubscription(zeroMQProtoActor, simpleSimActor)
         log.info("On receipt of startup command changing MCS HCD state to Running")
+        Started(controlCommand.runId)
+      case Commands.READCONFIGURATION =>
+        this.cmdPrintStream.println(getDate(Instant.now()).trim)
+        commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         Started(controlCommand.runId)
       case Commands.SHUTDOWN =>
         commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)

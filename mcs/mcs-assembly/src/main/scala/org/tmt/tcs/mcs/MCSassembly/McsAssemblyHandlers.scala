@@ -1,5 +1,8 @@
 package org.tmt.tcs.mcs.MCSassembly
 
+import java.io.{File, FileOutputStream, PrintStream}
+import java.time.{Instant, LocalDateTime, ZoneId}
+
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import csw.framework.scaladsl.ComponentHandlers
@@ -73,6 +76,12 @@ class McsAssemblyHandlers(
     "CommandHandlerActor"
   )
 
+  val AssemblyCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_Assembly" + System.currentTimeMillis() + "_.txt")
+  AssemblyCmdFile.createNewFile()
+  var cmdCounter: Long            = 0
+  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(AssemblyCmdFile))
+  this.cmdPrintStream.println("AssemblyReciveTimestamp")
+
   /*
   This function is CSW in built initalization function
   1. It sends initializeMsg() to  LifecycleActor
@@ -83,7 +92,7 @@ class McsAssemblyHandlers(
     log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
     //eventHandlerActor ! StartPublishingDummyEvent()
-    eventHandlerActor ! StartEventSubscription()
+    //eventHandlerActor ! StartEventSubscription()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
   /*
@@ -111,7 +120,7 @@ class McsAssemblyHandlers(
     commandHandlerActor ! updateHCDLocation(hcdLocation)
     log.error(s"Sending hcdLocation:$hcdLocation to eventHandlerActor")
     eventHandlerActor ! hcdLocationChanged(hcdLocation)
-    eventHandlerActor ! StartEventSubscription()
+    //eventHandlerActor ! StartEventSubscription()
   }
 
   override def validateCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
@@ -126,6 +135,7 @@ class McsAssemblyHandlers(
       case Commands.STARTUP             => Accepted(controlCommand.runId)
       case Commands.SHUTDOWN            => Accepted(controlCommand.runId)
       case Commands.SET_SIMULATION_MODE => Accepted(controlCommand.runId)
+      case Commands.READCONFIGURATION   => Accepted(controlCommand.runId)
       case x                            => Invalid(controlCommand.runId, UnsupportedCommandIssue(s"Command $x is not supported"))
     }
   }
@@ -287,11 +297,21 @@ class McsAssemblyHandlers(
                                 WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }
   }
-
+  def getDate(instant: Instant) = {
+    LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
+  }
   override def onSubmit(controlCommand: ControlCommand): SubmitResponse = {
     controlCommand.commandName.name match {
+      case Commands.STARTUP =>
+        eventHandlerActor ! StartEventSubscription()
+        commandHandlerActor ! submitCommandMsg(controlCommand)
+        Started(controlCommand.runId)
       case Commands.FOLLOW              => executeFollowCommandAndSendResponse(controlCommand)
       case Commands.SET_SIMULATION_MODE => executeSimModeAndSendResp(controlCommand)
+      case Commands.READCONFIGURATION =>
+        this.cmdPrintStream.println(getDate(Instant.now()).trim)
+        commandHandlerActor ! submitCommandMsg(controlCommand)
+        Started(controlCommand.runId)
       case _ =>
         commandHandlerActor ! submitCommandMsg(controlCommand)
         Started(controlCommand.runId)

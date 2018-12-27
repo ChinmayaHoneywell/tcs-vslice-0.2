@@ -2,7 +2,9 @@ package org.tmt.mcs.subsystem
 
 
 
-import java.time.Instant
+import java.io.{File, FileOutputStream, PrintStream}
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 import com.google.protobuf.Timestamp
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse.CmdError
@@ -21,6 +23,12 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
   private var azDemanded : Double = 180
   private var elDemanded : Double = 90
 
+  val realSimCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_RealSim" + System.currentTimeMillis() + "_.txt")
+  realSimCmdFile.createNewFile()
+  var cmdCounter: Long            = 0
+  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(realSimCmdFile))
+  this.cmdPrintStream.println("RealSimRecvTimeStamp")
+
   def initialize(addr: String, pushSocketPort: Int, pullSocketPort: Int): Unit = {
     println("Initializing MCS subsystem ZeroMQ command Processor")
 
@@ -31,8 +39,6 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
     val pushSocketAddr = addr + pushSocketPort
     println(s"push socket address is : $pushSocketAddr")
     pushSocket.bind(pushSocketAddr)
-
-
   }
 
   def processCommand(): Unit = {
@@ -70,16 +76,11 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
  }
   def updateSimulator(commandName : String):Unit = {
       commandName match {
+        case "ReadConfiguration" =>
+          this.cmdPrintStream.println(getDate(Instant.now()).trim)
         case "Startup" =>
-          new Thread(new Runnable {
-            override def run(): Unit =  eventProcessor.startPublishingCurrPos()
-          }).start()
-
-
-          new Thread(new Runnable {
-            override def run(): Unit = eventProcessor.startPublishingHealth()
-          }).start()
-
+        eventProcessor.startPublishingCurrPos()
+          eventProcessor.startPublishingHealth()
         case "ShutDown" =>
           eventProcessor.updateCurrPosPublisher(false)
           eventProcessor.updateHealthPublisher(false)
@@ -90,5 +91,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
       }
   }
 
-
+  val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+  val zoneFormat: String           = "UTC"
+  def getDate(instant: Instant) =  LocalDateTime.ofInstant(instant, ZoneId.of(zoneFormat)).format(formatter)
 }

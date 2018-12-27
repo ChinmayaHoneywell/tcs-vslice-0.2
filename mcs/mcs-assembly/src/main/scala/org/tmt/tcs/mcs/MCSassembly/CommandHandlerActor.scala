@@ -85,11 +85,19 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       case Commands.STARTUP  => handleStartupCommand(msg)
       case Commands.SHUTDOWN => handleShutDownCommand(msg)
 
-      case Commands.DATUM      => handleDatumCommand(msg)
-      case Commands.MOVE       => handleMoveCommand(msg)
-      case Commands.DUMMY_LONG => commandResponseManager.addOrUpdateCommand(CommandResponse.Completed(msg.controlCommand.runId))
-      case _                   => log.error(msg = s"Incorrect command : $msg is sent to MCS Assembly CommandHandlerActor")
+      case Commands.DATUM             => handleDatumCommand(msg)
+      case Commands.MOVE              => handleMoveCommand(msg)
+      case Commands.DUMMY_LONG        => commandResponseManager.addOrUpdateCommand(CommandResponse.Completed(msg.controlCommand.runId))
+      case Commands.READCONFIGURATION => handleReadConfCmd(msg)
+      case _                          => log.error(msg = s"Incorrect command : $msg is sent to MCS Assembly CommandHandlerActor")
     }
+  }
+
+  def handleReadConfCmd(msg: submitCommandMsg) = {
+    log.info(msg = "Sending  ReadConf command to ReadCmdActor")
+    val readCmdActor: ActorRef[ControlCommand] =
+      ctx.spawnAnonymous(ReadCmdActor.createObject(commandResponseManager, hcdLocation, loggerFactory))
+    readCmdActor ! msg.controlCommand
   }
   def handleShutDownCommand(msg: submitCommandMsg): Unit = {
     log.info(msg = s"In assembly command Handler Actor submitting shutdown command")

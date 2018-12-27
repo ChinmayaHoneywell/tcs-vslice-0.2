@@ -1,6 +1,7 @@
 package org.tmt.tcs.mcs.MCSdeploy.constants
 
 import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 import csw.params.core.generics.{Key, KeyType}
 import csw.params.core.models.{Prefix, Subsystem}
@@ -8,6 +9,11 @@ import csw.params.events.{EventKey, EventName}
 import org.tmt.tcs.mcs.MCSdeploy.constants.EventConstants._
 
 object DeployConstants {
+
+  val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+  val zoneFormat: String           = "UTC"
+
+  val READ_CONFIGURATION = "ReadConfiguration"
   //Below are set of keys required for subscribing to events
   val PositionDemandKey: Set[EventKey] = Set(
     EventKey(Prefix(EventConstants.TPK_PREFIX), EventName(EventConstants.MOUNT_DEMAND_POSITION))

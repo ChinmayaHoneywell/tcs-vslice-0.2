@@ -1,6 +1,7 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
@@ -14,7 +15,7 @@ import csw.params.events.SystemEvent
 import org.tmt.tcs.mcs.MCShcd.EventMessage
 import org.tmt.tcs.mcs.MCShcd.EventMessage.PublishState
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage._
-import org.tmt.tcs.mcs.MCShcd.constants.EventConstants
+import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import org.tmt.tcs.mcs.MCShcd.msgTransformers._
 import org.zeromq.ZMQ
 sealed trait ZeroMQMessage
@@ -54,6 +55,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private var zeroMQPushSocketStr: String              = ""
   private var zeroMQSubScribeSocketStr: String         = ""
   private var zeroMQPubSocketStr: String               = ""
+  val simEventSubscriber: AtomicBoolean                = new AtomicBoolean(true)
   /*
   1. PublishEvent is used when positionDemand is propagated from Assembly to HCD using CSW EventService.
   2. PublishCurrStateToZeroMQ is used when positionDemand is propagated from Assembly to HCD using CSW CurrentState.
@@ -71,8 +73,21 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         }
         Behavior.same
       case msg: SubmitCommand =>
-        submitCommandToMCS(msg)
-        Behavior.same
+        msg.controlCommand.commandName.name match {
+          case Commands.STARTUP =>
+            submitCommandToMCS(msg)
+            new Thread(() => startSubToSimEvents()).start()
+            log.info("Started subscribing to events from real Simulator.")
+            Behavior.same
+          case Commands.SHUTDOWN =>
+            simEventSubscriber.set(false)
+            log.info("Stopping event subscription from real simulator")
+            submitCommandToMCS(msg)
+            Behavior.same
+          case _ =>
+            submitCommandToMCS(msg)
+            Behavior.same
+        }
       case msg: PublishEvent =>
         val positionDemands: Array[Byte] = messageTransformer.encodeEvent(msg.event)
         if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
@@ -94,18 +109,16 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
 
         }
         Behavior.same
-      case _: StartSimulEventSubscr =>
-        new Thread(() => startSubscrToSimulEvents()).start()
-        log.info("Started subscribing to events from Simulator.")
-        Behavior.same
+
       case _: Disconnect =>
         disconnectFromMCS()
         Behavior.same
     }
   }
-  private def startSubscrToSimulEvents(): Unit = {
-    while (true) {
+  private def startSubToSimEvents(): Unit = {
+    while (simEventSubscriber.get()) {
       val eventName: String = subscribeSocket.recvStr()
+      log.info(s"simEventSubscription : ${simEventSubscriber.get()} and event name is: $eventName ")
       if (subscribeSocket.hasReceiveMore) {
         val eventData       = subscribeSocket.recv(ZMQ.DONTWAIT)
         val hcdReceivalTime = Instant.now

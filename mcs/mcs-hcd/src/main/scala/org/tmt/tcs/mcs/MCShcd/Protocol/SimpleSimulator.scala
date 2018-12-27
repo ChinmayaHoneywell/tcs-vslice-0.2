@@ -1,5 +1,6 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
+import java.io.{File, FileOutputStream, PrintStream}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import akka.actor.typed.{ActorRef, Behavior}
@@ -10,8 +11,8 @@ import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg._
 import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import java.lang.Double.doubleToLongBits
 import java.lang.Double.longBitsToDouble
-import java.time.Instant
-import java.util.concurrent.{Executors, ScheduledExecutorService, ScheduledThreadPoolExecutor, TimeUnit}
+import java.time.{Instant, LocalDateTime, ZoneId}
+import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
 import csw.logging.scaladsl.{Logger, LoggerFactory}
 import csw.params.commands.CommandResponse.SubmitResponse
@@ -57,45 +58,97 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
   val posDemandSubScriber: AtomicBoolean = new AtomicBoolean(true)
 
   val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
-  var currPosCounter: Long                = 0
+
+  val demandPosLogFile: File = new File(
+    "/home/tmt_tcs_2/LogFiles/scenario3/PosDemEventPubSubLog_" + System.currentTimeMillis() + ".txt"
+  )
+  demandPosLogFile.createNewFile()
+  val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+  this.printStream
+    .println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)")
+
+  val simpleSimCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_SimpleSim" + System.currentTimeMillis() + "_.txt")
+  simpleSimCmdFile.createNewFile()
+  var cmdCounter: Long            = 0
+  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(simpleSimCmdFile))
+  this.cmdPrintStream.println("SimpleSimReceiveTimeStamp")
+
+  def getDate(instant: Instant): String =
+    LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
     msg match {
       case msg: ProcessCommand =>
-        //log.info(s"Received command : ${msg.command} in simpleSimulator.")
         updateSimulator(msg.command.commandName.name)
         msg.sender ! SimpleSimResp(CommandResponse.Completed(msg.command.runId))
         Behavior.same
       case msg: ProcOneWayDemand =>
-        val simulatorRecTime                    = System.currentTimeMillis()
+        val simulatorRecTime                    = Instant.now()
         val paramSet                            = msg.command.paramSet
         val azPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS)
         val elPosParam: Option[Parameter[_]]    = paramSet.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS)
         val sentTimeParam: Option[Parameter[_]] = paramSet.find(msg => msg.keyName == EventConstants.TIMESTAMP)
-        val azPos                               = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
-        val elPos                               = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
+        val azPos: Parameter[_]                 = azPosParam.getOrElse(EventConstants.AzPosKey.set(0.0))
+        val elPos: Parameter[_]                 = elPosParam.getOrElse(EventConstants.ElPosKey.set(0.0))
         val sentTime                            = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(Instant.now()))
         val assemblyRecTime                     = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
         val hcdRecTime                          = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
-        log.error(
-          s"${azPos.head}, ${elPos.head}, ${sentTime.head}, ${assemblyRecTime.head}, ${hcdRecTime.head}, $simulatorRecTime"
-        )
+        this.azPosDemand.set(doubleToLongBits(azPos.head.toString().toDouble))
+        this.elPosDemand.set(doubleToLongBits(elPos.head.toString().toDouble))
+        var simPubStr: String      = ""
+        var hcdRecStr: String      = ""
+        var assemblyRecStr: String = ""
+        var pkPublishStr: String   = ""
+
+        simulatorRecTime match {
+          case x: Instant => simPubStr = getDate(x)
+        }
+        hcdRecTime.head match {
+          case x: Instant => hcdRecStr = getDate(x)
+        }
+        assemblyRecTime.head match {
+          case x: Instant => assemblyRecStr = getDate(x)
+        }
+        sentTime.head match {
+          case x: Instant => pkPublishStr = getDate(x)
+        }
+        this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
         Behavior.same
 
       case msg: ProcEventDemand =>
-        val cs               = msg.event
-        val simpleSimRecTime = System.currentTimeMillis()
-        val assemblyRecTime  = cs.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
-        val hcdRecTime       = cs.get(EventConstants.HcdReceivalTime_Key).get.head
-        val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
-        val azPos            = cs.get(EventConstants.AzPosKey).get.head
-        val elPos            = cs.get(EventConstants.ElPosKey).get.head
-        log.error(s"Received event :$azPos, $elPos, $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime")
+        val event            = msg.event
+        val simpleSimRecTime = Instant.now()
+        val assemblyRecTime  = event.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
+        val hcdRecTime       = event.get(EventConstants.HcdReceivalTime_Key).get.head
+        val tpkPublishTime   = event.get(EventConstants.TimeStampKey).get.head
+        val azPos            = event.get(EventConstants.AzPosKey).get.head
+        val elPos            = event.get(EventConstants.ElPosKey).get.head
+        this.azPosDemand.set(doubleToLongBits(azPos))
+        this.elPosDemand.set(doubleToLongBits(elPos))
+        log.info(s"Received event : $msg from Assembly")
+        var simPubStr: String      = ""
+        var hcdRecStr: String      = ""
+        var assemblyRecStr: String = ""
+        var pkPublishStr: String   = ""
+
+        simpleSimRecTime match {
+          case x: Instant => simPubStr = getDate(x)
+        }
+        hcdRecTime match {
+          case x: Instant => hcdRecStr = getDate(x)
+        }
+        assemblyRecTime match {
+          case x: Instant => assemblyRecStr = getDate(x)
+        }
+        tpkPublishTime match {
+          case x: Instant => pkPublishStr = getDate(x)
+        }
+        this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
         Behavior.same
 
       case msg: ProcCurrStateDemand =>
         val cs               = msg.currState
-        val simpleSimRecTime = System.currentTimeMillis()
+        val simpleSimRecTime = Instant.now()
         val assemblyRecTime  = cs.get(EventConstants.ASSEMBLY_RECEIVAL_TIME_KEY).get.head
         val hcdRecTime       = cs.get(EventConstants.HcdReceivalTime_Key).get.head
         val tpkPublishTime   = cs.get(EventConstants.TimeStampKey).get.head
@@ -103,18 +156,34 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
-        log.info(
-          s"Received demanded positions :${longBitsToDouble(this.azPosDemand.get())}, ${longBitsToDouble(this.elPosDemand.get())}," +
-          s" $tpkPublishTime, $assemblyRecTime, $hcdRecTime, $simpleSimRecTime"
-        )
+        var simPubStr: String      = ""
+        var hcdRecStr: String      = ""
+        var assemblyRecStr: String = ""
+        var pkPublishStr: String   = ""
+
+        simpleSimRecTime match {
+          case x: Instant => simPubStr = getDate(x)
+        }
+        hcdRecTime match {
+          case x: Instant => hcdRecStr = getDate(x)
+        }
+        assemblyRecTime match {
+          case x: Instant => assemblyRecStr = getDate(x)
+        }
+        tpkPublishTime match {
+          case x: Instant => pkPublishStr = getDate(x)
+        }
+        this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
         Behavior.same
     }
   }
   def updateSimulator(commandName: String): Unit = {
     commandName match {
+      case Commands.READCONFIGURATION =>
+        this.cmdPrintStream.println(getDate(Instant.now()).trim)
       case Commands.STARTUP =>
-        new Thread(() => startPublishingCurrPos()).start()
-        new Thread(() => startPublishingHealth()).start()
+        startPublishingCurrPos()
+        startPublishingHealth()
         log.info("Starting publish current position and health threads")
       case Commands.SHUTDOWN =>
         updateCurrPosPublisher(false)
@@ -135,7 +204,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
 
   val currentPosRunner = new Runnable {
     override def run(): Unit = {
-     // log.info(s"Publish Current position thread started")
+      // log.info(s"Publish Current position thread started")
       var elC: Double = 0
       var azC: Double = 0
       def updateElC() = {
@@ -159,16 +228,9 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         } else {
           azC = azC - 0.0005
         }
-        //  log.info(s"Updated az position is : $azC")
       }
-      //log.info(s"currentPosPublisher current value is : ${currentPosPublisher.get()}")
-      while (currentPosPublisher.get()) {
+      if (currentPosPublisher.get()) {
 
-        currPosCounter = currPosCounter + 1
-        if (currPosCounter == 100000) {
-          updateCurrPosPublisher(false)
-          log.info("Stopping current position thread as current pos counter reached 1,00,000")
-        }
         updateAzC
         updateElC
         val azPosParam: Parameter[Double] = EventConstants.AzPosKey.set(azC).withUnits(degree)
@@ -183,7 +245,8 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elInPositionParam: Parameter[Boolean] = EventConstants.EL_InPosition_Key.set(true)
         val timestamp                             = EventConstants.TimeStampKey.set(Instant.now())
         /* log.info(
-          s"Publishing Az position : $azC and el position : $elC demanded az : ${azPosDemand.get()}, el : ${elPosDemand.get()}"
+          s"currentPos publisher curr val: ${currentPosPublisher.get()} Az position : $azC and el position : $elC " +
+          s"demanded az : ${azPosDemand.get()}, el : ${elPosDemand.get()}"
         )*/
 
         val currentState = CurrentState(prefix, StateName(EventConstants.CURRENT_POSITION))
@@ -199,14 +262,11 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
     }
   }
 
-  def startPublishingCurrPos(): Unit = {
-    // Thread.sleep(100) //Temporarily taking to 100 from 10
-    scheduler.scheduleWithFixedDelay(currentPosRunner, 10, 10, TimeUnit.MILLISECONDS)
-  }
+  def startPublishingCurrPos(): Unit = scheduler.scheduleWithFixedDelay(currentPosRunner, 10, 10, TimeUnit.MILLISECONDS)
 
   val healthRunner = new Runnable {
     override def run(): Unit = {
-      while (healthPublisher.get()) {
+      if (healthPublisher.get()) {
 
         val healthParam: Parameter[String]       = EventConstants.HEALTH_KEY.set("Good")
         val healthReasonParam: Parameter[String] = EventConstants.HEALTH_REASON_KEY.set("Good Reason")
@@ -215,13 +275,10 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
           .add(healthParam)
           .add(healthReasonParam)
           .add(timestamp)
-        // log.info(s"Health publisher current value is : ${healthPublisher.get()}, publishing health")
+        //log.info(s"Health publisher current value is : ${healthPublisher.get()}, publishing health")
         statePublisherActor ! PublishState(currentState)
       }
     }
   }
-  def startPublishingHealth(): Unit = {
-
-    scheduler.scheduleWithFixedDelay(healthRunner, 1000, 1000, TimeUnit.MILLISECONDS)
-  }
+  def startPublishingHealth(): Unit = scheduler.scheduleWithFixedDelay(healthRunner, 1000, 1000, TimeUnit.MILLISECONDS)
 }

@@ -57,7 +57,7 @@ Clone or download tmtsoftware/tcs-vslice-0.2/MCS to a directory of choice
 
 ### Building the template
 
-`cd tcs-vslice-0.2/MCS`  
+`cd tcs-vslice-0.2/mcs`  
 `sbt stage publishLocal`  
 
 ### Populate configurations for Assembly and HCD
@@ -77,7 +77,7 @@ e.g.
 
 ### Start the MCS Assembly
 
-`cd MCS-deploy/target/universal/stage/bin`  
+`cd mcs-deploy/target/universal/stage/bin`  
 `./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf`
 
 ### Run the Client App
@@ -85,7 +85,7 @@ e.g.
 `cd mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`
 
-Client app sends setSimulationMode,startup,Datum,Follow commands to MCS Assembly.  
+Client app sends setSimulationMode,startup,Datum,Follow,ReadConfiguration commands to MCS Assembly.  
 
 ### Run Junit Tests
 sbt test
