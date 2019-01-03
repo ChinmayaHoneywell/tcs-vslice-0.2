@@ -28,7 +28,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   val azPosDemand : AtomicLong = new AtomicLong(doubleToLongBits(0.0))
   val elPosDemand : AtomicLong = new AtomicLong(doubleToLongBits(0.0))
-  val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+  var scheduler: ScheduledExecutorService = _
 
   val currentPosPublisher : AtomicBoolean = new AtomicBoolean(true)
   val healthPublisher : AtomicBoolean = new AtomicBoolean(true)
@@ -46,22 +46,33 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     println(s"MCS Simulator is subscribing on : $subSocketAddr")
 
   }
-  def updateCurrPosPublisher(value : Boolean): Unit ={
+  def startEventProcessor() : Unit = {
+    this.scheduler = Executors.newScheduledThreadPool(3)
+    startPublishingCurrPos()
+    startPublishingHealth()
+    startSubPosDemands()
+  }
+  def stopEventProcessor() : Unit ={
+    this.scheduler = null
+    updateCurrPosPublisher(false)
+    updateHealthPublisher(false)
+    updatePosDemandSubscriber(false)
+  }
+
+  def updateCurrPosPublisher(value : Boolean): Unit = {
     this.currentPosPublisher.set(value)
     println(s"Updating CurrentPosition to : ${this.currentPosPublisher.get()}")
   }
   def updateHealthPublisher(value : Boolean) : Unit = {
     this.healthPublisher.set(value)
     println(s"health publisher value is : ${this.currentPosPublisher.get()}")
-
   }
   def updatePosDemandSubscriber(value : Boolean): Unit = {
     this.posDemandSubScriber.set(value)
     println(s"PosDemand subscriber value is : ${this.posDemandSubScriber.get()}")
   }
-  val demandPosLogFile: File = new File(
-    "/home/tmt_tcs_2/LogFiles/scenario4/PosDemLogs_" + System.currentTimeMillis() + ".txt"
-  )
+  val logFilePath : String = System.getenv("LogFiles")
+  val demandPosLogFile: File = new File(logFilePath+"/PosDemRealLogs_" + System.currentTimeMillis() + ".txt")
   demandPosLogFile.createNewFile()
   val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
   this.printStream
@@ -120,19 +131,23 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
           .setAzWrapPosDemand(azC)
           .setAzWrapPosError(azC)
           .build()
-
-        //println("Publishing currentPosition : "+mcsCurrentPosition)
-        if(pubSocket.sendMore("CurrentPosition")){
-          println("Sent event: mcsCurrentPosition to MCS")
-          if(pubSocket.send(mcsCurrentPosition.toByteArray,ZMQ.NOBLOCK)){
-            println(s"Published currentPosition: $mcsCurrentPosition event data")
+        try{
+          if(pubSocket.sendMore("CurrentPosition")){
+            val currPos : Array[Byte] = mcsCurrentPosition.toByteArray
+            if(pubSocket.send(currPos)){
+              println(s"Successfully published CurrentPosition event data ${mcsCurrentPosition.getAzPos},${mcsCurrentPosition.getElPos},${mcsCurrentPosition.getTime} and byteArray: $currPos")
+            }else{
+              println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
+            }
           }else{
-            println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
+            println(s"!!!!!!!! Error occured while publishing current position: $mcsCurrentPosition")
           }
-        }else{
-          println(s"!!!!!!!! Error occured while publishing current position: $mcsCurrentPosition")
+        }catch{
+          case e : Exception =>
+            e.printStackTrace()
+            println("------------------- Exception occured while publishing current position event.---------------------------")
         }
-      }
+       }
     }
   }
 
@@ -169,20 +184,23 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }*/
 
-  val healthRunner = new Runnable {
+  val healthRunner : Runnable =  new Runnable {
     override def run(): Unit = {
       if (healthPublisher.get()) {
         val instant = Instant.now()
         val timeStamp = Timestamp.newBuilder.setSeconds(instant.getEpochSecond).setNanos(instant.getNano).build()
         val mcsHealth = TcsMcsEventsProtos.McsHealth.newBuilder()
-          .setHealth(TcsMcsEventsProtos.McsHealth.Health.Good)
+          .setHealthMCS(TcsMcsEventsProtos.McsHealth.Health.Good)
           .setReason("All is well")
           .setTime(timeStamp)
           .build()
 
       if(pubSocket.sendMore("Health")){
-        if(pubSocket.send(mcsHealth.toByteArray,ZMQ.NOBLOCK)){
-          println(s"Successfully published health event ")
+        val healthBytes = mcsHealth.toByteArray
+        //println(s"Sending health events: $mcsHealth with bytes : $healthBytes")
+        if(pubSocket.send(healthBytes)){
+         // println(s"Successfully published health event ")
+          println(s"Sent health event: $mcsHealth with bytes : $healthBytes")
         }else{
           println(s"!!!!!!!! Error occured while publishing health information : $mcsHealth")
         }
@@ -220,24 +238,27 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
  def getDate(instant: Instant) =  LocalDateTime.ofInstant(instant, ZoneId.of(zoneFormat)).format(formatter)
 
   //Position Demands will be ignored if MCS is not in follow state
-  def subscribePositionDemands() : Unit = {
-    while (this.posDemandSubScriber.get()) {
-      val eventName: String = subSocket.recvStr()
-      if (subSocket.hasReceiveMore) {
-        val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
-        val simulatorRecTime = Instant.now()
-        val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
-        this.azPosDemand.set(doubleToLongBits(positionDemand.getAzimuth))
-        this.elPosDemand.set(doubleToLongBits(positionDemand.getElevation))
-        val tpkPublishTimeInstant = Instant.ofEpochSecond(positionDemand.getTpkPublishTime.getSeconds,positionDemand.getTpkPublishTime.getNanos)
-        val assemblyRecTimeInstant = Instant.ofEpochSecond(positionDemand.getAssemblyReceivalTime.getSeconds,positionDemand.getAssemblyReceivalTime.getNanos)
-        val hcdRecTimeInstant = Instant.ofEpochSecond(positionDemand.getHcdReceivalTime.getSeconds,positionDemand.getHcdReceivalTime.getNanos)
-        this.printStream.println(s"${getDate(tpkPublishTimeInstant).trim},${getDate(assemblyRecTimeInstant).trim}," +
-          s"${getDate(hcdRecTimeInstant).trim},${getDate(simulatorRecTime).trim}")
-      }else{
-        println("Didn't get any position demands yet.")
+  def startSubPosDemands() : Unit = scheduler.execute(posDemandSubscriber)
+
+  private val posDemandSubscriber  : Runnable = new Runnable {
+    override def run(): Unit = {
+      while (posDemandSubScriber.get()) {
+        val eventName: String = subSocket.recvStr()
+        if (subSocket.hasReceiveMore) {
+          val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
+          val simulatorRecTime = Instant.now()
+          val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
+          azPosDemand.set(doubleToLongBits(positionDemand.getAzimuth))
+          elPosDemand.set(doubleToLongBits(positionDemand.getElevation))
+          val tpkPublishTimeInstant = Instant.ofEpochSecond(positionDemand.getTpkPublishTime.getSeconds,positionDemand.getTpkPublishTime.getNanos)
+          val assemblyRecTimeInstant = Instant.ofEpochSecond(positionDemand.getAssemblyReceivalTime.getSeconds,positionDemand.getAssemblyReceivalTime.getNanos)
+          val hcdRecTimeInstant = Instant.ofEpochSecond(positionDemand.getHcdReceivalTime.getSeconds,positionDemand.getHcdReceivalTime.getNanos)
+          printStream.println(s"${getDate(tpkPublishTimeInstant).trim},${getDate(assemblyRecTimeInstant).trim}," +
+            s"${getDate(hcdRecTimeInstant).trim},${getDate(simulatorRecTime).trim}")
+        }else{
+          println("Didn't get any position demands yet.")
+        }
       }
     }
   }
-
 }

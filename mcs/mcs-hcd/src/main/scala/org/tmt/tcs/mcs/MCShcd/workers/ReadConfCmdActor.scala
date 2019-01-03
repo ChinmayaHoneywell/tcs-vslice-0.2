@@ -10,56 +10,65 @@ import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg.ProcessCommand
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage.SubmitCommand
 import org.tmt.tcs.mcs.MCShcd.constants.Commands
 
-object StartupCmdActor {
+object ReadConfCmdActor {
   def create(commandResponseManager: CommandResponseManager,
              zeroMQProtoActor: ActorRef[ZeroMQMessage],
-             simpleSimActor: ActorRef[SimpleSimMsg],
+             simplSimActor: ActorRef[SimpleSimMsg],
              simulatorMode: String,
              loggerFactory: LoggerFactory): Behavior[ControlCommand] =
     Behaviors.setup(
-      ctx => StartupCmdActor(ctx, commandResponseManager, zeroMQProtoActor, simpleSimActor, simulatorMode, loggerFactory)
+      ctx => ReadConfCmdActor(ctx, commandResponseManager, zeroMQProtoActor, simplSimActor, simulatorMode, loggerFactory)
     )
 }
-case class StartupCmdActor(ctx: ActorContext[ControlCommand],
-                           commandResponseManager: CommandResponseManager,
-                           zeroMQProtoActor: ActorRef[ZeroMQMessage],
-                           simpleSimActor: ActorRef[SimpleSimMsg],
-                           simulatorMode: String,
-                           loggerFactory: LoggerFactory)
+case class ReadConfCmdActor(ctx: ActorContext[ControlCommand],
+                            commandResponseManager: CommandResponseManager,
+                            zeroMQProtoActor: ActorRef[ZeroMQMessage],
+                            simplSimActor: ActorRef[SimpleSimMsg],
+                            simulatorMode: String,
+                            loggerFactory: LoggerFactory)
     extends AbstractBehavior[ControlCommand] {
   private val log: Logger = loggerFactory.getLogger
-
   override def onMessage(msg: ControlCommand): Behavior[ControlCommand] = {
+
     simulatorMode match {
       case Commands.REAL_SIMULATOR =>
         zeroMQProtoActor ! SubmitCommand(msg)
-        Behaviors.stopped
+        Behavior.stopped
       case Commands.SIMPLE_SIMULATOR =>
-        simpleSimActor ! ProcessCommand(msg)
-        Behaviors.stopped
+        simplSimActor ! ProcessCommand(msg)
+        Behavior.stopped
     }
   }
-  //TODO : Replace ask calls to simulator with commandResponseManager in simple and real simulator actors
-  /*private def submitToSimpleSim(msg: ControlCommand): Unit = {
-    implicit val duration: Timeout = 2 seconds
+
+  //private def submitToSimplSim(msg: ControlCommand) : Unit =
+  /*private def submitToSimplSim(msg: ControlCommand) = {
+    implicit val duration: Timeout = 7 seconds
     implicit val scheduler         = ctx.system.scheduler
-    val response: SimpleSimMsg = Await.result(simpleSimActor ? { ref: ActorRef[SimpleSimMsg] =>
+
+    val response: SimpleSimMsg = Await.result(simplSimActor ? { ref: ActorRef[SimpleSimMsg] =>
       SimpleSimMsg.ProcessCommand(msg, ref)
-    }, 1 seconds)
+    }, 2.seconds)
     response match {
       case x: SimpleSimMsg.SimpleSimResp => commandResponseManager.addOrUpdateCommand(x.commandResponse)
       case _ =>
-        commandResponseManager.addOrUpdateCommand(CommandResponse.Error(msg.runId, "Unable to submit command to SimpleSimulator"))
+        commandResponseManager.addOrUpdateCommand(
+          CommandResponse.Error(msg.runId, "Simple simulator is unable to process submitted command.")
+        )
     }
-  }
-  private def submitToRealSim(msg: ControlCommand): Unit = {
+  }*/
+
+  //private def submitToRealSim(msg: ControlCommand) : Unit =
+  /*private def submitToRealSim(msg: ControlCommand) = {
+    //log.info(s"Submitting datum command with id : ${msg.runId} to Simulator")
     implicit val duration: Timeout = 10 seconds
     implicit val scheduler         = ctx.system.scheduler
     val response: ZeroMQMessage = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
       ZeroMQMessage.SubmitCommand(ref, msg)
-    }, 10.seconds)
+    }, 3.seconds)
     response match {
-      case x: ZeroMQMessage.MCSResponse => commandResponseManager.addOrUpdateCommand(x.commandResponse)
+      case x: ZeroMQMessage.MCSResponse =>
+        log.info(s"Response from MCS for command runID : ${msg.runId}  and command Name : ${msg.commandName} is : $x")
+        commandResponseManager.addOrUpdateCommand(x.commandResponse)
       case _ =>
         commandResponseManager.addOrUpdateCommand(
           CommandResponse.Error(msg.runId, "Unable to submit command data to MCS subsystem from worker actor.")

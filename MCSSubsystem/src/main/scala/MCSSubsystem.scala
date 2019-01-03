@@ -26,10 +26,10 @@ object MCSSubsystem extends App{
     override def run(): Unit =  commandProcessor.processCommand()
   }).start()
 
-
+/*
   new Thread(new Runnable {
     override def run(): Unit = eventProcessor.subscribePositionDemands
-  }).start()
+  }).start()*/
 
   //TODO : Temporarily commenting these events need to add more required fields facing
   // mandatory fields missing issues.

@@ -83,7 +83,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
   private def publishReceivedEvent(event: Event): Behavior[EventMessage] = {
     eventPublisher.publish(event)
-//    log.info(s"Published event : $event")
+    //log.error(s"Published event : $event")
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
   /*
@@ -91,7 +91,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
    * using CSW EventService
    */
   private def subscribeEventMsg(): Behavior[EventMessage] = {
-    log.info(msg = s"Started subscribing events Received from tpkAssembly.")
+    //log.info(msg = s"Started subscribing events Received from tpkAssembly.")
     eventSubscriber.subscribeCallback(EventHandlerConstants.PositionDemandKey, event => sendEventByAssemblyCurrentState(event))
     EventHandlerActor.createObject(eventService, hcdLocation, eventTransformer, currentStatePublisher, loggerFactory)
   }
@@ -102,6 +102,7 @@ case class EventHandlerActor(ctx: ActorContext[EventMessage],
 
     msg match {
       case systemEvent: SystemEvent =>
+        //systemEvent.eventTime.time
         val event        = systemEvent.add(EventHandlerConstants.ASSEMBLY_RECEIVAL_TIME_KEY.set(Instant.now()))
         val currentState = eventTransformer.getCurrentState(event)
         currentStatePublisher.publish(currentState)

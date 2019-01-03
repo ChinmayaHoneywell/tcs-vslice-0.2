@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import org.tmt.tcs.mcs.MCSassembly.CommandMessage._
 import org.tmt.tcs.mcs.MCSassembly.Constants.Commands
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import akka.util.Timeout
 import csw.command.api.scaladsl.CommandService
@@ -13,7 +13,8 @@ import csw.command.client.CommandResponseManager
 import csw.logging.scaladsl.LoggerFactory
 import csw.params.commands.CommandResponse.{Error, SubmitResponse, ValidateCommandResponse}
 import csw.params.commands.{CommandName, CommandResponse, ControlCommand, Setup}
-import csw.params.core.models.{Prefix, Subsystem}
+import csw.params.core.models.{Id, Prefix, Subsystem}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 sealed trait CommandMessage
 object CommandMessage {
@@ -94,10 +95,28 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
   }
 
   def handleReadConfCmd(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  ReadConf command to ReadCmdActor")
-    val readCmdActor: ActorRef[ControlCommand] =
-      ctx.spawnAnonymous(ReadCmdActor.createObject(commandResponseManager, hcdLocation, loggerFactory))
-    readCmdActor ! msg.controlCommand
+    log.info(msg = "Sending  ReadConf command to HCD")
+    hcdLocation match {
+      case Some(commandService) =>
+        /*        val responseFuture: Future[CommandResponse.SubmitResponse] = commandService.submit(msg.controlCommand)
+        responseFuture.map(resp => commandResponseManager.addOrUpdateCommand(resp))*/
+        commandResponseManager.addOrUpdateCommand(Await.result(commandService.submit(msg.controlCommand), 5.seconds))
+      case None => log.error("Can't locate mcs hcd location : $hcdLocation in ReadCmdActor ")
+      /* Future.successful(Error(Id(), s"Can't locate mcs hcd location : $hcdLocation in ReadCmdActor "))*/
+    }
+    /* val readCmdActor: ActorRef[ControlCommand] =
+          ctx.spawnAnonymous(ReadCmdActor.createObject(commandResponseManager, hcdLocation, loggerFactory))
+        readCmdActor ! msg.controlCommand*/
+    /*hcdLocation match {
+      case Some(commandService) =>
+        val response = Await.result(commandService.submit(msg.controlCommand), 10.seconds)
+        // log.info(s"Response for ReadConf command in Assembly is : $response")
+        commandResponseManager.addOrUpdateCommand(response)
+        Behavior.stopped
+      case None =>
+        Future.successful(Error(Id(), s"Can't locate mcs hcd location : $hcdLocation in ReadCmdActor "))
+        Behavior.unhandled
+    }*/
   }
   def handleShutDownCommand(msg: submitCommandMsg): Unit = {
     log.info(msg = s"In assembly command Handler Actor submitting shutdown command")
@@ -115,7 +134,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     //   val setup = Setup(mcsHCDPrefix, CommandName(Commands.STARTUP), msg.controlCommand.maybeObsId)
     hcdLocation match {
       case Some(commandService: CommandService) =>
-        val response = Await.result(commandService.submit(msg.controlCommand), 5.seconds)
+        val response = Await.result(commandService.submit(msg.controlCommand), 10.seconds)
         //log.info(msg = s" Result of startup command is : $response")
         /* commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
         commandResponseManager.updateSubCommand(response)*/

@@ -64,9 +64,9 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
   )
 
   private val zeroMQProtoActor: ActorRef[ZeroMQMessage] =
-    ctx.spawn(ZeroMQProtocolActor.create(statePublisherActor, loggerFactory), "ZeroMQActor")
+    ctx.spawn(ZeroMQProtocolActor.create(commandResponseManager, statePublisherActor, loggerFactory), "ZeroMQActor")
   private val simpleSimActor: ActorRef[SimpleSimMsg] =
-    ctx.spawn(SimpleSimulator.create(loggerFactory, statePublisherActor), "SimpleSimulator")
+    ctx.spawn(SimpleSimulator.create(commandResponseManager, loggerFactory, statePublisherActor), "SimpleSimulator")
 
   private val commandHandlerActor: ActorRef[HCDCommandMessage] =
     ctx.spawn(
@@ -82,6 +82,7 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
   private val positionDemandActor: ActorRef[ControlCommand] =
     ctx.spawn(PositionDemandActor.create(loggerFactory, zeroMQProtoActor, simpleSimActor, simulatorMode, paramSetTransformer),
               "PositionDemandEventActor")
+
   /*
   This function initializes HCD, uses configuration object to initialize Protocol and
   sends updated states tp state publisher actor for publishing
@@ -90,9 +91,7 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     log.info(msg = "Initializing MCS HCD")
 
     implicit val duration: Timeout = 20 seconds
-
-    implicit val scheduler = ctx.system.scheduler
-
+    implicit val scheduler         = ctx.system.scheduler
     val lifecycleMsg = Await.result(lifeCycleActor ? { ref: ActorRef[LifeCycleMessage] =>
       LifeCycleMessage.InitializeMsg(ref)
     }, 10.seconds)
@@ -111,19 +110,15 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     implicit val duration: Timeout = 20 seconds
     implicit val scheduler         = ctx.system.scheduler
     lifecycleMsg match {
-      case x: LifeCycleMessage.HCDConfig => {
+      case x: LifeCycleMessage.HCDConfig =>
         //  log.info(msg = s"Sending initialize message to zeroMQActor, config from configuration service is : ${x.config}")
-
         val zeroMQMsg = Await.result(zeroMQProtoActor ? { ref: ActorRef[ZeroMQMessage] =>
           ZeroMQMessage.InitializeSimulator(ref, x.config)
         }, 10.seconds)
-
         zeroMQMsg match {
           case msg: ZeroMQMessage.SimulatorConnResponse => msg.connected
           case _                                        => false
         }
-
-      }
       case _ =>
         log.error("Unable to get Config object from configuration service for connecting with ZeroMQ")
         false
@@ -134,20 +129,18 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
   var assemblyLocation: Option[CommandService]                    = None
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    // log.error(msg = "** Assembly Location changed **")
     trackingEvent match {
-      case LocationUpdated(location) => {
+      case LocationUpdated(location) =>
         assemblyLocation = Some(CommandServiceFactory.make(location.asInstanceOf[AkkaLocation])(ctx.system))
         assemblyDemandsSubscriber = Some(
           assemblyLocation.get.subscribeCurrentState(
-            statePublisherActor ! AssemblyStateChange(zeroMQProtoActor, simpleSimActor, _)
+            statePublisherActor !
+            AssemblyStateChange(zeroMQProtoActor, simpleSimActor, _)
           )
         )
-      }
-      case LocationRemoved(_) => {
+      case LocationRemoved(_) =>
         assemblyLocation = None
         log.error(s"Removing Assembly Location registered with HCD")
-      }
     }
   }
 
@@ -257,7 +250,6 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
                 if x.operationalState.equals(HCDOperationalState.ServoOffDrivePowerOn) ||
                 x.operationalState.equals(HCDOperationalState.ServoOffDatumed) =>
               return true
-
             case _ =>
               log.error(
                 msg = s" to execute pointing demand command HCD Lifecycle state must be running and operational state must " +
@@ -271,25 +263,22 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
       }
       false
     }
-    val paramValidation = validateParams
-    paramValidation match {
-      case true =>
-        val hcdStateValidate = validateHCDState
-        hcdStateValidate match {
-          case true => Accepted(controlCommand.runId)
-          case false =>
-            CommandResponse.Invalid(
-              controlCommand.runId,
-              WrongInternalStateIssue(
-                s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state" +
-                s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} " +
-                s"or ${HCDOperationalState.ServoOffDatumed} to process point  command"
-              )
-            )
-        }
-      case false =>
-        CommandResponse.Invalid(controlCommand.runId,
-                                WrongNumberOfParametersIssue(s" axes parameter is not provided for point command"))
+    if (validateParams) {
+      if (validateHCDState) {
+        Accepted(controlCommand.runId)
+      } else {
+        CommandResponse.Invalid(
+          controlCommand.runId,
+          WrongInternalStateIssue(
+            s" MCS HCD and subsystem must be in ${HCDLifeCycleState.Running} state" +
+            s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} " +
+            s"or ${HCDOperationalState.ServoOffDatumed} to process point  command"
+          )
+        )
+      }
+    } else {
+      CommandResponse.Invalid(controlCommand.runId,
+                              WrongNumberOfParametersIssue(s" axes parameter is not provided for point command"))
     }
   }
   /*
@@ -329,23 +318,21 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
       }
       false
     }
-    val paramsBool = validateParams
-    paramsBool match {
-      case true =>
-        val hcdState = validateHCDState
-        hcdState match {
-          case true => Accepted(controlCommand.runId)
-          case false =>
-            Invalid(
-              controlCommand.runId,
-              WrongInternalStateIssue(
-                s" MCS HCD and subsystem must be  in ${HCDLifeCycleState.Running} state " +
-                s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or  ${HCDOperationalState.ServoOffDatumed} to process datum command"
-              )
-            )
-        }
-      case false =>
-        Invalid(controlCommand.runId, WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
+    if (validateParams) {
+      if (validateHCDState) {
+        Accepted(controlCommand.runId)
+      } else {
+        Invalid(
+          controlCommand.runId,
+          WrongInternalStateIssue(
+            s" MCS HCD and subsystem must be  in ${HCDLifeCycleState.Running} state " +
+            s"and operational state must be ${HCDOperationalState.ServoOffDrivePowerOn} or  ${HCDOperationalState.ServoOffDatumed} " +
+            s"to process datum command"
+          )
+        )
+      }
+    } else {
+      Invalid(controlCommand.runId, WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }
   }
 
@@ -447,7 +434,8 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     Completed(controlCommand.runId)
   }
 
-  val hcdCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_HCD" + System.currentTimeMillis() + "_.txt")
+  val logFilePath: String = System.getenv("LogFiles")
+  val hcdCmdFile: File    = new File(logFilePath + "/Cmd_HCD" + System.currentTimeMillis() + "_.txt")
   hcdCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(hcdCmdFile))
@@ -457,7 +445,7 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
     LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
 
   /*
-       This functions routes all commands to commandhandler actor and bsed upon command execution updates states of HCD by sending it
+       This functions routes all commands to Commandhandler actor and bsed upon command execution updates states of HCD by sending it
        to StatePublisher actor
    */
   override def onSubmit(controlCommand: ControlCommand): SubmitResponse = {

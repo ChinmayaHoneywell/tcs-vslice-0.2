@@ -23,7 +23,8 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
   private var azDemanded : Double = 180
   private var elDemanded : Double = 90
 
-  val realSimCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_RealSim" + System.currentTimeMillis() + "_.txt")
+  val logFilePath : String = System.getenv("LogFiles")
+  val realSimCmdFile: File = new File(logFilePath+"/Cmd_RealSim" + System.currentTimeMillis() + "_.txt")
   realSimCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(realSimCmdFile))
@@ -40,29 +41,20 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
     println(s"push socket address is : $pushSocketAddr")
     pushSocket.bind(pushSocketAddr)
   }
-
   def processCommand(): Unit = {
     println("Process Command Thread Started")
     while(true){
       val commandName: String = pullSocket.recvStr()
       println(s"Received command is : $commandName")
       if(commandName != null ){
-        println(s"Processing $commandName command ")
         updateSimulator(commandName)
         val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
         if (pushSocket.sendMore(commandName)) {
-          println(s"Sending response for : $commandName command ")
-          val instant = Instant.now()
-          val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder()
-            .setCmdError(CmdError.OK)
-            .setErrorInfo("No error")
-            .setProcessedTime(Timestamp.newBuilder().setSeconds(instant.getEpochSecond).setNanos(instant.getNano))
-            .setErrorState(MCSCommandResponse.ErrorState.FAILED)
-            .build()
+          val commandResponse: MCSCommandResponse = getCommandResponse
           println(s"$commandName command response is : $commandResponse")
           pushSocket.send(commandResponse.toByteArray,ZMQ.NOBLOCK)
         }else{
-          println(s"Unable to send command response ")
+          println(s"Unable to send response for command: $commandName")
         }
         if(commandName == "PointDemand"){
             val pointDemand : PointDemandCommand = PointDemandCommand.parseFrom(commandData)
@@ -74,13 +66,25 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
       }
     }
  }
+
+  private def getCommandResponse = {
+    val instant = Instant.now()
+    val commandResponse: MCSCommandResponse = MCSCommandResponse.newBuilder()
+      .setCmdError(CmdError.OK)
+      .setErrorInfo("No error")
+      .setProcessedTime(Timestamp.newBuilder().setSeconds(instant.getEpochSecond).setNanos(instant.getNano))
+      .setErrorState(MCSCommandResponse.ErrorState.NONE)
+      .build()
+    commandResponse
+  }
+
   def updateSimulator(commandName : String):Unit = {
       commandName match {
         case "ReadConfiguration" =>
           this.cmdPrintStream.println(getDate(Instant.now()).trim)
         case "Startup" =>
-        eventProcessor.startPublishingCurrPos()
-          eventProcessor.startPublishingHealth()
+          eventProcessor.startEventProcessor()
+
         case "ShutDown" =>
           eventProcessor.updateCurrPosPublisher(false)
           eventProcessor.updateHealthPublisher(false)

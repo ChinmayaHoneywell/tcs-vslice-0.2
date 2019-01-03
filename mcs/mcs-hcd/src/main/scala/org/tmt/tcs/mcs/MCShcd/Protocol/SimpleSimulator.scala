@@ -14,6 +14,7 @@ import java.lang.Double.longBitsToDouble
 import java.time.{Instant, LocalDateTime, ZoneId}
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
+import csw.command.client.CommandResponseManager
 import csw.logging.scaladsl.{Logger, LoggerFactory}
 import csw.params.commands.CommandResponse.SubmitResponse
 import csw.params.commands.{CommandResponse, ControlCommand}
@@ -25,19 +26,24 @@ import csw.params.events.SystemEvent
 
 sealed trait SimpleSimMsg
 object SimpleSimMsg {
-  case class ProcessCommand(command: ControlCommand, sender: ActorRef[SimpleSimMsg]) extends SimpleSimMsg
-
-  case class SimpleSimResp(commandResponse: SubmitResponse) extends SimpleSimMsg
-  case class ProcEventDemand(event: SystemEvent)            extends SimpleSimMsg
-  case class ProcOneWayDemand(command: ControlCommand)      extends SimpleSimMsg
-  case class ProcCurrStateDemand(currState: CurrentState)   extends SimpleSimMsg
+  case class ProcessCommand(command: ControlCommand)                                extends SimpleSimMsg
+  case class ProcessImmCmd(command: ControlCommand, sender: ActorRef[SimpleSimMsg]) extends SimpleSimMsg
+  case class ImmCmdResp(commandResponse: SubmitResponse)                            extends SimpleSimMsg
+  case class ProcEventDemand(event: SystemEvent)                                    extends SimpleSimMsg
+  case class ProcOneWayDemand(command: ControlCommand)                              extends SimpleSimMsg
+  case class ProcCurrStateDemand(currState: CurrentState)                           extends SimpleSimMsg
 }
 
 object SimpleSimulator {
-  def create(loggerFactory: LoggerFactory, statePublisherActor: ActorRef[EventMessage]): Behavior[SimpleSimMsg] =
-    Behaviors.setup(ctx => SimpleSimulator(ctx, loggerFactory, statePublisherActor))
+  def create(commandResponseManager: CommandResponseManager,
+             loggerFactory: LoggerFactory,
+             statePublisherActor: ActorRef[EventMessage]): Behavior[SimpleSimMsg] =
+    Behaviors.setup(
+      ctx => SimpleSimulator(ctx, commandResponseManager: CommandResponseManager, loggerFactory, statePublisherActor)
+    )
 }
 case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
+                           commandResponseManager: CommandResponseManager,
                            loggerFactory: LoggerFactory,
                            statePublisherActor: ActorRef[EventMessage])
     extends AbstractBehavior[SimpleSimMsg] {
@@ -59,15 +65,14 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
 
   val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
 
-  val demandPosLogFile: File = new File(
-    "/home/tmt_tcs_2/LogFiles/scenario3/PosDemEventPubSubLog_" + System.currentTimeMillis() + ".txt"
-  )
+  val logFilePath: String    = System.getenv("LogFiles")
+  val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
   demandPosLogFile.createNewFile()
   val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
   this.printStream
     .println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)")
 
-  val simpleSimCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_SimpleSim" + System.currentTimeMillis() + "_.txt")
+  val simpleSimCmdFile: File = new File(logFilePath + "/Cmd_SimpleSim" + System.currentTimeMillis() + "_.txt")
   simpleSimCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(simpleSimCmdFile))
@@ -80,7 +85,10 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
     msg match {
       case msg: ProcessCommand =>
         updateSimulator(msg.command.commandName.name)
-        msg.sender ! SimpleSimResp(CommandResponse.Completed(msg.command.runId))
+        commandResponseManager.addOrUpdateCommand(CommandResponse.Completed(msg.command.runId))
+        Behavior.same
+      case msg: ProcessImmCmd =>
+        msg.sender ! ImmCmdResp(CommandResponse.Completed(msg.command.runId))
         Behavior.same
       case msg: ProcOneWayDemand =>
         val simulatorRecTime                    = Instant.now()
@@ -93,12 +101,12 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val sentTime                            = sentTimeParam.getOrElse(EventConstants.TimeStampKey.set(Instant.now()))
         val assemblyRecTime                     = paramSet.find(msg => msg.keyName == EventConstants.ASSEMBLY_RECEIVAL_TIME).get
         val hcdRecTime                          = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
-        this.azPosDemand.set(doubleToLongBits(azPos.head.toString().toDouble))
-        this.elPosDemand.set(doubleToLongBits(elPos.head.toString().toDouble))
-        var simPubStr: String      = ""
-        var hcdRecStr: String      = ""
-        var assemblyRecStr: String = ""
-        var pkPublishStr: String   = ""
+        this.azPosDemand.set(doubleToLongBits(azPos.head.toString.toDouble))
+        this.elPosDemand.set(doubleToLongBits(elPos.head.toString.toDouble))
+        var simPubStr: String      = null
+        var hcdRecStr: String      = null
+        var assemblyRecStr: String = null
+        var pkPublishStr: String   = null
 
         simulatorRecTime match {
           case x: Instant => simPubStr = getDate(x)
@@ -126,10 +134,10 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
         log.info(s"Received event : $msg from Assembly")
-        var simPubStr: String      = ""
-        var hcdRecStr: String      = ""
-        var assemblyRecStr: String = ""
-        var pkPublishStr: String   = ""
+        var simPubStr: String      = null
+        var hcdRecStr: String      = null
+        var assemblyRecStr: String = null
+        var pkPublishStr: String   = null
 
         simpleSimRecTime match {
           case x: Instant => simPubStr = getDate(x)
@@ -156,10 +164,10 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
-        var simPubStr: String      = ""
-        var hcdRecStr: String      = ""
-        var assemblyRecStr: String = ""
-        var pkPublishStr: String   = ""
+        var simPubStr: String      = null
+        var hcdRecStr: String      = null
+        var assemblyRecStr: String = null
+        var pkPublishStr: String   = null
 
         simpleSimRecTime match {
           case x: Instant => simPubStr = getDate(x)
@@ -188,6 +196,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
       case Commands.SHUTDOWN =>
         updateCurrPosPublisher(false)
         updateHealthPublisher(false)
+        this.scheduler.shutdown()
         log.info("Updating current position publisher and health publisher to false")
       case _ =>
         log.info(s"Not changing publisher thread state as command received is $commandName")

@@ -26,8 +26,10 @@ import csw.params.core.models.{Id, Prefix}
 import csw.params.events.{Event, SystemEvent}
 import org.tmt.tcs.mcs.MCSdeploy.constants.{DeployConstants, EventConstants}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.util.{Failure, Success}
 /*
 This object acts as a client object to test execution of commands
 
@@ -60,7 +62,7 @@ object MCSMainApp extends App {
    */
   private def getAssembly: CommandService = {
     implicit val sys: typed.ActorSystem[Nothing] = system.toTyped
-    val akkaLocations: List[AkkaLocation]        = Await.result(locationService.listByPrefix("tcs.mcs.assembly"), 10.seconds)
+    val akkaLocations: List[AkkaLocation]        = Await.result(locationService.listByPrefix("tcs.mcs.assembly"), 60.seconds)
     CommandServiceFactory.make(akkaLocations.head)(sys)
   }
   private def getEventService: EventService = {
@@ -71,8 +73,8 @@ object MCSMainApp extends App {
 
   val prefix = Prefix("tmt.tcs.McsAssembly-Client")
 
-//  var count: Integer = 0
-  var simulationMode = "SimpleSimulator"
+  var count: Integer = 0
+  var simulationMode = "RealSimulator"
   try {
     val resp0 = sendSimulationModeCommand(simulationMode)
     val resp1 = sendStartupCommand()
@@ -102,10 +104,8 @@ object MCSMainApp extends App {
   println(
     s"===========================================Command set completed ============================================================================="
   )
-
-  val currPosLogFile: File = new File(
-    "/home/tmt_tcs_2/LogFiles/scenario3/CurrentPosition_" + System.currentTimeMillis() + "_.txt"
-  )
+  val logFilePath: String  = System.getenv("LogFiles")
+  val currPosLogFile: File = new File(logFilePath + "/CurrentPosition_" + System.currentTimeMillis() + "_.txt")
   currPosLogFile.createNewFile()
   var currPosCounter: Long     = 0
   val printStream: PrintStream = new PrintStream(new FileOutputStream(currPosLogFile))
@@ -115,37 +115,42 @@ object MCSMainApp extends App {
 
   startSubscribingEvents()
 
-  val clientAppCmdFile: File = new File(
-    "/home/tmt_tcs_2/LogFiles/scenario3/ClientAppCmdTime_" + System.currentTimeMillis() + "_.txt"
-  )
+  val clientAppCmdFile: File = new File(logFilePath + "/ClientAppCmdTime_" + System.currentTimeMillis() + "_.txt")
   clientAppCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(clientAppCmdFile))
   this.cmdPrintStream.println("ClientApp cmd Name,clientApp Publish Timestamp")
 
-  sendReadConfCommand()
+  //sendReadConfCommand()
 
   def sendReadConfCommand()(implicit ec: ExecutionContext): Unit = {
     val commandService    = getAssembly
     val clientLogFilePath = clientAppCmdFile.getPath
     println(s"cmd log file path is : $clientLogFilePath")
-    while (cmdCounter <= 100000) {
+    while (cmdCounter <= 100000000) {
       cmdCounter = cmdCounter + 1
-      val setup            = Setup(prefix, CommandName(DeployConstants.READ_CONFIGURATION), None)
-      val readConfSentTime = getDate()
-      val response         = Await.result(commandService.submit(setup), 10.seconds)
+      val setup                                              = Setup(prefix, CommandName(DeployConstants.READ_CONFIGURATION), None)
+      val readConfSentTime                                   = getDate()
+      val respFuture: Future[CommandResponse.SubmitResponse] = commandService.submit(setup)
+      respFuture.onComplete {
+        case Success(resp) => println(s"Response for command: ${setup.commandName.name + "_" + cmdCounter} is $resp")
+        case Failure(e) =>
+          println(s"Error occured while getting response for command : ${setup.commandName.name + "_" + cmdCounter}")
+          e.printStackTrace()
+      }
+      this.cmdPrintStream.println(s"${setup.commandName.name},$readConfSentTime")
+      /*val response         = Await.result(commandService.submit(setup), 10.seconds)
       val cmdName          = setup.commandName.name + "_" + cmdCounter
-      println(s"Response for command : $cmdName is $response")
-      this.cmdPrintStream.println(s"$cmdName,$readConfSentTime")
+      println(s"Response for command : $cmdName is $response")*/
+
     }
-    println("Successfully sent 1,00,000 commands to assembly stopped sending commands now.")
+    println("Successfully sent 10,00,00,000 commands to assembly stopped sending commands now.")
   }
-  def getDate(): String = {
+  def getDate(): String =
     LocalDateTime.ofInstant(Instant.now(), ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
-  }
-  def getDate(instant: Instant) = {
+
+  def getDate(instant: Instant) =
     LocalDateTime.ofInstant(instant, ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
-  }
 
   def startSubscribingEvents(): Unit = {
     println(" ** Started subscribing Events from Assembly ** ")
@@ -186,10 +191,10 @@ object MCSMainApp extends App {
           val simulatorPublishTime     = simulatorSentTimeParam.head
           val hcdReceiveTime           = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
           val assemblyRecTime          = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-          var simPubStr: String        = ""
-          var hcdRecStr: String        = ""
-          var assemblyReStr: String    = ""
-          var clientAppRecStr: String  = ""
+          var simPubStr: String        = null
+          var hcdRecStr: String        = null
+          var assemblyReStr: String    = null
+          var clientAppRecStr: String  = null
 
           simulatorPublishTime match {
             case x: Instant => simPubStr = getDate(x)
@@ -204,9 +209,9 @@ object MCSMainApp extends App {
             case x: Instant => clientAppRecStr = getDate(x)
           }
           this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
-        /* println(
+          println(
             s"CurrentPosition:, $azPosParam, $elPosParam,${simPubStr.trim},${hcdRecStr.trim}, ${assemblyReStr.trim},${clientAppRecStr.trim}"
-          )*/
+          )
       }
 
     } else {

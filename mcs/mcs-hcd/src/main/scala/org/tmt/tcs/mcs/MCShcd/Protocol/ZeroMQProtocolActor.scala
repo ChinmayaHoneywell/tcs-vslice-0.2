@@ -1,12 +1,14 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
 import java.time.Instant
+import java.util.concurrent.{ExecutorService, Executors, ScheduledExecutorService}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import com.typesafe.config.Config
-import csw.logging.scaladsl.{Logger, LoggerFactory}
+import csw.command.client.CommandResponseManager
+import csw.logging.scaladsl.{noId, Logger, LoggerFactory}
 import csw.params.commands.CommandResponse.{Error, SubmitResponse}
 import csw.params.commands.{CommandResponse, ControlCommand}
 import csw.params.core.models.Id
@@ -23,10 +25,11 @@ object ZeroMQMessage {
 
   case class InitializeSimulator(sender: ActorRef[ZeroMQMessage], config: Config) extends ZeroMQMessage
 
-  case class SubmitCommand(sender: ActorRef[ZeroMQMessage], controlCommand: ControlCommand) extends ZeroMQMessage
-  case class MCSResponse(commandResponse: SubmitResponse)                                   extends ZeroMQMessage
-  case class PublishEvent(event: SystemEvent)                                               extends ZeroMQMessage
-  case class StartSimulEventSubscr()                                                        extends ZeroMQMessage
+  case class SubmitCommand(controlCommand: ControlCommand)                                 extends ZeroMQMessage
+  case class ImmediateCmd(controlCommand: ControlCommand, sender: ActorRef[ZeroMQMessage]) extends ZeroMQMessage
+  case class ImmediateCmdResp(commandResponse: SubmitResponse)                             extends ZeroMQMessage
+  case class PublishEvent(event: SystemEvent)                                              extends ZeroMQMessage
+  case class StartSimulEventSubscr()                                                       extends ZeroMQMessage
 
   case class SimulatorConnResponse(connected: Boolean)            extends ZeroMQMessage
   case class Disconnect()                                         extends ZeroMQMessage
@@ -34,10 +37,13 @@ object ZeroMQMessage {
 
 }
 object ZeroMQProtocolActor {
-  def create(statePublisherActor: ActorRef[EventMessage], loggerFactory: LoggerFactory): Behavior[ZeroMQMessage] =
-    Behaviors.setup(ctx => ZeroMQProtocolActor(ctx, statePublisherActor, loggerFactory))
+  def create(commandResponseManager: CommandResponseManager,
+             statePublisherActor: ActorRef[EventMessage],
+             loggerFactory: LoggerFactory): Behavior[ZeroMQMessage] =
+    Behaviors.setup(ctx => ZeroMQProtocolActor(ctx, commandResponseManager, statePublisherActor, loggerFactory))
 }
 case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
+                               commandResponseManager: CommandResponseManager,
                                statePublisherActor: ActorRef[EventMessage],
                                loggerFactory: LoggerFactory)
     extends AbstractBehavior[ZeroMQMessage] {
@@ -51,18 +57,19 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private val addr: String                             = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer  = ProtoBuffMsgTransformer.create(loggerFactory)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
-  private var zeroMQPullSocketStr: String              = ""
-  private var zeroMQPushSocketStr: String              = ""
-  private var zeroMQSubScribeSocketStr: String         = ""
-  private var zeroMQPubSocketStr: String               = ""
+  private var zeroMQPullSocketStr: String              = _
+  private var zeroMQPushSocketStr: String              = _
+  private var zeroMQSubScribeSocketStr: String         = _
+  private var zeroMQPubSocketStr: String               = _
   val simEventSubscriber: AtomicBoolean                = new AtomicBoolean(true)
+  private val scheduler: ExecutorService               = Executors.newSingleThreadExecutor()
+
   /*
   1. PublishEvent is used when positionDemand is propagated from Assembly to HCD using CSW EventService.
   2. PublishCurrStateToZeroMQ is used when positionDemand is propagated from Assembly to HCD using CSW CurrentState.
    */
   override def onMessage(msg: ZeroMQMessage): Behavior[ZeroMQMessage] = {
     msg match {
-
       case msg: InitializeSimulator =>
         if (initMCSConnection(msg.config)) {
           log.info("CONNECTION ESTABLISHED WITH MCS SIMULATOR")
@@ -72,15 +79,20 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
           msg.sender ! SimulatorConnResponse(false)
         }
         Behavior.same
+      case msg: ImmediateCmd => // follow command will be immediate command to MCS
+        immediateCommandToMCS(msg)
+        Behavior.same
       case msg: SubmitCommand =>
         msg.controlCommand.commandName.name match {
           case Commands.STARTUP =>
             submitCommandToMCS(msg)
-            new Thread(() => startSubToSimEvents()).start()
+            // new Thread(() => startSubToSimEvents()).start()
+            this.scheduler.execute(eventSubscriber)
             log.info("Started subscribing to events from real Simulator.")
             Behavior.same
           case Commands.SHUTDOWN =>
             simEventSubscriber.set(false)
+            this.scheduler.shutdown()
             log.info("Stopping event subscription from real simulator")
             submitCommandToMCS(msg)
             Behavior.same
@@ -101,12 +113,10 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
           if (pubSocket.sendMore(EventConstants.MOUNT_DEMAND_POSITION)) {
             pubSocket.send(positionDemands)
           }
-          //log.info(s"published position demands : ${msg.currentState} to MCS subsystem")
         } catch {
           case ex: Exception =>
             ex.printStackTrace()
             log.error("Exception in converting current state to byte array")
-
         }
         Behavior.same
 
@@ -115,34 +125,62 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
         Behavior.same
     }
   }
-  private def startSubToSimEvents(): Unit = {
-    while (simEventSubscriber.get()) {
-      val eventName: String = subscribeSocket.recvStr()
-      log.info(s"simEventSubscription : ${simEventSubscriber.get()} and event name is: $eventName ")
-      if (subscribeSocket.hasReceiveMore) {
-        val eventData       = subscribeSocket.recv(ZMQ.DONTWAIT)
-        val hcdReceivalTime = Instant.now
-        val currentState    = messageTransformer.decodeEvent(eventName, eventData)
-        val currState       = currentState.add(EventConstants.hcdEventReceivalTime_Key.set(hcdReceivalTime))
-        statePublisherActor ! PublishState(currState)
-      } else {
-        log.error(s"No event data is received for event: $eventName")
+  val eventSubscriber = new Runnable {
+    override def run(): Unit = {
+      while (simEventSubscriber.get()) {
+        try {
+          val eventName: String = subscribeSocket.recvStr()
+          if (subscribeSocket.hasReceiveMore) {
+            val eventData       = subscribeSocket.recv(ZMQ.NOBLOCK)
+            val hcdReceivalTime = Instant.now
+            val currentState    = messageTransformer.decodeEvent(eventName, eventData)
+            //  log.error(s"simEventSubscription : ${simEventSubscriber.get()} and event details are: $currentState")
+            val currState = currentState.add(EventConstants.hcdEventReceivalTime_Key.set(hcdReceivalTime))
+            statePublisherActor ! PublishState(currState)
+          } else {
+            log.error(s"No event data is received for event: $eventName")
+          }
+        } catch {
+          case e: Exception =>
+            e.printStackTrace()
+            log.error("exception in subscribing events from simulator: ", Map.empty, e, noId)
+        }
       }
     }
   }
-  private def submitCommandToMCS(msg: SubmitCommand): Unit = {
-    val controlCommand: ControlCommand = msg.controlCommand
-    val commandName: String            = controlCommand.commandName.name
-    val commandNameSent                = pushSocket.sendMore(commandName)
-    if (commandNameSent) {
-      val encodedCommand = messageTransformer.encodeMessage(controlCommand)
+
+  private def immediateCommandToMCS(msg: ImmediateCmd): Unit = {
+    val commandName: String = msg.controlCommand.commandName.name
+    if (pushSocket.sendMore(commandName)) {
+      val encodedCommand = messageTransformer.encodeMessage(msg.controlCommand)
       if (pushSocket.send(encodedCommand, ZMQ.NOBLOCK)) {
-        msg.sender ! MCSResponse(readCommandResponse(commandName, controlCommand.runId))
+        msg.sender ! ImmediateCmdResp(readCommandResponse(commandName, msg.controlCommand.runId))
       } else {
-        msg.sender ! MCSResponse(CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem."))
+        msg.sender ! ImmediateCmdResp(
+          CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command data to MCS subsystem.")
+        )
       }
     } else {
-      msg.sender ! MCSResponse(CommandResponse.Error(controlCommand.runId, "Unable to submit command data to MCS subsystem."))
+      msg.sender ! ImmediateCmdResp(
+        CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command data to MCS subsystem.")
+      )
+    }
+  }
+  private def submitCommandToMCS(msg: SubmitCommand): Unit = {
+    val commandName: String = msg.controlCommand.commandName.name
+    if (pushSocket.sendMore(commandName)) {
+      val encodedCommand = messageTransformer.encodeMessage(msg.controlCommand)
+      if (pushSocket.send(encodedCommand, ZMQ.NOBLOCK)) {
+        commandResponseManager.addOrUpdateCommand(readCommandResponse(commandName, msg.controlCommand.runId))
+      } else {
+        commandResponseManager.addOrUpdateCommand(
+          CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command data to MCS subsystem.")
+        )
+      }
+    } else {
+      commandResponseManager.addOrUpdateCommand(
+        CommandResponse.Error(msg.controlCommand.runId, "Unable to submit command data to MCS subsystem.")
+      )
     }
   }
 

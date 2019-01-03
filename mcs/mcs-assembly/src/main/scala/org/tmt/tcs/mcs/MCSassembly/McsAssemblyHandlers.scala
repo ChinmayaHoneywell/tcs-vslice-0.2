@@ -75,8 +75,8 @@ class McsAssemblyHandlers(
     CommandHandlerActor.createObject(commandResponseManager, isOnline = true, hcdLocation, loggerFactory),
     "CommandHandlerActor"
   )
-
-  val AssemblyCmdFile: File = new File("/home/tmt_tcs_2/LogFiles/scenario3/Cmd_Assembly" + System.currentTimeMillis() + "_.txt")
+  val logFilePath: String   = System.getenv("LogFiles")
+  val AssemblyCmdFile: File = new File(logFilePath + "/Cmd_Assembly" + System.currentTimeMillis() + "_.txt")
   AssemblyCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(AssemblyCmdFile))
@@ -124,7 +124,7 @@ class McsAssemblyHandlers(
   }
 
   override def validateCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
-    log.info(msg = s" validating command ----> ${controlCommand.commandName}")
+    //log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
 
       case Commands.FOLLOW              => validateFollowCommand(controlCommand)
@@ -306,12 +306,12 @@ class McsAssemblyHandlers(
         eventHandlerActor ! StartEventSubscription()
         commandHandlerActor ! submitCommandMsg(controlCommand)
         Started(controlCommand.runId)
-      case Commands.FOLLOW              => executeFollowCommandAndSendResponse(controlCommand)
       case Commands.SET_SIMULATION_MODE => executeSimModeAndSendResp(controlCommand)
       case Commands.READCONFIGURATION =>
         this.cmdPrintStream.println(getDate(Instant.now()).trim)
         commandHandlerActor ! submitCommandMsg(controlCommand)
         Started(controlCommand.runId)
+      case Commands.FOLLOW => executeFollowCommandAndSendResponse(controlCommand)
       case _ =>
         commandHandlerActor ! submitCommandMsg(controlCommand)
         Started(controlCommand.runId)
