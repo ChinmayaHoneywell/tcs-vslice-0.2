@@ -47,15 +47,15 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   }
   def startEventProcessor() : Unit = {
-    this.scheduler = Executors.newScheduledThreadPool(3)
+    this.scheduler = Executors.newScheduledThreadPool(2)
     startPublishingCurrPos()
-    startPublishingHealth()
+    //startPublishingHealth()
     startSubPosDemands()
   }
   def stopEventProcessor() : Unit ={
     this.scheduler = null
     updateCurrPosPublisher(false)
-    updateHealthPublisher(false)
+    //updateHealthPublisher(false)
     updatePosDemandSubscriber(false)
   }
 
@@ -184,7 +184,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }*/
 
-  val healthRunner : Runnable =  new Runnable {
+  /*val healthRunner : Runnable =  new Runnable {
     override def run(): Unit = {
       if (healthPublisher.get()) {
         val instant = Instant.now()
@@ -207,8 +207,8 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
       }
     }
    }
-  }
-  def startPublishingHealth(): Unit = scheduler.scheduleWithFixedDelay(healthRunner, 1000, 1000, TimeUnit.MILLISECONDS)
+  }*/
+//  def startPublishingHealth(): Unit = scheduler.scheduleWithFixedDelay(healthRunner, 1000, 1000, TimeUnit.MILLISECONDS)
 
 
  /* def getUpdatedCurrentElPos() : Double = {

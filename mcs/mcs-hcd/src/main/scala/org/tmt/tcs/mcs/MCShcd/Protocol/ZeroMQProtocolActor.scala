@@ -54,7 +54,6 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private val pubSocket: ZMQ.Socket       = zmqContext.socket(ZMQ.PUB) //55581
   private val subscribeSocket: ZMQ.Socket = zmqContext.socket(ZMQ.SUB) //55580
 
-  private val addr: String                             = new String("tcp://localhost:")
   private val messageTransformer: IMessageTransformer  = ProtoBuffMsgTransformer.create(loggerFactory)
   private val paramSetTransformer: ParamSetTransformer = ParamSetTransformer.create(loggerFactory)
   private var zeroMQPullSocketStr: String              = _
@@ -201,6 +200,10 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
 
   private def initMCSConnection(config: Config): Boolean = {
     log.info(s"config object is :$config")
+    //val ipAddress = config.getInt("")
+    //TODO : TAke config from configuration service
+    val addr: String = new String("tcp://192:168.2.8:")
+    log.info(msg = s"ZeroMQ is connecting to machine:$addr")
     zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
     val pushSocketConn = pushSocket.bind(zeroMQPushSocketStr)
     log.info(msg = s"ZeroMQ push socket is : $zeroMQPushSocketStr and connection : $pushSocketConn")

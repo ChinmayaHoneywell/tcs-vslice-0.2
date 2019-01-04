@@ -7,7 +7,7 @@ object MCSSubsystem extends App{
 
 
   val zmqContext : ZMQ.Context = ZMQ.context(1)
-  val addr : String = "tcp://localhost:"
+  val addr : String = "tcp://192.168.2.7:"
 
 
 
