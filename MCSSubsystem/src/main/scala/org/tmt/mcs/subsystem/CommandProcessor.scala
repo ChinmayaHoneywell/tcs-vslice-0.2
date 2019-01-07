@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 import com.google.protobuf.Timestamp
+import com.typesafe.config.Config
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse.CmdError
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.PointDemandCommand
 import org.tmt.mcs.subsystem.protos.TcsMcsCommandProtos.MCSCommandResponse
@@ -23,13 +24,30 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
   private var azDemanded : Double = 180
   private var elDemanded : Double = 90
 
-  val logFilePath : String = System.getenv("LogFiles")
+ /* val logFilePath : String = System.getenv("LogFiles")
   val realSimCmdFile: File = new File(logFilePath+"/Cmd_RealSim" + System.currentTimeMillis() + "_.txt")
   realSimCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(realSimCmdFile))
-  this.cmdPrintStream.println("RealSimRecvTimeStamp")
+  this.cmdPrintStream.println("RealSimRecvTimeStamp")*/
 
+  def initialize(config : Config): Unit = {
+    println("Initializing MCS subsystem ZeroMQ command Processor")
+
+    val mcsAddress = config.getString("MCS.Simulator.MCSAddress")
+    val pullSocketPort = config.getInt("MCS.Simulator.pullSocket")
+    val pullSocketAddr = mcsAddress + pullSocketPort
+    println(s"pull socket address is  :$pullSocketAddr")
+    pullSocket.connect(pullSocketAddr)
+
+    val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
+    val pushSocketPort = config.getInt("MCS.Simulator.pushSocket")
+    val pushSocketAddr = tcsAddress + pushSocketPort
+    println(s"push socket address is : $pushSocketAddr")
+    pushSocket.bind(pushSocketAddr)
+  }
+
+/*
   def initialize(addr: String, pushSocketPort: Int, pullSocketPort: Int): Unit = {
     println("Initializing MCS subsystem ZeroMQ command Processor")
 
@@ -40,7 +58,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
     val pushSocketAddr = addr + pushSocketPort
     println(s"push socket address is : $pushSocketAddr")
     pushSocket.bind(pushSocketAddr)
-  }
+  }*/
   def processCommand(): Unit = {
     println("Process Command Thread Started")
     while(true){
@@ -81,7 +99,8 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
   def updateSimulator(commandName : String):Unit = {
       commandName match {
         case "ReadConfiguration" =>
-          this.cmdPrintStream.println(getDate(Instant.now()).trim)
+        //  this.cmdPrintStream.println(getDate(Instant.now()).trim)
+          println(s"Received command : $commandName")
         case "Startup" =>
           eventProcessor.startEventProcessor()
 

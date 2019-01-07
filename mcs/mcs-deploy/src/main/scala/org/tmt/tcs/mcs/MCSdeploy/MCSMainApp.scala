@@ -30,6 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
+import scala.collection.mutable.ListBuffer
 /*
 This object acts as a client object to test execution of commands
 
@@ -72,9 +73,9 @@ object MCSMainApp extends App {
     eventService
   }
 
-  val prefix = Prefix("tmt.tcs.McsAssembly-Client")
-
-  var count: Integer = 0
+  val prefix               = Prefix("tmt.tcs.McsAssembly-Client")
+  var currPosCounter: Long = 0
+  //var count: Integer = 0
   var simulationMode = "SimpleSimulator"
   try {
     val resp0 = sendSimulationModeCommand(simulationMode)
@@ -105,26 +106,22 @@ object MCSMainApp extends App {
   println(
     s"===========================================Command set completed ============================================================================="
   )
-  val logFilePath: String  = System.getenv("LogFiles")
-  val currPosLogFile: File = new File(logFilePath + "/CurrentPosition_" + System.currentTimeMillis() + "_.txt")
-  currPosLogFile.createNewFile()
-  var currPosCounter: Long     = 0
-  val printStream: PrintStream = new PrintStream(new FileOutputStream(currPosLogFile))
-  this.printStream.println(
-    "Simulator publish timeStamp(t0),HCD receive timeStamp(t1),Assembly receive timeStamp(t2),ClientApp receive timeStamp(t3)"
-  )
+  val logFilePath: String = System.getenv("LogFiles")
+  val currPosBuffer       = ListBuffer[String]()
 
   startSubscribingEvents()
 
+  /*
   val clientAppCmdFile: File = new File(logFilePath + "/ClientAppCmdTime_" + System.currentTimeMillis() + "_.txt")
   clientAppCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(clientAppCmdFile))
   this.cmdPrintStream.println("ClientApp cmd Name,clientApp Publish Timestamp")
+  sendReadConfCommand()
+   */
 
-  //sendReadConfCommand()
-
-  def sendReadConfCommand()(implicit ec: ExecutionContext): Unit = {
+  var fileBuilt: Boolean = false
+  /*  def sendReadConfCommand()(implicit ec: ExecutionContext): Unit = {
     val commandService    = getAssembly
     val clientLogFilePath = clientAppCmdFile.getPath
     println(s"cmd log file path is : $clientLogFilePath")
@@ -146,7 +143,7 @@ object MCSMainApp extends App {
 
     }
     println("Successfully sent 10,00,00,000 commands to assembly stopped sending commands now.")
-  }
+  }*/
   def getDate(): String =
     LocalDateTime.ofInstant(Instant.now(), ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
 
@@ -209,7 +206,16 @@ object MCSMainApp extends App {
           clientAppRecTime match {
             case x: Instant => clientAppRecStr = getDate(x)
           }
-          this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
+          var sb: StringBuilder = new StringBuilder(s"${simPubStr.trim}")
+          sb.append(",")
+            .append(s"${hcdRecStr.trim}")
+            .append(",")
+            .append(s"${assemblyReStr.trim}")
+            .append(",")
+            .append(s"${clientAppRecStr.trim}")
+          //this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
+          currPosBuffer += sb.toString()
+
           println(
             s"CurrentPosition:, $azPosParam,$elPosParam,${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}"
           )
@@ -217,8 +223,20 @@ object MCSMainApp extends App {
 
     } else {
       println("Stopped subscribing events as counter reached 1,00,000")
-      Thread.sleep(10000)
+      if (!fileBuilt) {
+        val currPosLogFile: File = new File(logFilePath + "/CurrentPosition_" + System.currentTimeMillis() + "_.txt")
+        currPosLogFile.createNewFile()
 
+        val printStream: PrintStream = new PrintStream(new FileOutputStream(currPosLogFile))
+        printStream.println(
+          "Simulator publish timeStamp(t0),HCD receive timeStamp(t1),Assembly receive timeStamp(t2),ClientApp receive timeStamp(t3)"
+        )
+        val currPosList = currPosBuffer.toList
+        currPosList.foreach(cp => printStream.println(cp))
+        printStream.close()
+        fileBuilt = true
+      }
+      Thread.sleep(10000)
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
   }

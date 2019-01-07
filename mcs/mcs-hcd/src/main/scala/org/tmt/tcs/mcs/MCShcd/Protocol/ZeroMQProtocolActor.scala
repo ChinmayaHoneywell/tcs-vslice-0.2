@@ -200,28 +200,29 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
 
   private def initMCSConnection(config: Config): Boolean = {
     log.info(s"config object is :$config")
-    //val ipAddress = config.getInt("")
-    //TODO : Take config from configuration service
-    val addr: String = new String("tcp://localhost:")
-    //val addr2: String = new String("tcp://192.168.2.7:")
-    log.info(msg = s"ZeroMQ is connecting to machine:$addr")
-    zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
+
+    val tcsAddress = config.getString("tmt.tcs.mcs.TCSMCSAddr")
+    log.info(msg = s"ZeroMQ is connecting to machine:$tcsAddress")
+
+    val mcsAddress = config.getString("tmt.tcs.mcs.MCSSimulatorAddr")
+    log.info(msg = s"MCS Remote server address is: $mcsAddress") //tcp://192.168.1.2:
+
+    zeroMQPushSocketStr = tcsAddress + config.getInt("tmt.tcs.mcs.zeroMQPush")
     val pushSocketConn = pushSocket.bind(zeroMQPushSocketStr)
-    log.info(msg = s"ZeroMQ push socket is : $zeroMQPushSocketStr and connection : $pushSocketConn")
+    log.info(msg = s"ZeroMQ push socket is: $zeroMQPushSocketStr and connection: $pushSocketConn")
 
-    zeroMQPullSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPull")
+    zeroMQPullSocketStr = mcsAddress + config.getInt("tmt.tcs.mcs.zeroMQPull")
     val pullSocketConn = pullSocket.connect(zeroMQPullSocketStr)
-    log.info(msg = s"ZeroMQ pull socket is : $zeroMQPullSocketStr and connection : $pullSocketConn")
+    log.info(msg = s"ZeroMQ pull socket is: $zeroMQPullSocketStr and connection: $pullSocketConn")
 
-    zeroMQSubScribeSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQSub")
+    zeroMQSubScribeSocketStr = mcsAddress + config.getInt("tmt.tcs.mcs.zeroMQSub")
     val subSockConn = subscribeSocket.connect(zeroMQSubScribeSocketStr)
     subscribeSocket.subscribe(ZMQ.SUBSCRIPTION_ALL) // added this becz unable to receive msgs without this.
-    log.info(msg = s"ZeroMQ subscribe socket is : $zeroMQSubScribeSocketStr and connection is : $subSockConn")
+    log.info(msg = s"ZeroMQ subscribe socket is: $zeroMQSubScribeSocketStr and connection is: $subSockConn")
 
-    zeroMQPubSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPub")
+    zeroMQPubSocketStr = tcsAddress + config.getInt("tmt.tcs.mcs.zeroMQPub")
     val pubSockConn = pubSocket.bind(zeroMQPubSocketStr)
-    log.info(msg = s"ZeroMQ pub socket is : $zeroMQPubSocketStr and connection is : $pubSockConn")
-
+    log.info(msg = s"ZeroMQ pub socket is: $zeroMQPubSocketStr and connection is: $pubSockConn")
     pushSocketConn && pullSocketConn && subSockConn && pubSockConn
   }
   private def disconnectFromMCS(): Unit = {

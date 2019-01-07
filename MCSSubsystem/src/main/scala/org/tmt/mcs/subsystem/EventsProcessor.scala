@@ -8,9 +8,12 @@ import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.google.protobuf.Timestamp
+import com.typesafe.config.Config
 import org.tmt.mcs.subsystem.protos.TcsMcsEventsProtos
 import org.tmt.mcs.subsystem.protos.TcsMcsEventsProtos.{McsCurrentPositionEvent, McsDriveStatus, MountControlDiags, TcsPositionDemandEvent}
 import org.zeromq.ZMQ
+
+import scala.collection.mutable.ListBuffer
 
 object EventsProcessor{
   def createEventsProcessor(zmqContext : ZMQ.Context) : EventsProcessor = EventsProcessor(zmqContext)
@@ -34,7 +37,22 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   val healthPublisher : AtomicBoolean = new AtomicBoolean(true)
   val posDemandSubScriber : AtomicBoolean = new AtomicBoolean(true)
 
-  def initialize(addr: String, pubSocketPort : Int, subSocketPort : Int) : Unit = {
+  def initialize(config: Config): Unit ={
+    val mcsAddress = config.getString("MCS.Simulator.MCSAddress")
+    val pubSocketPort = config.getInt("MCS.Simulator.pubSocket")
+    val pubSocketAddr = mcsAddress + pubSocketPort
+    pubSocket.bind(pubSocketAddr)
+    println(s"MCS Simulator  is publishing events on : $pubSocketAddr")
+
+    val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
+    val subSocketPort = config.getInt("MCS.Simulator.subSocket")
+    val subSocketAddr = tcsAddress + subSocketPort
+    subSocket.connect(subSocketAddr)
+    subSocket.subscribe(ZMQ.SUBSCRIPTION_ALL)
+    println(s"MCS Simulator is subscribing on : $subSocketAddr")
+
+  }
+/*  def initialize(addr: String, pubSocketPort : Int, subSocketPort : Int) : Unit = {
     val pubSocketAddr = addr + pubSocketPort
     pubSocket.bind(pubSocketAddr)
     println(s"MCS Simulator  is publishing events on : $pubSocketAddr")
@@ -45,7 +63,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     subSocket.subscribe(ZMQ.SUBSCRIPTION_ALL)
     println(s"MCS Simulator is subscribing on : $subSocketAddr")
 
-  }
+  }*/
   def startEventProcessor() : Unit = {
     this.scheduler = Executors.newScheduledThreadPool(2)
     startPublishingCurrPos()
@@ -72,11 +90,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     println(s"PosDemand subscriber value is : ${this.posDemandSubScriber.get()}")
   }
   val logFilePath : String = System.getenv("LogFiles")
-  val demandPosLogFile: File = new File(logFilePath+"/PosDemRealLogs_" + System.currentTimeMillis() + ".txt")
-  demandPosLogFile.createNewFile()
-  val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
-  this.printStream
-    .println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)")
+
 
   def startPublishingCurrPos(): Unit = scheduler.scheduleWithFixedDelay(currentPosRunner, 10, 10, TimeUnit.MILLISECONDS)
   val currentPosRunner = new Runnable {
@@ -239,13 +253,17 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   //Position Demands will be ignored if MCS is not in follow state
   def startSubPosDemands() : Unit = scheduler.execute(posDemandSubscriber)
-
+  private var demandCounter = 0
+  private val demandBuffer = new ListBuffer[String]
+  var fileWritten = false
   private val posDemandSubscriber  : Runnable = new Runnable {
     override def run(): Unit = {
+
       while (posDemandSubScriber.get()) {
         val eventName: String = subSocket.recvStr()
         if (subSocket.hasReceiveMore) {
           val positionDemandBytes: Array[Byte] = subSocket.recv(ZMQ.NOBLOCK)
+          demandCounter = demandCounter + 1
           val simulatorRecTime = Instant.now()
           val positionDemand: TcsPositionDemandEvent = TcsPositionDemandEvent.parseFrom(positionDemandBytes)
           azPosDemand.set(doubleToLongBits(positionDemand.getAzimuth))
@@ -253,8 +271,23 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
           val tpkPublishTimeInstant = Instant.ofEpochSecond(positionDemand.getTpkPublishTime.getSeconds,positionDemand.getTpkPublishTime.getNanos)
           val assemblyRecTimeInstant = Instant.ofEpochSecond(positionDemand.getAssemblyReceivalTime.getSeconds,positionDemand.getAssemblyReceivalTime.getNanos)
           val hcdRecTimeInstant = Instant.ofEpochSecond(positionDemand.getHcdReceivalTime.getSeconds,positionDemand.getHcdReceivalTime.getNanos)
-          printStream.println(s"${getDate(tpkPublishTimeInstant).trim},${getDate(assemblyRecTimeInstant).trim}," +
-            s"${getDate(hcdRecTimeInstant).trim},${getDate(simulatorRecTime).trim}")
+          val sb = new StringBuilder(s"${getDate(tpkPublishTimeInstant).trim}")
+          sb.append(",").append(s"${getDate(assemblyRecTimeInstant).trim}").append(",").append(s"${getDate(hcdRecTimeInstant).trim}")
+            .append(",").append(s"${getDate(simulatorRecTime).trim}")
+          demandBuffer += sb.toString()
+          if(demandCounter == 100000 && !fileWritten){
+            val demandPosLogFile: File = new File(logFilePath+"/PosDemRealLogs_" + System.currentTimeMillis() + ".txt")
+            demandPosLogFile.createNewFile()
+            val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+            printStream.println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)")
+            val demandList = demandBuffer.toList
+            demandList.foreach(dl=>printStream.println(dl))
+            printStream.close()
+            fileWritten = true
+          }else{
+            println("Successfully subscribed 1,00,000 position demands")
+          }
+
         }else{
           println("Didn't get any position demands yet.")
         }

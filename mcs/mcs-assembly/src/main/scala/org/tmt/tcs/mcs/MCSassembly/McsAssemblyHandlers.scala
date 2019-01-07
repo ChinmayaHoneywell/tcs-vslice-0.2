@@ -75,12 +75,12 @@ class McsAssemblyHandlers(
     CommandHandlerActor.createObject(commandResponseManager, isOnline = true, hcdLocation, loggerFactory),
     "CommandHandlerActor"
   )
-  val logFilePath: String   = System.getenv("LogFiles")
-  val AssemblyCmdFile: File = new File(logFilePath + "/Cmd_Assembly" + System.currentTimeMillis() + "_.txt")
+  val logFilePath: String = System.getenv("LogFiles")
+  /*val AssemblyCmdFile: File = new File(logFilePath + "/Cmd_Assembly" + System.currentTimeMillis() + "_.txt")
   AssemblyCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(AssemblyCmdFile))
-  this.cmdPrintStream.println("AssemblyReciveTimestamp")
+  this.cmdPrintStream.println("AssemblyReciveTimestamp")*/
 
   /*
   This function is CSW in built initalization function
@@ -297,9 +297,8 @@ class McsAssemblyHandlers(
                                 WrongNumberOfParametersIssue(s" axes parameter is not provided for datum command"))
     }
   }
-  def getDate(instant: Instant) = {
-    LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
-  }
+  def getDate(instant: Instant) = LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
+
   override def onSubmit(controlCommand: ControlCommand): SubmitResponse = {
     controlCommand.commandName.name match {
       case Commands.STARTUP =>
@@ -307,8 +306,8 @@ class McsAssemblyHandlers(
         commandHandlerActor ! submitCommandMsg(controlCommand)
         Started(controlCommand.runId)
       case Commands.SET_SIMULATION_MODE => executeSimModeAndSendResp(controlCommand)
-      case Commands.READCONFIGURATION =>
-        this.cmdPrintStream.println(getDate(Instant.now()).trim)
+      case Commands.READCONFIGURATION   =>
+        // this.cmdPrintStream.println(getDate(Instant.now()).trim)
         commandHandlerActor ! submitCommandMsg(controlCommand)
         Started(controlCommand.runId)
       case Commands.FOLLOW => executeFollowCommandAndSendResponse(controlCommand)

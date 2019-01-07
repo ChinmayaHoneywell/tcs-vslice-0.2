@@ -435,11 +435,11 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
   }
 
   val logFilePath: String = System.getenv("LogFiles")
-  val hcdCmdFile: File    = new File(logFilePath + "/Cmd_HCD" + System.currentTimeMillis() + "_.txt")
+  /* val hcdCmdFile: File    = new File(logFilePath + "/Cmd_HCD" + System.currentTimeMillis() + "_.txt")
   hcdCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(hcdCmdFile))
-  this.cmdPrintStream.println("HCDReceiveTimeStamp")
+  this.cmdPrintStream.println("HCDReceiveTimeStamp")*/
 
   def getDate(instant: Instant): String =
     LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
@@ -459,7 +459,7 @@ class McsHcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext
         log.info("On receipt of startup command changing MCS HCD state to Running")
         Started(controlCommand.runId)
       case Commands.READCONFIGURATION =>
-        this.cmdPrintStream.println(getDate(Instant.now()).trim)
+        //  this.cmdPrintStream.println(getDate(Instant.now()).trim)
         commandHandlerActor ! HCDCommandMessage.submitCommand(controlCommand)
         Started(controlCommand.runId)
       case Commands.SHUTDOWN =>

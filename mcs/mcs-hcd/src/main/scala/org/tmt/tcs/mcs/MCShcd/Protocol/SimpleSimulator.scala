@@ -1,6 +1,6 @@
 package org.tmt.tcs.mcs.MCShcd.Protocol
 
-import java.io.{File, FileOutputStream, PrintStream}
+import java.io._
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import akka.actor.typed.{ActorRef, Behavior}
@@ -23,6 +23,7 @@ import csw.params.core.models.Units.degree
 import csw.params.core.models.{Prefix, Subsystem}
 import csw.params.core.states.{CurrentState, StateName}
 import csw.params.events.SystemEvent
+import scala.collection.mutable.ListBuffer
 
 sealed trait SimpleSimMsg
 object SimpleSimMsg {
@@ -65,21 +66,20 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
 
   val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
 
-  val logFilePath: String    = System.getenv("LogFiles")
-  val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
-  demandPosLogFile.createNewFile()
-  val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
-  this.printStream
-    .println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)")
+  /*val logFilePath: String = System.getenv("LogFiles")
 
   val simpleSimCmdFile: File = new File(logFilePath + "/Cmd_SimpleSim" + System.currentTimeMillis() + "_.txt")
   simpleSimCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(simpleSimCmdFile))
   this.cmdPrintStream.println("SimpleSimReceiveTimeStamp")
-
+*/
   def getDate(instant: Instant): String =
     LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
+
+  var demandCounter       = 0
+  val demandBuffer        = new ListBuffer[String]()
+  var fileUpdate: Boolean = false
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
     msg match {
@@ -120,7 +120,24 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         sentTime.head match {
           case x: Instant => pkPublishStr = getDate(x)
         }
-        this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
+        //this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
+        val sb = new StringBuilder(s"${pkPublishStr.trim}")
+        sb.append(",").append(s"${assemblyRecStr.trim}").append(",").append(s"${hcdRecStr.trim}").append(s"${simPubStr.trim}")
+        demandBuffer += sb.toString()
+        log.info(s"Position demand is : ${sb.toString()}")
+        demandCounter = demandCounter + 1
+        if (demandCounter == 100000 && !fileUpdate) {
+          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
+          demandPosLogFile.createNewFile()
+          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+          printStream.println(
+            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)"
+          )
+          val demandPosList = demandBuffer.toList
+          demandPosList.foreach(dp => printStream.println(dp))
+          printStream.close()
+          fileUpdate = true
+        }
         Behavior.same
 
       case msg: ProcEventDemand =>
@@ -151,7 +168,23 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         tpkPublishTime match {
           case x: Instant => pkPublishStr = getDate(x)
         }
-        this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
+        val sb = new StringBuilder(s"${pkPublishStr.trim}")
+        sb.append(",").append(s"${assemblyRecStr.trim}").append(",").append(s"${hcdRecStr.trim}").append(s"${simPubStr.trim}")
+        demandBuffer += sb.toString()
+        log.info(s"Position demand is : ${sb.toString()}")
+        demandCounter = demandCounter + 1
+        if (demandCounter == 100000 && !fileUpdate) {
+          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
+          demandPosLogFile.createNewFile()
+          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+          printStream.println(
+            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)"
+          )
+          val demandPosList = demandBuffer.toList
+          demandPosList.foreach(dp => printStream.println(dp))
+          printStream.close()
+          fileUpdate = true
+        }
         Behavior.same
 
       case msg: ProcCurrStateDemand =>
@@ -181,14 +214,30 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         tpkPublishTime match {
           case x: Instant => pkPublishStr = getDate(x)
         }
-        this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
+        val sb = new StringBuilder(s"${pkPublishStr.trim}")
+        sb.append(",").append(s"${assemblyRecStr.trim}").append(",").append(s"${hcdRecStr.trim}").append(s"${simPubStr.trim}")
+        demandBuffer += sb.toString()
+        log.info(s"Position demand is : ${sb.toString()}")
+        demandCounter = demandCounter + 1
+        if (demandCounter == 100000 && !fileUpdate) {
+          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
+          demandPosLogFile.createNewFile()
+          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+          printStream.println(
+            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)"
+          )
+          val demandPosList = demandBuffer.toList
+          demandPosList.foreach(dp => printStream.println(dp))
+          printStream.close()
+          fileUpdate = true
+        }
         Behavior.same
     }
   }
   def updateSimulator(commandName: String): Unit = {
     commandName match {
       case Commands.READCONFIGURATION =>
-        this.cmdPrintStream.println(getDate(Instant.now()).trim)
+        //this.cmdPrintStream.println(getDate(Instant.now()).trim)
       case Commands.STARTUP =>
         startPublishingCurrPos()
         startPublishingHealth()
