@@ -65,15 +65,15 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
   val posDemandSubScriber: AtomicBoolean = new AtomicBoolean(true)
 
   val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
-
-  /*val logFilePath: String = System.getenv("LogFiles")
+  val logFilePath: String                 = System.getenv("LogFiles")
+  /*
 
   val simpleSimCmdFile: File = new File(logFilePath + "/Cmd_SimpleSim" + System.currentTimeMillis() + "_.txt")
   simpleSimCmdFile.createNewFile()
   var cmdCounter: Long            = 0
   val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(simpleSimCmdFile))
   this.cmdPrintStream.println("SimpleSimReceiveTimeStamp")
-*/
+   */
   def getDate(instant: Instant): String =
     LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
 
@@ -237,7 +237,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
   def updateSimulator(commandName: String): Unit = {
     commandName match {
       case Commands.READCONFIGURATION =>
-        //this.cmdPrintStream.println(getDate(Instant.now()).trim)
+      //this.cmdPrintStream.println(getDate(Instant.now()).trim)
       case Commands.STARTUP =>
         startPublishingCurrPos()
         startPublishingHealth()
