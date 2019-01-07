@@ -66,22 +66,24 @@ These Below steps needs to be done everytime cofig service is re-initialized due
 #### Create Assembly configuration
 `curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://<ip address of config service>:<config service port number>/config/org/tmt/tcs/mcs_assembly.conf`  
 e.g.  
-`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_assembly.conf`
+`curl -X POST --data 'tmt{tcs{mcs{cmdtimeout:10,retries:2,limit:1}}}' http://192.168.2.8:4000/config/org/tmt/tcs/mcs_assembly.conf`
 
 #### Create HCD configuration
-`curl -X POST --data 'tmt{tcs{mcs{TCSMCSAddr:"tcp://192.168.122.1:",MCSSimulatorAddr:"tcp://192.168.122.1:",zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://<ip address of config service>:<config service port>/config/org/tmt/tcs/mcs_hcd.conf`
+`curl -X POST --data 'tmt{tcs{mcs{TCSMCSAddr:"tcp://<ip address of TCS server>:",MCSSimulatorAddr:"tcp://<ip address of MCS real simulator>:",zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://<ip address of config service>:<config service port>/config/org/tmt/tcs/mcs_hcd.conf`
 
 e.g.
-`curl -X POST --data 'tmt{tcs{mcs{TCSMCSAddr:"tcp://192.168.122.1:",MCSSimulatorAddr:"tcp://192.168.122.1:",zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.122.1:4000/config/org/tmt/tcs/mcs_hcd.conf`
+`curl -X POST --data 'tmt{tcs{mcs{TCSMCSAddr:"tcp://192.168.2.7:",MCSSimulatorAddr:"tcp://192.168.2.8:",zeroMQPush:55579,zeroMQPull:55578,zeroMQPub:55581,zeroMQSub:55580}}}' http://192.168.2.8:4000/config/org/tmt/tcs/mcs_hcd.conf`
+
+
 TCSMCSAddr corresponds to ipaddress of machine where MCS is running and MCSSimulatorAddr is ipaddress of machine where MCS Real simulator is running. if both are running on same machine then both will have same ip address.
 
 
 #### Cross check whether Assembly config file added successfully or not
 'curl -X GET http://<ip address of config service>:<config service port number>/config/org/tmt/tcs/mcs_assembly.conf` 
-e.g. 'curl -X GET http://192.168.2.8:5000/config/org/tmt/tcs/mcs_assembly.conf` 
+e.g. 'curl -X GET http://192.168.2.8:4000/config/org/tmt/tcs/mcs_assembly.conf` 
 
 #### Cross check whether HCD config file added successfully or not
-'curl -X GET http://192.168.2.8:5000/config/org/tmt/tcs/mcs_hcd.conf` 
+'curl -X GET http://192.168.2.8:4000/config/org/tmt/tcs/mcs_hcd.conf` 
 
 #### Log Files path setup:
 for setting up log files path below variable should be setup in .bashrc file
