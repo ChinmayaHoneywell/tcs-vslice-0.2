@@ -63,7 +63,7 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   val simEventSubscriber: AtomicBoolean                = new AtomicBoolean(true)
   private val scheduler: ExecutorService               = Executors.newSingleThreadExecutor()
 
-  /*
+  /*posts
   1. PublishEvent is used when positionDemand is propagated from Assembly to HCD using CSW EventService.
   2. PublishCurrStateToZeroMQ is used when positionDemand is propagated from Assembly to HCD using CSW CurrentState.
    */
@@ -201,8 +201,9 @@ case class ZeroMQProtocolActor(ctx: ActorContext[ZeroMQMessage],
   private def initMCSConnection(config: Config): Boolean = {
     log.info(s"config object is :$config")
     //val ipAddress = config.getInt("")
-    //TODO : TAke config from configuration service
-    val addr: String = new String("tcp://192:168.2.8:")
+    //TODO : Take config from configuration service
+    val addr: String = new String("tcp://localhost:")
+    //val addr2: String = new String("tcp://192.168.2.7:")
     log.info(msg = s"ZeroMQ is connecting to machine:$addr")
     zeroMQPushSocketStr = addr + config.getInt("tmt.tcs.mcs.zeroMQPush")
     val pushSocketConn = pushSocket.bind(zeroMQPushSocketStr)

@@ -56,6 +56,7 @@ object MCSMainApp extends App {
   private val azKey: Key[Double]   = KeyType.DoubleKey.make("AZ")
   private val elKey: Key[Double]   = KeyType.DoubleKey.make("EL")
   // private val filePathKey : Key[String] = KeyType.StringKey.make("FILEPATH")
+  /*  private val currPosList = new ListBuffer[String]()*/
 
   /**
    * Gets a reference to the running assembly from the location service, if found.
@@ -74,7 +75,7 @@ object MCSMainApp extends App {
   val prefix = Prefix("tmt.tcs.McsAssembly-Client")
 
   var count: Integer = 0
-  var simulationMode = "RealSimulator"
+  var simulationMode = "SimpleSimulator"
   try {
     val resp0 = sendSimulationModeCommand(simulationMode)
     val resp1 = sendStartupCommand()
@@ -180,43 +181,44 @@ object MCSMainApp extends App {
   }
   def processCurrentPosition(event: Event): Future[_] = {
     currPosCounter = currPosCounter + 1
-     if (currPosCounter <= 100000) {
-    val clientAppRecTime = Instant.now()
-    event match {
-      case systemEvent: SystemEvent =>
-        val params                   = systemEvent.paramSet
-        val azPosParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
-        val elPosParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
-        val simulatorSentTimeParam   = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
-        val simulatorPublishTime     = simulatorSentTimeParam.head
-        val hcdReceiveTime           = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
-        val assemblyRecTime          = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-        var simPubStr: String        = null
-        var hcdRecStr: String        = null
-        var assemblyReStr: String    = null
-        var clientAppRecStr: String  = null
+    if (currPosCounter <= 100000) {
+      val clientAppRecTime = Instant.now()
+      event match {
+        case systemEvent: SystemEvent =>
+          val params                   = systemEvent.paramSet
+          val azPosParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_AZ_POS).get
+          val elPosParam: Parameter[_] = params.find(msg => msg.keyName == EventConstants.POINTING_KERNEL_EL_POS).get
+          val simulatorSentTimeParam   = params.find(msg => msg.keyName == EventConstants.TIMESTAMP).get
+          val simulatorPublishTime     = simulatorSentTimeParam.head
+          val hcdReceiveTime           = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
+          val assemblyRecTime          = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
+          var simPubStr: String        = null
+          var hcdRecStr: String        = null
+          var assemblyReStr: String    = null
+          var clientAppRecStr: String  = null
 
-        simulatorPublishTime match {
-          case x: Instant => simPubStr = getDate(x)
-        }
-        hcdReceiveTime match {
-          case x: Instant => hcdRecStr = getDate(x)
-        }
-        assemblyRecTime match {
-          case x: Instant => assemblyReStr = getDate(x)
-        }
-        clientAppRecTime match {
-          case x: Instant => clientAppRecStr = getDate(x)
-        }
-        this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
-        println(
-          s"CurrentPosition:, $azPosParam, $elPosParam,${simPubStr.trim},${hcdRecStr.trim}, ${assemblyReStr.trim},${clientAppRecStr.trim}"
-        )
-    }
+          simulatorPublishTime match {
+            case x: Instant => simPubStr = getDate(x)
+          }
+          hcdReceiveTime match {
+            case x: Instant => hcdRecStr = getDate(x)
+          }
+          assemblyRecTime match {
+            case x: Instant => assemblyReStr = getDate(x)
+          }
+          clientAppRecTime match {
+            case x: Instant => clientAppRecStr = getDate(x)
+          }
+          this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
+          println(
+            s"CurrentPosition:, $azPosParam,$elPosParam,${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}"
+          )
+      }
 
-     } else {
+    } else {
       println("Stopped subscribing events as counter reached 1,00,000")
       Thread.sleep(10000)
+
     }
     Future.successful[String]("Successfully processed Current position event from assembly")
   }
