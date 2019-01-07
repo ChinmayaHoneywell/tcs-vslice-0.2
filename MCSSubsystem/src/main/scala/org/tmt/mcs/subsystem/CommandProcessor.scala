@@ -33,16 +33,16 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
 
   def initialize(config : Config): Unit = {
     println("Initializing MCS subsystem ZeroMQ command Processor")
-
-    val mcsAddress = config.getString("MCS.Simulator.MCSAddress")
+   
+    val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
     val pullSocketPort = config.getInt("MCS.Simulator.pullSocket")
-    val pullSocketAddr = mcsAddress + pullSocketPort
+    val pullSocketAddr = tcsAddress + pullSocketPort
     println(s"pull socket address is  :$pullSocketAddr")
     pullSocket.connect(pullSocketAddr)
 
-    val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
+    val mcsAddress = config.getString("MCS.Simulator.MCSAddress")   
     val pushSocketPort = config.getInt("MCS.Simulator.pushSocket")
-    val pushSocketAddr = tcsAddress + pushSocketPort
+    val pushSocketAddr = mcsAddress + pushSocketPort
     println(s"push socket address is : $pushSocketAddr")
     pushSocket.bind(pushSocketAddr)
   }
