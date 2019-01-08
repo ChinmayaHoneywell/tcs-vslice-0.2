@@ -196,3 +196,74 @@ In around 15-20 min you will see measurment data is generated at location specif
 Save the jconsole data as well.
 Stop all the services and redo above steps to take another set of measurements.
 
+
+### Scenario V  
+Multi-Machine, Multiple Container with Real Simulator.  
+
+
+#### CSW Multimachine Setup  
+Assuming two machines with Machine-1-IP: 192.168.2.8 and Machine-1-IP: 192.168.2.7, Setup below environment variable
+
+##### Machine-1 Setup  
+export interfaceName=eno1  
+export clusterSeeds=192.168.2.8:5552,192.168.2.7:5552  
+
+Now run csw services on machien-1. 
+`./csw-services.sh start`  
+
+##### Machine-2 Setup  
+export interfaceName=eno1  
+export clusterSeeds=192.168.2.8:5552,192.168.2.7:5552  
+
+Now run only location server on machine-2
+`./csw-location-server --clusterPort=5552`  
+
+#### Updating MCS Assembly and Real Simulator IP Configuration 
+We are going to run MCS Assembly on machine-2 and run PK assembly+Real simulator on machine-1. Machine-1 is also where all CSW services are running including config service. 
+
+##### Modify MCS-HCD configuration to have correct RealSimulator IP
+----
+##### Modify and rebuild RealSimulator to have correct MCS-Assembly Machine-2 IP
+----
+
+#### JAVA 9  
+As Java 1.8 does not support time capturing in microsecond, before starting any assembly PK or MCS, switch to JRE 9 by modifying PATH variable. This is required only for deployment and build should be done with java 8.  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+
+#### Step 2 - Start Pointing Kernel Assembly on Machine-1  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
+`./pk-container-cmd-app --local ../../../../src/main/resources/PkContainer.conf`  
+
+#### Step 3 - Start MCS Assembly on Machine-2  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
+`./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf`  
+
+#### Step 4 - Start Jconsole and connect to MCS Container process from it on Machine-2.
+`jconsole`  
+
+#### Step 5 - Start MCS Real Simulator on Machine-1
+`cd tcs-vsclice-0.2/MCSSubsystem/`  
+`sbt compile package`  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`sbt run`  
+
+#### Step 6 - Start Event generation in MCS on Machine-2
+By default the mode is set to simple simulator. Varify and if required Edit and rebuild mcs-main-app before executing below commands to use real simulator mode. Run mcs-main-app from Machine-2
+
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
+`./mcs-main-app`  
+
+#### Step 7 - Start Demand generation in PK  on Machine-1
+`cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
+`./pk-client-app`  
+
+In around 15-20 min you will see measurment data is generated at location specified using environment variable 'LogFiles'. This will be in csv format.
+
+Position demand date will be collected on Machine-1 by RealSimulator at 'LogFiles' location
+Current Position data will be collected on Machine-2 by mcs-main-app at 'LogFiles' location
+
+Save the jconsole data as well.
+Stop all the services and redo above steps to take another set of measurements.
