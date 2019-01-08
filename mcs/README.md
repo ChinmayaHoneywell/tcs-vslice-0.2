@@ -241,6 +241,11 @@ As Java 1.8 does not support time capturing in microsecond, before starting any 
 #### Step 4 - Start Jconsole and connect to MCS Container process from it on Machine-2.  
 `jconsole`  
 
+#### Step 4 - Start wireshark on Machine-1
+select root user using su command
+`wireshark`  
+In wireshark GUI, start packate capturing by selecting interface on which csw event service is running.
+
 #### Step 5 - Start MCS Real Simulator on Machine-1
 `cd tcs-vsclice-0.2/MCSSubsystem/`  
 `sbt compile package`  
