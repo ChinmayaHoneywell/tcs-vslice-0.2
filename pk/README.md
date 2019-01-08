@@ -138,3 +138,7 @@ Before running any components, follow below steps:
  - Go to the bin directory where you will find `csw-services.sh` script.
  - Run `./csw_services.sh --help` to see more information
  - Run `./csw_services.sh start` to start location service and config server
+ 
+ 
+### Changing Demand Generation Tick Interval  
+Edit file - TPC_POC/impl.cpp , In Method 'FastScan' inside Class 'FastScan' put appropriate tick interval. build project using make, this will generate libexample.so . place this file in shared lib location
