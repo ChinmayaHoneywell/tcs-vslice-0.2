@@ -1,4 +1,4 @@
-# TCS ENC Assembly POC (Java, CSW 0.6.0)
+# TCS ENC POC (Java, CSW 0.6.0)
 
 This project implements a TCS-ENC Assembly and ENC HCD using TMT Common Software
 
@@ -49,7 +49,7 @@ Once config server is initialized properly, later all csw services can be starte
 To varify if csw services are working properly, csw logs can be check at  
 `cd /tmp/csw`  
 
-## Build and Running the Template
+## Build and Running the ENC POC
 
 ### Downloading the template
 
