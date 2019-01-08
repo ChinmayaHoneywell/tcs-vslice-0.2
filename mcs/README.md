@@ -208,23 +208,21 @@ Assuming two machines with Machine-1-IP: 192.168.2.8 and Machine-1-IP: 192.168.2
 export interfaceName=eno1  
 export clusterSeeds=192.168.2.8:5552,192.168.2.7:5552  
 
-Now run csw services on machien-1. 
+Now run csw services on machien-1.  
 `./csw-services.sh start`  
 
 ##### Machine-2 Setup  
 export interfaceName=eno1  
 export clusterSeeds=192.168.2.8:5552,192.168.2.7:5552  
 
-Now run only location server on machine-2
+Now run only location server on machine-2  
 `./csw-location-server --clusterPort=5552`  
 
 #### Updating MCS Assembly and Real Simulator IP Configuration 
 We are going to run MCS Assembly on machine-2 and run PK assembly+Real simulator on machine-1. Machine-1 is also where all CSW services are running including config service. 
 
-##### Modify MCS-HCD configuration to have correct RealSimulator IP
-----
-##### Modify and rebuild RealSimulator to have correct MCS-Assembly Machine-2 IP
-----
+ - Modify MCS-HCD configuration to have correct RealSimulator IP by using curl post command as desribed in this doc in starting.
+ - Modify and rebuild RealSimulator to have correct MCS-Assembly Machine-2 IP 
 
 #### JAVA 9  
 As Java 1.8 does not support time capturing in microsecond, before starting any assembly PK or MCS, switch to JRE 9 by modifying PATH variable. This is required only for deployment and build should be done with java 8.  
@@ -240,7 +238,7 @@ As Java 1.8 does not support time capturing in microsecond, before starting any 
 `cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
 `./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf`  
 
-#### Step 4 - Start Jconsole and connect to MCS Container process from it on Machine-2.
+#### Step 4 - Start Jconsole and connect to MCS Container process from it on Machine-2.  
 `jconsole`  
 
 #### Step 5 - Start MCS Real Simulator on Machine-1
@@ -249,14 +247,14 @@ As Java 1.8 does not support time capturing in microsecond, before starting any 
 `export PATH=/java-9-home-path-here/bin:$PATH`  
 `sbt run`  
 
-#### Step 6 - Start Event generation in MCS on Machine-2
+#### Step 6 - Start Event generation in MCS on Machine-2  
 By default the mode is set to simple simulator. Varify and if required Edit and rebuild mcs-main-app before executing below commands to use real simulator mode. Run mcs-main-app from Machine-2
 
 `export PATH=/java-9-home-path-here/bin:$PATH`  
 `cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`  
 
-#### Step 7 - Start Demand generation in PK  on Machine-1
+#### Step 7 - Start Demand generation in PK  on Machine-1  
 `cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
 `./pk-client-app`  
 
