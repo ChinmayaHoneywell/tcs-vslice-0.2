@@ -1,4 +1,4 @@
-# TCS MCS Assembly POC (Java, CSW 0.6.0)
+# TCS MCS POC (Scala, CSW 0.6.0)
 
 This project implements a TCS-MCS Assembly and MCS HCD using TMT Common Software
 
@@ -45,11 +45,11 @@ Once config server is initialized properly, later all csw services can be starte
 `./csw-services.sh start`  
 `./csw-services.sh stop`  
 
-####CSW Logs  
+#### CSW Logs  
 To varify if csw services are working properly, csw logs can be check at  
-`cd /tmp/csw`  
+`cd /tmp/csw/logs`  
 
-## Build and Running the Template
+## Build and Running the MCS POC
 
 ### Downloading the template
 
@@ -83,10 +83,10 @@ TCSMCSAddr corresponds to ipaddress of machine where MCS is running and MCSSimul
 e.g. 'curl -X GET http://192.168.2.8:4000/config/org/tmt/tcs/mcs_assembly.conf` 
 
 #### Cross check whether HCD config file added successfully or not
-'curl -X GET http://192.168.2.8:4000/config/org/tmt/tcs/mcs_hcd.conf` 
+`curl -X GET http://192.168.2.8:4000/config/org/tmt/tcs/mcs_hcd.conf` 
 
 #### Log Files path setup:
-for setting up log files path below variable should be setup in .bashrc file
+Export below environment variable. This is where events/commands measurement data csv file will be generated
 export LogFiles=<Path of the folder in which log files should be generated>
 e.g.: export LogFiles=/home/tmt_tcs_2/LogFiles/scenario5
 
@@ -107,4 +107,92 @@ Client app sends setSimulationMode,startup,Datum,Follow,ReadConfiguration comman
 ### Run Junit Tests
 sbt test
 
+## Performance Measurement  
+
+### Scenario III  
+Single-Machine, Multiple Container with Simple Simulator.  
+
+#### Step 1 - Start CSW services  
+`./csw-services.sh start`  
+
+#### JAVA 9  
+As Java 1.8 does not support time capturing in microsecond, before starting any assembly PK or MCS, switch to JRE 9 by modifying PATH variable. This is required only for deployment and build should be done with java 8.  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+
+#### Step 2 - Start Pointing Kernel Assembly  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
+`./pk-container-cmd-app --local ../../../../src/main/resources/PkContainer.conf`  
+
+#### Step 3 - Start MCS Assembly  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
+`./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf`  
+
+#### Step 4 - Start Jconsole and connect to MCS Container process from it.
+`jconsole`  
+
+#### Step 5 - Start MCS Real Simulator 
+No need to start real simulator for this scenario
+
+#### Step 6 - Start Event generation in MCS  
+By default the mode is set to simple simulator. Varify and if required Edit and rebuild mcs-main-app before executing below commands to use simple simulator mode. 
+
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
+`./mcs-main-app`  
+
+#### Step 7 - Start Demand generation in PK  
+`cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
+`./pk-client-app`  
+
+
+In around 15-20 min you will see measurment data is generated at location specified using environment variable 'LogFiles'. This will be in csv format.
+Save the jconsole data as well.
+Stop all the services and redo above steps to take another set of measurements.
+
+
+### Scenario IV  
+Single-Machine, Multiple Container with Real Simulator.  
+
+#### Step 1 - Start CSW services  
+`./csw-services.sh start`  
+
+#### JAVA 9  
+As Java 1.8 does not support time capturing in microsecond, before starting any assembly PK or MCS, switch to JRE 9 by modifying PATH variable. This is required only for deployment and build should be done with java 8.  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+
+#### Step 2 - Start Pointing Kernel Assembly  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
+`./pk-container-cmd-app --local ../../../../src/main/resources/PkContainer.conf`  
+
+#### Step 3 - Start MCS Assembly  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
+`./mcs-container-cmd-app --local ../../../../src/main/resources/McsContainer.conf`  
+
+#### Step 4 - Start Jconsole and connect to MCS Container process from it.
+`jconsole`  
+
+#### Step 5 - Start MCS Real Simulator 
+`cd tcs-vsclice-0.2/MCSSubsystem/`  
+`sbt compile package`  
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`sbt run`  
+
+#### Step 6 - Start Event generation in MCS  
+By default the mode is set to simple simulator. Varify and if required Edit and rebuild mcs-main-app before executing below commands to use real simulator mode. 
+
+`export PATH=/java-9-home-path-here/bin:$PATH`  
+`cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
+`./mcs-main-app`  
+
+#### Step 7 - Start Demand generation in PK  
+`cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
+`./pk-client-app`  
+
+In around 15-20 min you will see measurment data is generated at location specified using environment variable 'LogFiles'. This will be in csv format.
+Save the jconsole data as well.
+Stop all the services and redo above steps to take another set of measurements.
 
