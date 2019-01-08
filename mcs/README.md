@@ -268,5 +268,5 @@ In around 15-20 min you will see measurment data is generated at location specif
 Position demand date will be collected on Machine-1 by RealSimulator at 'LogFiles' location
 Current Position data will be collected on Machine-2 by mcs-main-app at 'LogFiles' location
 
-Save the jconsole data as well.
+Save the jconsole data and wireshark data and tale screen shots.
 Stop all the services and redo above steps to take another set of measurements.
