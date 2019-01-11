@@ -3,7 +3,7 @@ package org.tmt.mcs.subsystem
 import java.io.{File, FileOutputStream, PrintStream}
 import java.lang.Double.{doubleToLongBits, longBitsToDouble}
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.{Duration, Instant, LocalDateTime, ZoneId}
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
@@ -149,7 +149,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
           if(pubSocket.sendMore("CurrentPosition")){
             val currPos : Array[Byte] = mcsCurrentPosition.toByteArray
             if(pubSocket.send(currPos)){
-              println(s"Successfully published CurrentPosition event data ${mcsCurrentPosition.getAzPos},${mcsCurrentPosition.getElPos},${mcsCurrentPosition.getTime} and byteArray: $currPos")
+              //println(s"Successfully published CurrentPosition event data ${mcsCurrentPosition.getAzPos},${mcsCurrentPosition.getElPos},${mcsCurrentPosition.getTime} and byteArray: $currPos")
             }else{
               println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
             }
@@ -254,7 +254,8 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
   //Position Demands will be ignored if MCS is not in follow state
   def startSubPosDemands() : Unit = scheduler.execute(posDemandSubscriber)
   private var demandCounter = 0
-  private val demandBuffer = new ListBuffer[String]
+  private val demandBuffer = new ListBuffer[DemandPosHolder]
+
   var fileWritten = false
   private val posDemandSubscriber  : Runnable = new Runnable {
     override def run(): Unit = {
@@ -271,21 +272,52 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
           val tpkPublishTimeInstant = Instant.ofEpochSecond(positionDemand.getTpkPublishTime.getSeconds,positionDemand.getTpkPublishTime.getNanos)
           val assemblyRecTimeInstant = Instant.ofEpochSecond(positionDemand.getAssemblyReceivalTime.getSeconds,positionDemand.getAssemblyReceivalTime.getNanos)
           val hcdRecTimeInstant = Instant.ofEpochSecond(positionDemand.getHcdReceivalTime.getSeconds,positionDemand.getHcdReceivalTime.getNanos)
-          val sb = new StringBuilder(s"${getDate(tpkPublishTimeInstant).trim}")
+
+          demandBuffer += DemandPosHolder(tpkPublishTimeInstant,assemblyRecTimeInstant,hcdRecTimeInstant,simulatorRecTime)
+
+         /* val sb = new StringBuilder(s"${getDate(tpkPublishTimeInstant).trim}")
           sb.append(",").append(s"${getDate(assemblyRecTimeInstant).trim}").append(",").append(s"${getDate(hcdRecTimeInstant).trim}")
-            .append(",").append(s"${getDate(simulatorRecTime).trim}")
-          demandBuffer += sb.toString()
+            .append(",").append(s"${getDate(simulatorRecTime).trim}")*/
+
           if(demandCounter == 100000 && !fileWritten){
-            val demandPosLogFile: File = new File(logFilePath+"/PosDemRealLogs_" + System.currentTimeMillis() + ".txt")
-            demandPosLogFile.createNewFile()
-            val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
-            printStream.println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)")
-            val demandList = demandBuffer.toList
-            demandList.foreach(dl=>printStream.println(dl))
-            printStream.close()
+            println("Successfully subscribed 1,00,000 demands")
+            try{
+              updateCurrPosPublisher(false)
+
+              val demandPosLogFile: File = new File(logFilePath+"/PosDemRealLogs_" + System.currentTimeMillis() + ".txt")
+              val fileCreated: Boolean = demandPosLogFile.createNewFile()
+              println(s"File $demandPosLogFile create success : $fileCreated, its path is ${demandPosLogFile.getAbsolutePath}")
+
+              val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile),true)
+              println("Started writing to position demands file.")
+              printStream.println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
+                "PK to Assembly(t1-t0),Assembly to HCD(t2-t1),HCD to Simulator(t3-t2),Pk to simulator total time(t3-t0)")
+              val demandList = demandBuffer.toList
+              demandList.foreach(cp=>{
+                val pkToAssembly: Double            = Duration.between(cp.pkPublishTime, cp.assemblyRecTime).toNanos / 1000
+                val assemblyToHCD: Double       = Duration.between(cp.assemblyRecTime, cp.hcdRecTime).toNanos / 1000
+                val hcdToSim: Double = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos / 1000
+                val pkToSim: Double      = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos / 1000
+
+
+                val str = s"${getDate(cp.pkPublishTime).trim},${getDate(cp.assemblyRecTime).trim}," +
+                  s"${getDate(cp.hcdRecTime).trim},${getDate(cp.simRecTime).trim},${pkToAssembly.toString.trim}," +
+                  s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${pkToSim.toString.trim}"
+               printStream.println(str)
+                println(s"written record : $str")
+            })
+        	    printStream.flush()
+              printStream.close()
+              println("Successfully subscribed 1,00,000 demands and file written successfully.")
+              Thread.sleep(1000)
+              Thread.currentThread().join()
+            }catch{
+             case e : Exception => println("Exception occured while writing to file")
+                e.printStackTrace()
+            }
             fileWritten = true
           }else{
-            println("Successfully subscribed 1,00,000 position demands")
+            println(s"Still subscribing demands: $demandCounter")
           }
 
         }else{
@@ -295,3 +327,4 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
 }
+case class DemandPosHolder(pkPublishTime : Instant,assemblyRecTime : Instant,hcdRecTime : Instant,simRecTime:Instant)

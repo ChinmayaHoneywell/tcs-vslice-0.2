@@ -11,7 +11,7 @@ import org.tmt.tcs.mcs.MCShcd.Protocol.SimpleSimMsg._
 import org.tmt.tcs.mcs.MCShcd.constants.{Commands, EventConstants}
 import java.lang.Double.doubleToLongBits
 import java.lang.Double.longBitsToDouble
-import java.time.{Instant, LocalDateTime, ZoneId}
+import java.time.{Duration, Instant, LocalDateTime, ZoneId}
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
 import csw.command.client.CommandResponseManager
@@ -43,6 +43,7 @@ object SimpleSimulator {
       ctx => SimpleSimulator(ctx, commandResponseManager: CommandResponseManager, loggerFactory, statePublisherActor)
     )
 }
+case class DemandPosHolder(pkPublishTime: Instant, assemblyRecTime: Instant, hcdRecTime: Instant, simRecTime: Instant)
 case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
                            commandResponseManager: CommandResponseManager,
                            loggerFactory: LoggerFactory,
@@ -78,7 +79,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
     LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
 
   var demandCounter       = 0
-  val demandBuffer        = new ListBuffer[String]()
+  val demandBuffer        = new ListBuffer[DemandPosHolder]()
   var fileUpdate: Boolean = false
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
@@ -103,40 +104,47 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val hcdRecTime                          = paramSet.find(msg => msg.keyName == EventConstants.HCD_ReceivalTime).get
         this.azPosDemand.set(doubleToLongBits(azPos.head.toString.toDouble))
         this.elPosDemand.set(doubleToLongBits(elPos.head.toString.toDouble))
-        var simPubStr: String      = null
-        var hcdRecStr: String      = null
-        var assemblyRecStr: String = null
-        var pkPublishStr: String   = null
+        var hcdRecIns: Instant      = null
+        var assemblyRecIns: Instant = null
+        var pkPublishIns: Instant   = null
 
-        simulatorRecTime match {
-          case x: Instant => simPubStr = getDate(x)
-        }
-        hcdRecTime.head match {
-          case x: Instant => hcdRecStr = getDate(x)
+        sentTime.head match {
+          case x: Instant => pkPublishIns = x
         }
         assemblyRecTime.head match {
-          case x: Instant => assemblyRecStr = getDate(x)
+          case x: Instant => assemblyRecIns = x
         }
-        sentTime.head match {
-          case x: Instant => pkPublishStr = getDate(x)
+        hcdRecTime.head match {
+          case x: Instant => hcdRecIns = x
         }
-        //this.printStream.println(s"${pkPublishStr.trim}, ${assemblyRecStr.trim}, ${hcdRecStr.trim}, ${simPubStr.trim}")
-        val sb = new StringBuilder(s"${pkPublishStr.trim}")
-        sb.append(",").append(s"${assemblyRecStr.trim}").append(",").append(s"${hcdRecStr.trim}").append(s"${simPubStr.trim}")
-        demandBuffer += sb.toString()
-        log.info(s"Position demand is : ${sb.toString()}")
+
         demandCounter = demandCounter + 1
+        demandBuffer += DemandPosHolder(pkPublishIns, assemblyRecIns, hcdRecIns, simulatorRecTime)
         if (demandCounter == 100000 && !fileUpdate) {
-          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
+          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
           demandPosLogFile.createNewFile()
           val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
           printStream.println(
-            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)"
+            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
+            "PK to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),PK to simulator totalTime(t3-t0)"
           )
           val demandPosList = demandBuffer.toList
-          demandPosList.foreach(dp => printStream.println(dp))
+          demandPosList.foreach(cp => {
+            val pkToAssembly: Double  = Duration.between(cp.pkPublishTime, cp.assemblyRecTime).toNanos / 1000
+            val assemblyToHCD: Double = Duration.between(cp.assemblyRecTime, cp.hcdRecTime).toNanos / 1000
+            val hcdToSim: Double      = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos / 1000
+            val pkToSim: Double       = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos / 1000
+
+            val str: String = s"${getDate(cp.pkPublishTime).trim},${getDate(cp.assemblyRecTime).trim}," +
+            s"${getDate(cp.hcdRecTime).trim},${getDate(cp.simRecTime).trim},${pkToAssembly.toString.trim}," +
+            s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${pkToSim.toString.trim}"
+            printStream.println(str)
+            println(s"Received demands are: $str")
+          })
           printStream.close()
           fileUpdate = true
+        } else {
+          println(s"Still subscribing demands, count is: $demandCounter")
         }
         Behavior.same
 
@@ -151,39 +159,47 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
         log.info(s"Received event : $msg from Assembly")
-        var simPubStr: String      = null
-        var hcdRecStr: String      = null
-        var assemblyRecStr: String = null
-        var pkPublishStr: String   = null
+        /* var hcdRecIns: Instant      = null
+        var assemblyRecIns: Instant = null
+        var pkPublishIns: Instant   = null
 
-        simpleSimRecTime match {
-          case x: Instant => simPubStr = getDate(x)
+        tpkPublishTime.head match {
+          case x: Instant => pkPublishIns = x
         }
-        hcdRecTime match {
-          case x: Instant => hcdRecStr = getDate(x)
+        assemblyRecTime.head match {
+          case x: Instant => assemblyRecIns = x
         }
-        assemblyRecTime match {
-          case x: Instant => assemblyRecStr = getDate(x)
-        }
-        tpkPublishTime match {
-          case x: Instant => pkPublishStr = getDate(x)
-        }
-        val sb = new StringBuilder(s"${pkPublishStr.trim}")
-        sb.append(",").append(s"${assemblyRecStr.trim}").append(",").append(s"${hcdRecStr.trim}").append(s"${simPubStr.trim}")
-        demandBuffer += sb.toString()
-        log.info(s"Position demand is : ${sb.toString()}")
+        hcdRecTime.head match {
+          case x: Instant => hcdRecIns = x
+        }*/
+
         demandCounter = demandCounter + 1
+        demandBuffer += DemandPosHolder(tpkPublishTime, assemblyRecTime, hcdRecTime, simpleSimRecTime)
         if (demandCounter == 100000 && !fileUpdate) {
-          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
+          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
           demandPosLogFile.createNewFile()
           val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
           printStream.println(
-            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)"
+            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
+            "PK to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),PK to simulator totalTime(t3-t0)"
           )
           val demandPosList = demandBuffer.toList
-          demandPosList.foreach(dp => printStream.println(dp))
+          demandPosList.foreach(cp => {
+            val pkToAssembly: Double  = Duration.between(cp.pkPublishTime, cp.assemblyRecTime).toNanos / 1000
+            val assemblyToHCD: Double = Duration.between(cp.assemblyRecTime, cp.hcdRecTime).toNanos / 1000
+            val hcdToSim: Double      = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos / 1000
+            val pkToSim: Double       = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos / 1000
+
+            val str: String = s"${getDate(cp.pkPublishTime).trim},${getDate(cp.assemblyRecTime).trim}," +
+            s"${getDate(cp.hcdRecTime).trim},${getDate(cp.simRecTime).trim},${pkToAssembly.toString.trim}," +
+            s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${pkToSim.toString.trim}"
+            printStream.println(str)
+            println(s"Received demands are: $str")
+          })
           printStream.close()
           fileUpdate = true
+        } else {
+          println(s"Still subscribing demands, count is: $demandCounter")
         }
         Behavior.same
 
@@ -197,39 +213,47 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
-        var simPubStr: String      = null
-        var hcdRecStr: String      = null
-        var assemblyRecStr: String = null
-        var pkPublishStr: String   = null
+        /* var hcdRecIns: Instant      = null
+        var assemblyRecIns: Instant = null
+        var pkPublishIns: Instant   = null
 
-        simpleSimRecTime match {
-          case x: Instant => simPubStr = getDate(x)
+        tpkPublishTime.head match {
+          case x: Instant => pkPublishIns = x
         }
-        hcdRecTime match {
-          case x: Instant => hcdRecStr = getDate(x)
+        assemblyRecTime.head match {
+          case x: Instant => assemblyRecIns = x
         }
-        assemblyRecTime match {
-          case x: Instant => assemblyRecStr = getDate(x)
+        hcdRecTime.head match {
+          case x: Instant => hcdRecIns = x
         }
-        tpkPublishTime match {
-          case x: Instant => pkPublishStr = getDate(x)
-        }
-        val sb = new StringBuilder(s"${pkPublishStr.trim}")
-        sb.append(",").append(s"${assemblyRecStr.trim}").append(",").append(s"${hcdRecStr.trim}").append(s"${simPubStr.trim}")
-        demandBuffer += sb.toString()
-        log.info(s"Position demand is : ${sb.toString()}")
+         */
         demandCounter = demandCounter + 1
+        demandBuffer += DemandPosHolder(tpkPublishTime, assemblyRecTime, hcdRecTime, simpleSimRecTime)
         if (demandCounter == 100000 && !fileUpdate) {
-          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventLog_" + System.currentTimeMillis() + ".txt")
+          val demandPosLogFile: File = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
           demandPosLogFile.createNewFile()
           val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
           printStream.println(
-            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)"
+            "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
+            "PK to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),PK to simulator totalTime(t3-t0)"
           )
           val demandPosList = demandBuffer.toList
-          demandPosList.foreach(dp => printStream.println(dp))
+          demandPosList.foreach(cp => {
+            val pkToAssembly: Double  = Duration.between(cp.pkPublishTime, cp.assemblyRecTime).toNanos / 1000
+            val assemblyToHCD: Double = Duration.between(cp.assemblyRecTime, cp.hcdRecTime).toNanos / 1000
+            val hcdToSim: Double      = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos / 1000
+            val pkToSim: Double       = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos / 1000
+
+            val str: String = s"${getDate(cp.pkPublishTime).trim},${getDate(cp.assemblyRecTime).trim}," +
+            s"${getDate(cp.hcdRecTime).trim},${getDate(cp.simRecTime).trim},${pkToAssembly.toString.trim}," +
+            s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${pkToSim.toString.trim}"
+            printStream.println(str)
+            println(s"Received demands are: $str")
+          })
           printStream.close()
           fileUpdate = true
+        } else {
+          println(s"Still subscribing demands, count is: $demandCounter")
         }
         Behavior.same
     }

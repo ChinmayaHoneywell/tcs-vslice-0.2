@@ -1,9 +1,10 @@
 package org.tmt.tcs.mcs.MCSdeploy
+
 import java.io._
 import java.net.InetAddress
 import java.time.{Instant, LocalDateTime, ZoneId}
 import java.time.format.DateTimeFormatter
-
+import java.time.Duration
 import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -36,6 +37,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 object MCSDeployHelper {
   def create(simulatorMode: String): MCSDeployHelper = MCSDeployHelper(simulatorMode)
 }
+case class CurrentPosHolder(simPublishTime: Instant, hcdRecTime: Instant, assemblyRecTime: Instant, clientAppRecTime: Instant)
 case class MCSDeployHelper(simulatorMode: String) {
 
   private val system: ActorSystem     = ActorSystemFactory.remote("Client-App")
@@ -71,6 +73,8 @@ case class MCSDeployHelper(simulatorMode: String) {
   val prefix               = Prefix("tmt.tcs.McsAssembly-Client")
   var currPosCounter: Long = 0
 
+  val currPosBuffer = ListBuffer[CurrentPosHolder]()
+
   // Below commented code is for sending dummy commands.
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
   //println(s"Move command response is : $resp4 at : ${System.currentTimeMillis()}")
@@ -88,7 +92,6 @@ case class MCSDeployHelper(simulatorMode: String) {
   println(s"Shutdown Command Response is : ${resp7} total time taken is : ${System.currentTimeMillis() - shutdownCmd}")*/
 
   val logFilePath: String = System.getenv("LogFiles")
-  val currPosBuffer       = ListBuffer[String]()
 
   // Below commented code is for writing command related things
   /*
@@ -225,7 +228,7 @@ case class MCSDeployHelper(simulatorMode: String) {
     LocalDateTime.ofInstant(instant, ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
 
   def startSubscribingEvents(): Unit = {
-    println(" ** Started subscribing Events from Assembly ** ")
+    println(" ****** Started subscribing Events from Assembly ****** ")
     val eventService = getEventService
     val subscriber   = eventService.defaultSubscriber
     subscriber.subscribeCallback(DeployConstants.currentPositionSet, event => processCurrentPosition(event))
@@ -263,36 +266,25 @@ case class MCSDeployHelper(simulatorMode: String) {
           val simulatorPublishTime     = simulatorSentTimeParam.head
           val hcdReceiveTime           = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
           val assemblyRecTime          = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-          var simPubStr: String        = null
-          var hcdRecStr: String        = null
-          var assemblyReStr: String    = null
-          var clientAppRecStr: String  = null
-
+          var simPubTime: Instant      = null
+          var hcdRecTime: Instant      = null
+          var assemblyReTime: Instant  = null
           simulatorPublishTime match {
-            case x: Instant => simPubStr = getDate(x)
+            case x: Instant => simPubTime = x
           }
           hcdReceiveTime match {
-            case x: Instant => hcdRecStr = getDate(x)
+            case x: Instant => hcdRecTime = x
           }
           assemblyRecTime match {
-            case x: Instant => assemblyReStr = getDate(x)
+            case x: Instant => assemblyReTime = x
           }
-          clientAppRecTime match {
-            case x: Instant => clientAppRecStr = getDate(x)
-          }
-          var sb: StringBuilder = new StringBuilder(s"${simPubStr.trim}")
-          sb.append(",")
-            .append(s"${hcdRecStr.trim}")
-            .append(",")
-            .append(s"${assemblyReStr.trim}")
-            .append(",")
-            .append(s"${clientAppRecStr.trim}")
-          //this.printStream.println(s"${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}")
-          currPosBuffer += sb.toString()
+          currPosBuffer += CurrentPosHolder(simPubTime, hcdRecTime, assemblyReTime, clientAppRecTime)
+          val simToHCD: Long            = Duration.between(simPubTime, hcdRecTime).toNanos
+          val hcdToAssembly: Long       = Duration.between(hcdRecTime, assemblyReTime).toNanos
+          val assemblyToClientApp: Long = Duration.between(assemblyReTime, clientAppRecTime).toNanos
+          val simToClientApp: Long      = Duration.between(simPubTime, clientAppRecTime).toNanos
 
-          println(
-            s"CurrentPosition:, $azPosParam,$elPosParam,${simPubStr.trim},${hcdRecStr.trim},${assemblyReStr.trim},${clientAppRecStr.trim}"
-          )
+          println(s"currentposition counter: $currPosCounter")
       }
 
     } else {
@@ -303,10 +295,23 @@ case class MCSDeployHelper(simulatorMode: String) {
 
         val printStream: PrintStream = new PrintStream(new FileOutputStream(currPosLogFile))
         printStream.println(
-          "Simulator publish timeStamp(t0),HCD receive timeStamp(t1),Assembly receive timeStamp(t2),ClientApp receive timeStamp(t3)"
+          "Simulator publish timeStamp(t0),HCD receive timeStamp(t1),Assembly receive timeStamp(t2),ClientApp receive timeStamp(t3),Simulator to HCD(t1-t0)," +
+          "HCD to Assembly(t2-t1),Assembly to ClientApp(t3-t2),Simulator to ClientApp totalTime(t3-t0)"
         )
         val currPosList = currPosBuffer.toList
-        currPosList.foreach(cp => printStream.println(cp))
+
+        currPosList.foreach(cp => {
+          val simToHCD: Double            = Duration.between(cp.simPublishTime, cp.hcdRecTime).toNanos / 1000
+          val hcdToAssembly: Double       = Duration.between(cp.hcdRecTime, cp.assemblyRecTime).toNanos / 1000
+          val assemblyToClientApp: Double = Duration.between(cp.assemblyRecTime, cp.clientAppRecTime).toNanos / 1000
+          val simToClientApp: Double      = Duration.between(cp.simPublishTime, cp.clientAppRecTime).toNanos / 1000
+          val str: String = s"${getDate(cp.simPublishTime).trim},${getDate(cp.hcdRecTime).trim}," +
+          s"${getDate(cp.assemblyRecTime).trim},${getDate(cp.clientAppRecTime).trim},${simToHCD.toString.trim}," +
+          s"${hcdToAssembly.toString.trim},${assemblyToClientApp.toString.trim},${simToClientApp.toString.trim}"
+          //log.error(str)
+          println(s"$str")
+          printStream.println(str)
+        })
         printStream.close()
         fileBuilt = true
       }

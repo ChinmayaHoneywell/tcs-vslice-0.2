@@ -35,7 +35,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
     eventName match {
       case EventConstants.CURRENT_POSITION =>
         var mcsCurrentPosEvent: McsCurrentPositionEvent = null
-        log.error(s"Decoding event: $eventName for data: $encodedEventData")
+        //log.error(s"Decoding event: $eventName for data: $encodedEventData")
         try {
           mcsCurrentPosEvent = McsCurrentPositionEvent.parseFrom(encodedEventData)
           paramSetTransformer.getMountCurrentPosition(mcsCurrentPosEvent)
@@ -54,7 +54,7 @@ case class ProtoBuffMsgTransformer(loggerFactory: LoggerFactory) extends IMessag
       case EventConstants.HEALTH_STATE =>
         var healthState: McsHealth = null
         try {
-          log.error(s"Decoding event: $eventName for data: $encodedEventData")
+          //  log.error(s"Decoding event: $eventName for data: $encodedEventData")
           healthState = McsHealth.parseFrom(encodedEventData)
           paramSetTransformer.getMCSHealth(healthState)
         } catch {
