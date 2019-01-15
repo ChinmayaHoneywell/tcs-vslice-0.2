@@ -148,6 +148,7 @@ No need to start real simulator for this scenario
 `./mcs-main-app`  
 
 On starting client app, client app will prompt below message:
+
 `Please enter SimulationMode: SimpleSimulator or RealSimulator`
 
 Please enter simulation mode as: `SimpleSimulator`
@@ -199,6 +200,7 @@ By default the mode is set to simple simulator. Varify and if required Edit and 
 `./mcs-main-app`  
 
 On starting client app, client app will prompt below message:
+
 `Please enter SimulationMode: SimpleSimulator or RealSimulator`
 
 Please enter simulation mode as: `RealSimulator`
@@ -275,6 +277,7 @@ By default the mode is set to simple simulator. Varify and if required Edit and 
 `./mcs-main-app`  
 
 On starting client app, client app will prompt below message:
+
 `Please enter SimulationMode: SimpleSimulator or RealSimulator`
 
 Please enter simulation mode as: `RealSimulator`
