@@ -122,8 +122,9 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         demandBuffer += DemandPosHolder(pkPublishIns, assemblyRecIns, hcdRecIns, simulatorRecTime)
         if (demandCounter == 100000 && !fileUpdate) {
           val demandPosLogFile: File = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
-          demandPosLogFile.createNewFile()
-          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+          val isDemFileCreated : Boolean = demandPosLogFile.createNewFile()
+          log.info(s"Pos demand log file created ?: $isDemFileCreated")
+          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile),true)
           printStream.println(
             "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
             "PK to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),PK to simulator totalTime(t3-t0)"
@@ -141,6 +142,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
             printStream.println(str)
             println(s"Received demands are: $str")
           })
+          printStream.flush()
           printStream.close()
           fileUpdate = true
         } else {
@@ -159,26 +161,15 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
         log.info(s"Received event : $msg from Assembly")
-        /* var hcdRecIns: Instant      = null
-        var assemblyRecIns: Instant = null
-        var pkPublishIns: Instant   = null
 
-        tpkPublishTime.head match {
-          case x: Instant => pkPublishIns = x
-        }
-        assemblyRecTime.head match {
-          case x: Instant => assemblyRecIns = x
-        }
-        hcdRecTime.head match {
-          case x: Instant => hcdRecIns = x
-        }*/
 
         demandCounter = demandCounter + 1
         demandBuffer += DemandPosHolder(tpkPublishTime, assemblyRecTime, hcdRecTime, simpleSimRecTime)
         if (demandCounter == 100000 && !fileUpdate) {
           val demandPosLogFile: File = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
-          demandPosLogFile.createNewFile()
-          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+          val isDemFileCreated: Boolean = demandPosLogFile.createNewFile()
+          log.info(s"Pos demand log file created ?: $isDemFileCreated")
+          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile),true)
           printStream.println(
             "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
             "PK to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),PK to simulator totalTime(t3-t0)"
@@ -196,6 +187,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
             printStream.println(str)
             println(s"Received demands are: $str")
           })
+          printStream.flush()
           printStream.close()
           fileUpdate = true
         } else {
@@ -213,26 +205,13 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         val elPos            = cs.get(EventConstants.ElPosKey).get.head
         this.azPosDemand.set(doubleToLongBits(azPos))
         this.elPosDemand.set(doubleToLongBits(elPos))
-        /* var hcdRecIns: Instant      = null
-        var assemblyRecIns: Instant = null
-        var pkPublishIns: Instant   = null
-
-        tpkPublishTime.head match {
-          case x: Instant => pkPublishIns = x
-        }
-        assemblyRecTime.head match {
-          case x: Instant => assemblyRecIns = x
-        }
-        hcdRecTime.head match {
-          case x: Instant => hcdRecIns = x
-        }
-         */
         demandCounter = demandCounter + 1
         demandBuffer += DemandPosHolder(tpkPublishTime, assemblyRecTime, hcdRecTime, simpleSimRecTime)
         if (demandCounter == 100000 && !fileUpdate) {
           val demandPosLogFile: File = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
-          demandPosLogFile.createNewFile()
-          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile))
+          val isDemFileCreated: Boolean = demandPosLogFile.createNewFile()
+          log.info(s"Pos demand log file created ?: $isDemFileCreated")
+          val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile),true)
           printStream.println(
             "PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
             "PK to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),PK to simulator totalTime(t3-t0)"
@@ -250,6 +229,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
             printStream.println(str)
             println(s"Received demands are: $str")
           })
+          printStream.flush()
           printStream.close()
           fileUpdate = true
         } else {

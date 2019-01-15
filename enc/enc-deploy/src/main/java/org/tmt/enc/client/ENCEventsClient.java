@@ -97,7 +97,7 @@ public class ENCEventsClient {
             Instant hcdInstantTime = (Instant) hcdTimestampParam.value(0);
             Instant assemblyInstantTime = (Instant) assemblyTimestampParam.value(0);
 
-            long hcdToClientDuration = Duration.between(hcdInstantTime, clientInstantTime).toMillis();
+            double hcdToClientDuration = Duration.between(hcdInstantTime, clientInstantTime).toNanos()/1000000;
             long subsystemToClientDuration = Duration.between(subsystemInstantTime, clientInstantTime).toMillis();
             long hcdToAssemblyDuration = Duration.between(hcdInstantTime, assemblyInstantTime).toMillis();
 

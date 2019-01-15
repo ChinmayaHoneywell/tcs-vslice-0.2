@@ -79,24 +79,19 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
       case x: AssemblyOperationalStateChangeMsg => onAssemblyOperationalStateChangeMsg(x)
       case x: LocationEventMsg                  => onLocationEvent(x.hcdLocation)
       case x: currentStateChangeMsg             => onCurrentStateChange(x)
-      case x: GetCurrentState                   =>
-        // log.info(s"Current lifeCycle state of assembly is : ${assemblyState} and operational state is : ${assemblyMotionState}")
+      case x: GetCurrentState =>
         x.actorRef ! AssemblyCurrentState(assemblyState, assemblyMotionState)
         Behavior.same
-
       case _ =>
         log.error(msg = s"Incorrect message $msg is sent to MonitorActor")
         Behavior.unhandled
-
     }
-    // this
   }
   /*
   This function updates assembly lifecycle state
    */
   def onAssemblyLifeCycleStateChangeMsg(x: MonitorMessage with AssemblyLifeCycleStateChangeMsg): Behavior[MonitorMessage] = {
     log.info(msg = s"Successfully changed monitor assembly lifecycle state to ${x.assemblyState}")
-
     MonitorActor.createObject(x.assemblyState, assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
   }
   /*
@@ -104,7 +99,6 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
    */
   def onAssemblyOperationalStateChangeMsg(x: MonitorMessage with AssemblyOperationalStateChangeMsg): Behavior[MonitorMessage] = {
     log.info(msg = s"Successfully changed monitor actor state to ${x.assemblyMotionState}")
-
     MonitorActor.createObject(assemblyState, x.assemblyMotionState, eventHandlerActor, eventTransformer, loggerFactory)
   }
   /*
@@ -139,7 +133,7 @@ case class MonitorActor(ctx: ActorContext[MonitorMessage],
   /*
     TODO : here should be the logic to change assembly states based on currentPosition such as slewing,tracking
    */
-  private def processMCSCurrentPositionEvent(currentState: CurrentState): Unit = {}
+  //private def processMCSCurrentPositionEvent(currentState: CurrentState): Unit = {}
   /*
     This function processes currentState received from HCD CurrentStatePublisher
     - if hcdLifeCycleState is Running then it updates Assembly lifecycle and operational state to running

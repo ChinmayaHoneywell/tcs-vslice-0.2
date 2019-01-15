@@ -299,7 +299,6 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
                 val hcdToSim: Double = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos / 1000
                 val pkToSim: Double      = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos / 1000
 
-
                 val str = s"${getDate(cp.pkPublishTime).trim},${getDate(cp.assemblyRecTime).trim}," +
                   s"${getDate(cp.hcdRecTime).trim},${getDate(cp.simRecTime).trim},${pkToAssembly.toString.trim}," +
                   s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${pkToSim.toString.trim}"

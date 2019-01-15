@@ -131,13 +131,9 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     }
   }
   def handleStartupCommand(msg: submitCommandMsg): Unit = {
-    //   val setup = Setup(mcsHCDPrefix, CommandName(Commands.STARTUP), msg.controlCommand.maybeObsId)
     hcdLocation match {
       case Some(commandService: CommandService) =>
         val response = Await.result(commandService.submit(msg.controlCommand), 10.seconds)
-        //log.info(msg = s" Result of startup command is : $response")
-        /* commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
-        commandResponseManager.updateSubCommand(response)*/
         commandResponseManager.addOrUpdateCommand(response)
         log.info(msg = s"Successfully updated status of startup command in commandResponseManager : $response")
       case None => log.error(msg = s" Error in finding HCD instance while submitting startup command to HCD ")
@@ -146,21 +142,18 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
 
   def handleDatumCommand(msg: submitCommandMsg) = {
     log.info(msg = "Sending  Datum command to DatumCommandActor")
-
     val datumCommandActor: ActorRef[ControlCommand] =
       ctx.spawn(DatumCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "DatumCommandActor")
     datumCommandActor ! msg.controlCommand
   }
 
   def handleMoveCommand(msg: submitCommandMsg) = {
-    //log.info(msg = "Sending  Move command to MoveCommandActor")
     val moveCommandActor: ActorRef[ControlCommand] =
       ctx.spawn(MoveCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "MoveCommandActor")
     moveCommandActor ! msg.controlCommand
   }
 
   def handleFollowCommand(msg: ImmediateCommand): Unit = {
-    // log.info(msg = "Sending  Follow command to FollowCommandActor")
     val followCommandActor: ActorRef[ImmediateCommand] =
       ctx.spawn(FollowCommandActor.createObject(hcdLocation, loggerFactory), "FollowCommandActor")
     followCommandActor ! msg

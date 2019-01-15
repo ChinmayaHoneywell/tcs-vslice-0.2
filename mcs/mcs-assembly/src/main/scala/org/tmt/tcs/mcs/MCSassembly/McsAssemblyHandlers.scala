@@ -91,8 +91,6 @@ class McsAssemblyHandlers(
   override def initialize(): Future[Unit] = Future {
     log.info(msg = "Initializing MCS Assembly")
     lifeCycleActor ! InitializeMsg()
-    //eventHandlerActor ! StartPublishingDummyEvent()
-    //eventHandlerActor ! StartEventSubscription()
     monitorActor ! AssemblyLifeCycleStateChangeMsg(AssemblyLifeCycleState.Initalized)
   }
   /*
@@ -120,11 +118,9 @@ class McsAssemblyHandlers(
     commandHandlerActor ! updateHCDLocation(hcdLocation)
     log.error(s"Sending hcdLocation:$hcdLocation to eventHandlerActor")
     eventHandlerActor ! hcdLocationChanged(hcdLocation)
-    //eventHandlerActor ! StartEventSubscription()
   }
 
   override def validateCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
-    //log.info(msg = s" validating command ----> ${controlCommand.commandName}")
     controlCommand.commandName.name match {
 
       case Commands.FOLLOW              => validateFollowCommand(controlCommand)
@@ -271,7 +267,6 @@ class McsAssemblyHandlers(
   This function validates datum command based on parameters and state
    */
   private def validateDatumCommand(controlCommand: ControlCommand): ValidateCommandResponse = {
-    // check hcd is in running state
     val validateParamsBool: Boolean = validateParams(controlCommand)
     validateParamsBool match {
       case true =>

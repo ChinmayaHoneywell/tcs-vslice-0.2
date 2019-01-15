@@ -236,11 +236,9 @@ case class MCSDeployHelper(simulatorMode: String) {
     subscriber.subscribeCallback(DeployConstants.dummyEventKey, event => proecessDummyEvent(event))
   }
   def proecessDummyEvent(event: Event): Future[_] = {
-    //println(s"** Received event : ${event} from Assembly. ** ")
     Future.successful[String]("Successfully processed Dummy event from assembly")
   }
   def processHealth(event: Event): Future[_] = {
-    // println(s"*** Received health event: $event from assembly *** ")
     val clientAppRecTime = Instant.now()
     event match {
       case systemEvent: SystemEvent =>
@@ -249,7 +247,6 @@ case class MCSDeployHelper(simulatorMode: String) {
         val simulatorPublishTime                 = simulatorSentTimeParam.head
         val hcdReceiveTime                       = params.find(msg => msg.keyName == EventConstants.HCD_EventReceivalTime).get.head
         val assemblyRecTime                      = params.find(msg => msg.keyName == EventConstants.ASSEMBLY_EVENT_RECEIVAL_TIME).get.head
-      //println(s"Health, $simulatorPublishTime, $hcdReceiveTime, $assemblyRecTime, $clientAppRecTime")
     }
     Future.successful[String]("Successfully processed Health event from assembly")
   }
@@ -308,7 +305,6 @@ case class MCSDeployHelper(simulatorMode: String) {
           val str: String = s"${getDate(cp.simPublishTime).trim},${getDate(cp.hcdRecTime).trim}," +
           s"${getDate(cp.assemblyRecTime).trim},${getDate(cp.clientAppRecTime).trim},${simToHCD.toString.trim}," +
           s"${hcdToAssembly.toString.trim},${assemblyToClientApp.toString.trim},${simToClientApp.toString.trim}"
-          //log.error(str)
           println(s"$str")
           printStream.println(str)
         })
