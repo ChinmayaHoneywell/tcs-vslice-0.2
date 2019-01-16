@@ -53,7 +53,7 @@ To varify if csw services are working properly, csw logs can be check at
 
 ### Downloading the template
 
-Clone or download tmtsoftware/tcs-vslice-0.2/MCS to a directory of choice
+Clone or download tmtsoftware/tcs-vslice-0.2/MCS to a directory of your choice
 
 ### Building the template
 
@@ -101,6 +101,12 @@ e.g.: export LogFiles=/home/tmt_tcs_2/LogFiles/scenario5
 `cd mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`
 
+On starting client app, client app will prompt below message:
+`Please enter SimulationMode: SimpleSimulator or RealSimulator`
+
+enter simulation mode with which test to be performed.
+Note: For RealSimulator, actual MCS RealSimulator should be started.
+
 Client app sends setSimulationMode,startup,Datum,Follow,ReadConfiguration commands to MCS Assembly.
 
 
@@ -136,11 +142,16 @@ As Java 1.8 does not support time capturing in microsecond, before starting any 
 No need to start real simulator for this scenario
 
 #### Step 6 - Start Event generation in MCS  
-By default the mode is set to simple simulator. Varify and if required Edit and rebuild mcs-main-app before executing below commands to use simple simulator mode. 
 
 `export PATH=/java-9-home-path-here/bin:$PATH`  
 `cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`  
+
+On starting client app, client app will prompt below message:
+
+`Please enter SimulationMode: SimpleSimulator or RealSimulator`
+
+Please enter simulation mode as: `SimpleSimulator`
 
 #### Step 7 - Start Demand generation in PK  
 `cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
@@ -187,6 +198,12 @@ By default the mode is set to simple simulator. Varify and if required Edit and 
 `export PATH=/java-9-home-path-here/bin:$PATH`  
 `cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`  
+
+On starting client app, client app will prompt below message:
+
+`Please enter SimulationMode: SimpleSimulator or RealSimulator`
+
+Please enter simulation mode as: `RealSimulator`
 
 #### Step 7 - Start Demand generation in PK  
 `cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
@@ -258,6 +275,12 @@ By default the mode is set to simple simulator. Varify and if required Edit and 
 `export PATH=/java-9-home-path-here/bin:$PATH`  
 `cd tcs-vsclice-0.2/mcs/mcs-deploy/target/universal/stage/bin`  
 `./mcs-main-app`  
+
+On starting client app, client app will prompt below message:
+
+`Please enter SimulationMode: SimpleSimulator or RealSimulator`
+
+Please enter simulation mode as: `RealSimulator`
 
 #### Step 7 - Start Demand generation in PK  on Machine-1  
 `cd tcs-vsclice-0.2/pk/pk-deploy/target/universal/stage/bin`  
