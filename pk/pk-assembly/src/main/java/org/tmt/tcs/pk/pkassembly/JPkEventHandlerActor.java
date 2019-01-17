@@ -53,7 +53,7 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
                         message -> {
                             if(this.counterMcs<LIMIT)
                             {
-                                log.info("Inside JPkEventHandlerActor: McsDemandMessage Received");
+                                //log.info("Inside JPkEventHandlerActor: McsDemandMessage Received");
                                 publishMcsDemand(message);
                                 this.counterMcs++;
                             }
@@ -64,7 +64,7 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
                           if(this.counterEnc<LIMIT)
                           {
                               publishEncDemand(message);
-                              log.info("Inside JPkEventHandlerActor: EncDemandMessage Received");
+                              //log.info("Inside JPkEventHandlerActor: EncDemandMessage Received");
                               this.counterEnc++;
                           }
 
@@ -74,7 +74,7 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
                         message -> {
                             if(this.counterM3<LIMIT)
                             {
-                                log.info("Inside JPkEventHandlerActor: M3DemandMessage Received");
+                                //log.info("Inside JPkEventHandlerActor: M3DemandMessage Received");
                                 publishM3Demand(message);
                                 this.counterM3++;
                             }
@@ -87,7 +87,7 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
 
     private void publishMcsDemand(McsDemandMessage message) {
 
-        log.info("Inside JPkEventHandlerActor: Publishing Mcs Demand ");
+       // log.info("Inside JPkEventHandlerActor: Publishing Mcs Demand ");
         Key<Double> azDoubleKey = JKeyType.DoubleKey().make("mcs.az");
         Key<Double> elDoubleKey = JKeyType.DoubleKey().make("mcs.el");
         Key<Instant>  publishTimeKey             = JKeyType.TimestampKey().make("timeStamp");
@@ -100,7 +100,7 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
 
     private void publishEncDemand(EncDemandMessage message) {
 
-        log.info("Inside JPkEventHandlerActor: Publishing Enc Demand ");
+        //log.info("Inside JPkEventHandlerActor: Publishing Enc Demand ");
         Key<Double> baseDoubleKey = JKeyType.DoubleKey().make("ecs.base");
         Key<Double> capDoubleKey = JKeyType.DoubleKey().make("ecs.cap");
 
@@ -112,7 +112,7 @@ public class JPkEventHandlerActor extends AbstractBehavior<JPkEventHandlerActor.
 
     private void publishM3Demand(M3DemandMessage message) {
 
-        log.info("Inside JPkEventHandlerActor: Publishing M3 Demand ");
+        //log.info("Inside JPkEventHandlerActor: Publishing M3 Demand ");
         Key<Double> rotationDoubleKey = JKeyType.DoubleKey().make("m3.rotation");
         Key<Double> tiltDoubleKey = JKeyType.DoubleKey().make("m3.tilt");
 
