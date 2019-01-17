@@ -4,7 +4,7 @@ import org.zeromq.ZMQ
 
 object MCSSubsystem extends App{
 
-  println("Welcome to the MCS Simulator")
+  //println("Welcome to the MCS Simulator")
 
 
   val zmqContext : ZMQ.Context = ZMQ.context(1)
@@ -13,7 +13,7 @@ object MCSSubsystem extends App{
   val config = ConfigFactory.load("Simulator.conf")
   val mcsAddress = config.getString("MCS.Simulator.MCSAddress")
   val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
-  println(s"mcs simulator address is:$mcsAddress and tcs address is:$tcsAddress")
+ // println(s"mcs simulator address is:$mcsAddress and tcs address is:$tcsAddress")
 
   val eventProcessor : EventsProcessor =  EventsProcessor.createEventsProcessor(zmqContext)
 /*  val pubSocketPort : Int = 55580

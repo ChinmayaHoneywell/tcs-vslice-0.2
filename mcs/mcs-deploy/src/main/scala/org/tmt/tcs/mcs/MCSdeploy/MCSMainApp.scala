@@ -14,15 +14,14 @@ object MCSMainApp extends App {
   try {
     val resp0 = mcsDeployer.sendSimulationModeCommand()
     val resp1 = mcsDeployer.sendStartupCommand()
-    mcsDeployer.startSubscribingEvents()
     val resp2 = mcsDeployer.sendDatumCommand()
     val resp3 = mcsDeployer.sendFollowCommand()
   } catch {
     case e: Exception =>
       e.printStackTrace()
   }
-  println(
-    s"=======================================================Command set completed ============================================================================="
-  )
-
+  /* println(
+     s"=======================================================Command set completed ============================================================================="
+   )*/
+  mcsDeployer.startSubscribingEvents()
 }

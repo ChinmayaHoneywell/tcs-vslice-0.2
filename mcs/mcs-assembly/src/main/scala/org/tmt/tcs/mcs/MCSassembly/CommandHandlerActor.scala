@@ -71,7 +71,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
 
   }
   def handleImmediateCommand(msg: ImmediateCommand): Unit = {
-    log.info(s"In CommandHandlerActor processing immediate command : $msg")
+    //  log.info(s"In CommandHandlerActor processing immediate command : $msg")
     msg.controlCommand.commandName.name match {
       case Commands.FOLLOW              => handleFollowCommand(msg)
       case Commands.SET_SIMULATION_MODE => handleSimulationModeCmd(msg)
@@ -95,7 +95,7 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
   }
 
   def handleReadConfCmd(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  ReadConf command to HCD")
+    // log.info(msg = "Sending  ReadConf command to HCD")
     hcdLocation match {
       case Some(commandService) =>
         /*        val responseFuture: Future[CommandResponse.SubmitResponse] = commandService.submit(msg.controlCommand)
@@ -119,12 +119,12 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
     }*/
   }
   def handleShutDownCommand(msg: submitCommandMsg): Unit = {
-    log.info(msg = s"In assembly command Handler Actor submitting shutdown command")
+    //log.info(msg = s"In assembly command Handler Actor submitting shutdown command")
     val setup = Setup(mcsHCDPrefix, CommandName(Commands.SHUTDOWN), msg.controlCommand.maybeObsId)
     hcdLocation match {
       case Some(commandService) =>
         val response = Await.result(commandService.submit(setup), 1.seconds)
-        log.info(msg = s" Result of shutdown command is : $response")
+        //log.info(msg = s" Result of shutdown command is : $response")
         commandResponseManager.addSubCommand(msg.controlCommand.runId, response.runId)
         commandResponseManager.updateSubCommand(response)
       case None => log.error(msg = s" Error in finding HCD instance ")
@@ -135,13 +135,13 @@ case class CommandHandlerActor(ctx: ActorContext[CommandMessage],
       case Some(commandService: CommandService) =>
         val response = Await.result(commandService.submit(msg.controlCommand), 10.seconds)
         commandResponseManager.addOrUpdateCommand(response)
-        log.info(msg = s"Successfully updated status of startup command in commandResponseManager : $response")
+      //log.info(msg = s"Successfully updated status of startup command in commandResponseManager : $response")
       case None => log.error(msg = s" Error in finding HCD instance while submitting startup command to HCD ")
     }
   }
 
   def handleDatumCommand(msg: submitCommandMsg) = {
-    log.info(msg = "Sending  Datum command to DatumCommandActor")
+    //  log.info(msg = "Sending  Datum command to DatumCommandActor")
     val datumCommandActor: ActorRef[ControlCommand] =
       ctx.spawn(DatumCommandActor.createObject(commandResponseManager, hcdLocation, loggerFactory), "DatumCommandActor")
     datumCommandActor ! msg.controlCommand

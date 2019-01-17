@@ -42,14 +42,14 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     val pubSocketPort = config.getInt("MCS.Simulator.pubSocket")
     val pubSocketAddr = mcsAddress + pubSocketPort
     pubSocket.bind(pubSocketAddr)
-    println(s"MCS Simulator  is publishing events on : $pubSocketAddr")
+    //println(s"MCS Simulator  is publishing events on : $pubSocketAddr")
 
     val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
     val subSocketPort = config.getInt("MCS.Simulator.subSocket")
     val subSocketAddr = tcsAddress + subSocketPort
     subSocket.connect(subSocketAddr)
     subSocket.subscribe(ZMQ.SUBSCRIPTION_ALL)
-    println(s"MCS Simulator is subscribing on : $subSocketAddr")
+    //println(s"MCS Simulator is subscribing on : $subSocketAddr")
 
   }
 /*  def initialize(addr: String, pubSocketPort : Int, subSocketPort : Int) : Unit = {
@@ -79,15 +79,15 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
   def updateCurrPosPublisher(value : Boolean): Unit = {
     this.currentPosPublisher.set(value)
-    println(s"Updating CurrentPosition to : ${this.currentPosPublisher.get()}")
+    //println(s"Updating CurrentPosition to : ${this.currentPosPublisher.get()}")
   }
   def updateHealthPublisher(value : Boolean) : Unit = {
     this.healthPublisher.set(value)
-    println(s"health publisher value is : ${this.currentPosPublisher.get()}")
+    //println(s"health publisher value is : ${this.currentPosPublisher.get()}")
   }
   def updatePosDemandSubscriber(value : Boolean): Unit = {
     this.posDemandSubScriber.set(value)
-    println(s"PosDemand subscriber value is : ${this.posDemandSubScriber.get()}")
+    //println(s"PosDemand subscriber value is : ${this.posDemandSubScriber.get()}")
   }
   val logFilePath : String = System.getenv("LogFiles")
 
@@ -151,15 +151,15 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
             if(pubSocket.send(currPos)){
               //println(s"Successfully published CurrentPosition event data ${mcsCurrentPosition.getAzPos},${mcsCurrentPosition.getElPos},${mcsCurrentPosition.getTime} and byteArray: $currPos")
             }else{
-              println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
+              //println(s"!!!!!!!! Error occured while publishing current position : $mcsCurrentPosition")
             }
           }else{
-            println(s"!!!!!!!! Error occured while publishing current position: $mcsCurrentPosition")
+            //println(s"!!!!!!!! Error occured while publishing current position: $mcsCurrentPosition")
           }
         }catch{
           case e : Exception =>
             e.printStackTrace()
-            println("------------------- Exception occured while publishing current position event.---------------------------")
+            //println("------------------- Exception occured while publishing current position event.---------------------------")
         }
        }
     }
@@ -275,52 +275,44 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
 
           demandBuffer += DemandPosHolder(tpkPublishTimeInstant,assemblyRecTimeInstant,hcdRecTimeInstant,simulatorRecTime)
 
-         /* val sb = new StringBuilder(s"${getDate(tpkPublishTimeInstant).trim}")
-          sb.append(",").append(s"${getDate(assemblyRecTimeInstant).trim}").append(",").append(s"${getDate(hcdRecTimeInstant).trim}")
-            .append(",").append(s"${getDate(simulatorRecTime).trim}")*/
-
           if(demandCounter == 100000 && !fileWritten){
             println("Successfully subscribed 1,00,000 demands")
             try{
-              updateCurrPosPublisher(false)
-
               val demandPosLogFile: File = new File(logFilePath+"/PosDemRealLogs_" + System.currentTimeMillis() + ".txt")
               val fileCreated: Boolean = demandPosLogFile.createNewFile()
-              println(s"File $demandPosLogFile create success : $fileCreated, its path is ${demandPosLogFile.getAbsolutePath}")
+             // println(s"File $demandPosLogFile create success : $fileCreated, its path is ${demandPosLogFile.getAbsolutePath}")
 
               val printStream: PrintStream = new PrintStream(new FileOutputStream(demandPosLogFile),true)
-              println("Started writing to position demands file.")
+              //println("Started writing to position demands file.")
               printStream.println("PK publish timeStamp(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
                 "PK to Assembly(t1-t0),Assembly to HCD(t2-t1),HCD to Simulator(t3-t2),Pk to simulator total time(t3-t0)")
               val demandList = demandBuffer.toList
               demandList.foreach(cp=>{
-                val pkToAssembly: Double            = Duration.between(cp.pkPublishTime, cp.assemblyRecTime).toNanos / 1000
-                val assemblyToHCD: Double       = Duration.between(cp.assemblyRecTime, cp.hcdRecTime).toNanos / 1000
-                val hcdToSim: Double = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos / 1000
-                val pkToSim: Double      = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos / 1000
+                val pkToAssembly: Double            = Duration.between(cp.pkPublishTime, cp.assemblyRecTime).toNanos.toDouble / 1000000
+                val assemblyToHCD: Double       = Duration.between(cp.assemblyRecTime, cp.hcdRecTime).toNanos.toDouble / 1000000
+                val hcdToSim: Double = Duration.between(cp.hcdRecTime, cp.simRecTime).toNanos.toDouble / 1000000
+                val pkToSim: Double      = Duration.between(cp.pkPublishTime, cp.simRecTime).toNanos.toDouble / 1000000
 
                 val str = s"${getDate(cp.pkPublishTime).trim},${getDate(cp.assemblyRecTime).trim}," +
                   s"${getDate(cp.hcdRecTime).trim},${getDate(cp.simRecTime).trim},${pkToAssembly.toString.trim}," +
                   s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${pkToSim.toString.trim}"
                printStream.println(str)
-                println(s"written record : $str")
             })
         	    printStream.flush()
               printStream.close()
-              println("Successfully subscribed 1,00,000 demands and file written successfully.")
               Thread.sleep(1000)
-              Thread.currentThread().join()
+              println(s"Successfully subscribed 1,00,000 demands and written to file: ${demandPosLogFile.getAbsolutePath}")
             }catch{
              case e : Exception => println("Exception occured while writing to file")
                 e.printStackTrace()
             }
             fileWritten = true
           }else{
-            println(s"Still subscribing demands: $demandCounter")
+            //println(s"$demandCounter")
           }
 
         }else{
-          println("Didn't get any position demands yet.")
+          //println("Didn't get any position demands yet.")
         }
       }
     }

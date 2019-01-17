@@ -32,18 +32,18 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
   this.cmdPrintStream.println("RealSimRecvTimeStamp")*/
 
   def initialize(config : Config): Unit = {
-    println("Initializing MCS subsystem ZeroMQ command Processor")
+   // println("Initializing MCS subsystem ZeroMQ command Processor")
    
     val tcsAddress = config.getString("MCS.Simulator.TCSAddress")
     val pullSocketPort = config.getInt("MCS.Simulator.pullSocket")
     val pullSocketAddr = tcsAddress + pullSocketPort
-    println(s"pull socket address is  :$pullSocketAddr")
+   // println(s"pull socket address is  :$pullSocketAddr")
     pullSocket.connect(pullSocketAddr)
 
     val mcsAddress = config.getString("MCS.Simulator.MCSAddress")   
     val pushSocketPort = config.getInt("MCS.Simulator.pushSocket")
     val pushSocketAddr = mcsAddress + pushSocketPort
-    println(s"push socket address is : $pushSocketAddr")
+    //println(s"push socket address is : $pushSocketAddr")
     pushSocket.bind(pushSocketAddr)
   }
 
@@ -60,19 +60,19 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
     pushSocket.bind(pushSocketAddr)
   }*/
   def processCommand(): Unit = {
-    println("Process Command Thread Started")
+    //println("Process Command Thread Started")
     while(true){
       val commandName: String = pullSocket.recvStr()
-      println(s"Received command is : $commandName")
+      //println(s"Received command is : $commandName")
       if(commandName != null ){
         updateSimulator(commandName)
         val commandData: Array[Byte] = pullSocket.recv(ZMQ.DONTWAIT)
         if (pushSocket.sendMore(commandName)) {
           val commandResponse: MCSCommandResponse = getCommandResponse
-          println(s"$commandName command response is : $commandResponse")
+         // println(s"$commandName command response is : $commandResponse")
           pushSocket.send(commandResponse.toByteArray,ZMQ.NOBLOCK)
         }else{
-          println(s"Unable to send response for command: $commandName")
+          //println(s"Unable to send response for command: $commandName")
         }
         if(commandName == "PointDemand"){
             val pointDemand : PointDemandCommand = PointDemandCommand.parseFrom(commandData)
@@ -80,7 +80,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
             elDemanded = pointDemand.getEL
           }
       }else{
-        println("Didn't get any command to process")
+       // println("Didn't get any command to process")
       }
     }
  }
@@ -100,7 +100,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
       commandName match {
         case "ReadConfiguration" =>
         //  this.cmdPrintStream.println(getDate(Instant.now()).trim)
-          println(s"Received command : $commandName")
+          //println(s"Received command : $commandName")
         case "Startup" =>
           eventProcessor.startEventProcessor()
 
@@ -108,9 +108,9 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
           eventProcessor.updateCurrPosPublisher(false)
           eventProcessor.updateHealthPublisher(false)
           eventProcessor.updatePosDemandSubscriber(false)
-          println("Updating current position publisher and health publisher to false")
+          //println("Updating current position publisher and health publisher to false")
         case _=>
-          println("Not changing publisher thread state")
+         // println("Not changing publisher thread state")
       }
   }
 
