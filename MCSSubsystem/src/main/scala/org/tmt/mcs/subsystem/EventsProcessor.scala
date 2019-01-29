@@ -165,7 +165,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
 
-  def startPublishingDriveState() : Unit = {
+  /*def startPublishingDriveState() : Unit = {
     //println("Publish Drive State Thread started")
     while(true) {
       Thread.sleep(1000)
@@ -181,7 +181,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
         pubSocket.send(driveStatus.toByteArray,ZMQ.NOBLOCK)
       }
     }
-  }
+  }*/
 /*  def startPublishingDiagnosis() : Unit = {
     //println("Publish Diagnosis Thread STarted")
     while(true) {
