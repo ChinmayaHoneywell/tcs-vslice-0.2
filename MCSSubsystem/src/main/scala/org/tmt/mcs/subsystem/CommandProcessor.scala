@@ -106,7 +106,7 @@ case class CommandProcessor(zmqContext : ZMQ.Context, eventProcessor : EventsPro
 
         case "ShutDown" =>
           eventProcessor.updateCurrPosPublisher(false)
-          eventProcessor.updateHealthPublisher(false)
+          //eventProcessor.updateHealthPublisher(false)
           eventProcessor.updatePosDemandSubscriber(false)
           //println("Updating current position publisher and health publisher to false")
         case _=>
