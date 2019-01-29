@@ -81,10 +81,10 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     this.currentPosPublisher.set(value)
     //println(s"Updating CurrentPosition to : ${this.currentPosPublisher.get()}")
   }
-  def updateHealthPublisher(value : Boolean) : Unit = {
+  /*def updateHealthPublisher(value : Boolean) : Unit = {
     this.healthPublisher.set(value)
     //println(s"health publisher value is : ${this.currentPosPublisher.get()}")
-  }
+  }*/
   def updatePosDemandSubscriber(value : Boolean): Unit = {
     this.posDemandSubScriber.set(value)
     //println(s"PosDemand subscriber value is : ${this.posDemandSubScriber.get()}")
