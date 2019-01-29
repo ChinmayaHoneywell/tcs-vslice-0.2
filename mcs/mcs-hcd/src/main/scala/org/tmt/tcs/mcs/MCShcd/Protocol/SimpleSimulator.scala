@@ -62,7 +62,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
   val MAX_EL_POS: Double = 93
 
   val currentPosPublisher: AtomicBoolean = new AtomicBoolean(true)
-  val healthPublisher: AtomicBoolean     = new AtomicBoolean(true)
+  // val healthPublisher: AtomicBoolean     = new AtomicBoolean(true)
   val posDemandSubScriber: AtomicBoolean = new AtomicBoolean(true)
 
   val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
@@ -254,11 +254,11 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
       //this.cmdPrintStream.println(getDate(Instant.now()).trim)
       case Commands.STARTUP =>
         startPublishingCurrPos()
-        startPublishingHealth()
+        // startPublishingHealth()
         log.info("Starting publish current position and health threads")
       case Commands.SHUTDOWN =>
         updateCurrPosPublisher(false)
-        updateHealthPublisher(false)
+        // updateHealthPublisher(false)
         this.scheduler.shutdown()
         log.info("Updating current position publisher and health publisher to false")
       case _ =>
@@ -269,10 +269,12 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
     this.currentPosPublisher.set(value)
     // println(s"Updating CurrentPosition publisher to : $value")
   }
+  /*
   def updateHealthPublisher(value: Boolean): Unit = {
     this.healthPublisher.set(value)
     //println(s"Updating Health publisher to : ${this.healthPublisher.get()}")
   }
+   */
 
   val currentPosRunner = new Runnable {
     override def run(): Unit = {
@@ -335,7 +337,7 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
   }
 
   def startPublishingCurrPos(): Unit = scheduler.scheduleWithFixedDelay(currentPosRunner, 10, 10, TimeUnit.MILLISECONDS)
-
+  /*
   val healthRunner = new Runnable {
     override def run(): Unit = {
       if (healthPublisher.get()) {
@@ -351,6 +353,6 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         statePublisherActor ! PublishState(currentState)
       }
     }
-  }
-  def startPublishingHealth(): Unit = scheduler.scheduleWithFixedDelay(healthRunner, 1000, 1000, TimeUnit.MILLISECONDS)
+  }*/
+  //def startPublishingHealth(): Unit = scheduler.scheduleWithFixedDelay(healthRunner, 1000, 1000, TimeUnit.MILLISECONDS)
 }

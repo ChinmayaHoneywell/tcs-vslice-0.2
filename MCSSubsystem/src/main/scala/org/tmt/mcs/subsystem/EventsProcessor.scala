@@ -165,7 +165,7 @@ case class EventsProcessor(zmqContext : ZMQ.Context) {
     }
   }
 
- /* def startPublishingDriveState() : Unit = {
+  /*def startPublishingDriveState() : Unit = {
     //println("Publish Drive State Thread started")
     while(true) {
       Thread.sleep(1000)
