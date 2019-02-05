@@ -1,0 +1,25 @@
+[root@localhost ptpd-2.3.1]# timedatectl set-ntp on
+[root@localhost ptpd-2.3.1]# ls
+aclocal.m4  ChangeLog  config.h.in  config.status  configure.ac  doc      libtool  Makefile     Makefile.in   README  stamp-h1  tools
+build-aux   config.h   config.log   configure      COPYRIGHT     INSTALL  m4       Makefile.am  packagebuild  src     test
+[root@localhost ptpd-2.3.1]# ls test/
+client-e2e-8023.conf  client-e2e-pcap.conf  client-e2e-socket.conf  testing.org
+[root@localhost ptpd-2.3.1]# ptpd2 -C -V -c test/client-e2e-socket.conf 
+Warning: global:foreground="N" : setting will be overwritten with value "Y" from command line
+Warning: global:verbose_foreground="N" : setting will be overwritten with value "Y" from command line
+2019-02-04 15:53:23.439423 ptpd2[8032].startup (warning)   (___) Unknown configuration entry: ptpengine:announce_timeout - setting will be ignored
+2019-02-04 15:53:23.439516 ptpd2[8032].startup (warning)   (___) Unknown configuration entry: ptpengine:announce_timeout_grace_period - setting will be ignored
+2019-02-04 15:53:23.439596 ptpd2[8032].startup (warning)   (___) Unknown configuration entry: ptpengine:pid_as_clock_idendity - setting will be ignored
+2019-02-04 15:53:23.439678 ptpd2[8032].startup (info)      (___) Configuration OK
+2019-02-04 15:53:23.440224 ptpd2[8032].startup (info)      (___) Successfully acquired lock on /var/run/ptpd2.lock
+2019-02-04 15:53:23.440482 ptpd2[8032].startup (notice)    (___) PTPDv2 started successfully on eno1 using "masteronly" preset (PID 8032)
+2019-02-04 15:53:23.440561 ptpd2[8032].startup (info)      (___) TimingService.PTP0: PTP service init
+# Timestamp, State, Clock ID, One Way Delay, Offset From Master, Slave to Master, Master to Slave, Observed Drift, Last packet Received, One Way Delay Mean, One Way Delay Std Dev, Offset From Master Mean, Offset From Master Std Dev, Observed Drift Mean, Observed Drift Std Dev, raw delayMS, raw delaySM
+2019-02-04 15:53:23.440649, init, 
+2019-02-04 15:53:23.542207 ptpd2[8032].eno1 (notice)    (lstn_init) Now in state: PTP_LISTENING
+2019-02-04 15:53:23.542290, lstn_init,  1 
+2019-02-04 15:53:33.440663 ptpd2[8032].eno1 (notice)    (lstn_init) TimingService.PTP0: elected best TimingService
+2019-02-04 15:53:33.440727 ptpd2[8032].eno1 (info)      (lstn_init) TimingService.PTP0: acquired clock control
+2019-02-04 15:53:35.542395 ptpd2[8032].eno1 (notice)    (mst) Now in state: PTP_MASTER, Best master: 480fcffffe5b9d33(unknown)/1 (self)
+2019-02-04 15:53:35.542475, mst, 480fcffffe5b9d33(unknown)/1
+
