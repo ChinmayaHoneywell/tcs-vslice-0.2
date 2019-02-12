@@ -27,12 +27,14 @@ import scala.collection.mutable.ListBuffer
 
 sealed trait SimpleSimMsg
 object SimpleSimMsg {
-  case class ProcessCommand(command: ControlCommand)                                extends SimpleSimMsg
-  case class ProcessImmCmd(command: ControlCommand, sender: ActorRef[SimpleSimMsg]) extends SimpleSimMsg
-  case class ImmCmdResp(commandResponse: SubmitResponse)                            extends SimpleSimMsg
-  case class ProcEventDemand(event: SystemEvent)                                    extends SimpleSimMsg
-  case class ProcOneWayDemand(command: ControlCommand)                              extends SimpleSimMsg
-  case class ProcCurrStateDemand(currState: CurrentState)                           extends SimpleSimMsg
+  case class ProcessCommand(command: ControlCommand)                                     extends SimpleSimMsg
+  case class ProcessImmCmd(command: ControlCommand, sender: ActorRef[SimpleSimMsg])      extends SimpleSimMsg
+  case class ImmCmdResp(commandResponse: SubmitResponse)                                 extends SimpleSimMsg
+  case class ProcEventDemand(event: SystemEvent)                                         extends SimpleSimMsg
+  case class ProcOneWayDemand(command: ControlCommand)                                   extends SimpleSimMsg
+  case class ProcCurrStateDemand(currState: CurrentState)                                extends SimpleSimMsg
+  case class ReadConfCmd(controlCommand: ControlCommand, sender: ActorRef[SimpleSimMsg]) extends SimpleSimMsg
+  case class ReadConfResp(commandResponse: SubmitResponse)                               extends SimpleSimMsg
 }
 
 object SimpleSimulator {
@@ -44,6 +46,7 @@ object SimpleSimulator {
     )
 }
 case class DemandPosHolder(pkPublishTime: Instant, assemblyRecTime: Instant, hcdRecTime: Instant, simRecTime: Instant)
+case class CmdHolder(clientAppSentTime: Instant, assemblyRecTime: Instant, hcdRecTime: Instant, simRecTime: Instant)
 case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
                            commandResponseManager: CommandResponseManager,
                            loggerFactory: LoggerFactory,
@@ -67,20 +70,16 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
 
   val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
   val logFilePath: String                 = System.getenv("LogFiles")
-  /*
 
-  val simpleSimCmdFile: File = new File(logFilePath + "/Cmd_SimpleSim" + System.currentTimeMillis() + "_.txt")
-  simpleSimCmdFile.createNewFile()
-  var cmdCounter: Long            = 0
-  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(simpleSimCmdFile))
-  this.cmdPrintStream.println("SimpleSimReceiveTimeStamp")
-   */
   def getDate(instant: Instant): String =
     LocalDateTime.ofInstant(instant, ZoneId.of(Commands.zoneFormat)).format(Commands.formatter)
 
-  var demandCounter       = 0
-  val demandBuffer        = new ListBuffer[DemandPosHolder]()
-  var fileUpdate: Boolean = false
+  var demandCounter          = 0
+  val demandBuffer           = new ListBuffer[DemandPosHolder]()
+  var fileUpdate: Boolean    = false
+  var cmdCounter             = 0
+  val cmdBuffer              = new ListBuffer[CmdHolder]()
+  var cmdFileUpdate: Boolean = false
 
   override def onMessage(msg: SimpleSimMsg): Behavior[SimpleSimMsg] = {
     msg match {
@@ -90,6 +89,35 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         Behavior.same
       case msg: ProcessImmCmd =>
         msg.sender ! ImmCmdResp(CommandResponse.Completed(msg.command.runId))
+        Behavior.same
+      case msg: ReadConfCmd =>
+        msg.sender ! ReadConfResp(CommandResponse.Completed(msg.controlCommand.runId))
+        cmdCounter = cmdCounter + 1
+        log.info(s"cmd counter is: $cmdCounter")
+        if (cmdCounter == 100 && !cmdFileUpdate) {
+          writeCmdDataToFile
+          cmdFileUpdate = true
+        } else {
+          val simRecTime                      = Instant.now()
+          val command                         = msg.controlCommand
+          val clientAppSentTime: Parameter[_] = command.paramSet.find(msg => msg.keyName == "ClientAppSentTime").get
+          val assemblyRecvTime: Parameter[_]  = command.paramSet.find(msg => msg.keyName == "AssemblyCmdRecTime").get
+          val hcdRecvTime: Parameter[_]       = command.paramSet.find(msg => msg.keyName == "HCDCmdRecTime").get
+          var clientAppInstant: Instant       = null
+          var assemblyRecInstant: Instant     = null
+          var hcdRecvTimeInstant: Instant     = null
+          clientAppSentTime.head match {
+            case x: Instant => clientAppInstant = x
+          }
+          assemblyRecvTime.head match {
+            case x: Instant => assemblyRecInstant = x
+          }
+          hcdRecvTime.head match {
+            case x: Instant => hcdRecvTimeInstant = x
+          }
+          cmdBuffer += CmdHolder(clientAppInstant, assemblyRecInstant, hcdRecvTimeInstant, simRecTime)
+        }
+
         Behavior.same
       case msg: ProcOneWayDemand =>
         val simulatorRecTime                    = Instant.now()
@@ -169,7 +197,31 @@ case class SimpleSimulator(ctx: ActorContext[SimpleSimMsg],
         Behavior.same
     }
   }
+  private def writeCmdDataToFile: Unit = {
+    val cmdLogFile: File          = new File(logFilePath + "/ReadConfSimple_" + System.currentTimeMillis() + ".txt")
+    val isCmdFileCreated: Boolean = cmdLogFile.createNewFile()
+    log.error(s"Command log file created ?: $isCmdFileCreated")
+    val printStream: PrintStream = new PrintStream(new FileOutputStream(cmdLogFile), true)
+    printStream.println(
+      "ClientAppSentTime(t0),Assembly receive timeStamp(t1),HCD receive timeStamp(t2),Simulator receive timeStamp(t3)," +
+      "ClientApp to AssemblyTime(t1-t0),Assembly to HCDTime(t2-t0),HCD to SimulatorTime(t3-t2),ClientApp to simulator totalTime(t3-t0)"
+    )
+    val cmdList = cmdBuffer.toList
+    cmdList.foreach(cmd => {
+      val clientAppToAssembly: Double = Duration.between(cmd.clientAppSentTime, cmd.assemblyRecTime).toNanos.toDouble / 1000000
+      val assemblyToHCD: Double       = Duration.between(cmd.assemblyRecTime, cmd.hcdRecTime).toNanos.toDouble / 1000000
+      val hcdToSim: Double            = Duration.between(cmd.hcdRecTime, cmd.simRecTime).toNanos.toDouble / 1000000
+      val clientAppToSim: Double      = Duration.between(cmd.clientAppSentTime, cmd.simRecTime).toNanos.toDouble / 1000000
 
+      val str: String = s"${getDate(cmd.clientAppSentTime).trim},${getDate(cmd.assemblyRecTime).trim}," +
+      s"${getDate(cmd.hcdRecTime).trim},${getDate(cmd.simRecTime).trim},${clientAppToAssembly.toString.trim}," +
+      s"${assemblyToHCD.toString.trim},${hcdToSim.toString.trim},${clientAppToSim.toString.trim}"
+      printStream.println(str)
+    })
+    printStream.flush()
+    printStream.close()
+    log.error(s"Successfully written data to file: ${cmdLogFile.getAbsolutePath}")
+  }
   private def writeCurrentStatesDataToFile = {
     val demandPosLogFile: File    = new File(logFilePath + "/PosDemEventSimpleLog_" + System.currentTimeMillis() + ".txt")
     val isDemFileCreated: Boolean = demandPosLogFile.createNewFile()

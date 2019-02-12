@@ -14,6 +14,7 @@ import csw.params.commands.{CommandResponse, ControlCommand}
 import csw.params.core.models.Id
 import csw.params.core.states.CurrentState
 import csw.params.events.SystemEvent
+import io.aeron.driver.Sender
 import org.tmt.tcs.mcs.MCShcd.EventMessage
 import org.tmt.tcs.mcs.MCShcd.EventMessage.PublishState
 import org.tmt.tcs.mcs.MCShcd.Protocol.ZeroMQMessage._
@@ -25,11 +26,13 @@ object ZeroMQMessage {
 
   case class InitializeSimulator(sender: ActorRef[ZeroMQMessage], config: Config) extends ZeroMQMessage
 
-  case class SubmitCommand(controlCommand: ControlCommand)                                 extends ZeroMQMessage
-  case class ImmediateCmd(controlCommand: ControlCommand, sender: ActorRef[ZeroMQMessage]) extends ZeroMQMessage
-  case class ImmediateCmdResp(commandResponse: SubmitResponse)                             extends ZeroMQMessage
-  case class PublishEvent(event: SystemEvent)                                              extends ZeroMQMessage
-  case class StartSimulEventSubscr()                                                       extends ZeroMQMessage
+  case class SubmitCommand(controlCommand: ControlCommand)                                    extends ZeroMQMessage
+  case class ImmediateCmd(controlCommand: ControlCommand, sender: ActorRef[ZeroMQMessage])    extends ZeroMQMessage
+  case class ImmediateCmdResp(commandResponse: SubmitResponse)                                extends ZeroMQMessage
+  case class ReadConfRealCmd(controlCommand: ControlCommand, sender: ActorRef[ZeroMQMessage]) extends ZeroMQMessage
+  case class ReadConfRealCmdResp(commandResponse: SubmitResponse)                             extends ZeroMQMessage
+  case class PublishEvent(event: SystemEvent)                                                 extends ZeroMQMessage
+  case class StartSimulEventSubscr()                                                          extends ZeroMQMessage
 
   case class SimulatorConnResponse(connected: Boolean)            extends ZeroMQMessage
   case class Disconnect()                                         extends ZeroMQMessage

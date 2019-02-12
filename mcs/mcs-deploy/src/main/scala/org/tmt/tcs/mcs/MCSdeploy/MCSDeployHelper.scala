@@ -5,6 +5,9 @@ import java.net.InetAddress
 import java.time.{Instant, LocalDateTime, ZoneId}
 import java.time.format.DateTimeFormatter
 import java.time.Duration
+import java.util.concurrent.{Executors, ScheduledExecutorService}
+import java.util.concurrent.atomic.AtomicBoolean
+
 import akka.actor.{typed, ActorRefFactory, ActorSystem, Scheduler}
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
@@ -34,10 +37,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, ExecutionContext, Future}
 
+case class CurrentPosHolder(simPublishTime: Instant, hcdRecTime: Instant, assemblyRecTime: Instant, clientAppRecTime: Instant)
 object MCSDeployHelper {
   def create(simulatorMode: String): MCSDeployHelper = MCSDeployHelper(simulatorMode)
 }
-case class CurrentPosHolder(simPublishTime: Instant, hcdRecTime: Instant, assemblyRecTime: Instant, clientAppRecTime: Instant)
 case class MCSDeployHelper(simulatorMode: String) {
 
   private val system: ActorSystem     = ActorSystemFactory.remote("Client-App")
@@ -79,29 +82,12 @@ case class MCSDeployHelper(simulatorMode: String) {
   // val resp4 = Await.result(sendMoveCommand, 250.seconds)
   //println(s"Move command response is : $resp4 at : ${System.currentTimeMillis()}")
 
-  /* var dummyImmCmd: Long = System.currentTimeMillis()
-  val resp5             = Await.result(sendDummyImmediateCommand(), 10.seconds)
-  println(s"Dummy immediate command Response is : $resp5 total time taken is : ${System.currentTimeMillis() - dummyImmCmd}")
-
-  var dummyLongCmd: Long = System.currentTimeMillis()
-  val resp6              = Await.result(sendDummyLongCommand(), 50.seconds)
-  println(s"Dummy Long Command Response is : $resp6 total time taken is : ${System.currentTimeMillis() - dummyLongCmd}")*/
-
   /*var shutdownCmd: Long = System.currentTimeMillis()
   val resp7             = Await.result(sendShutDownCmd, 30.seconds)
   println(s"Shutdown Command Response is : ${resp7} total time taken is : ${System.currentTimeMillis() - shutdownCmd}")*/
 
   val logFilePath: String = System.getenv("LogFiles")
-
   // Below commented code is for writing command related things
-  /*
-  val clientAppCmdFile: File = new File(logFilePath + "/ClientAppCmdTime_" + System.currentTimeMillis() + "_.txt")
-  clientAppCmdFile.createNewFile()
-  var cmdCounter: Long            = 0
-  val cmdPrintStream: PrintStream = new PrintStream(new FileOutputStream(clientAppCmdFile))
-  this.cmdPrintStream.println("ClientApp cmd Name,clientApp Publish Timestamp")
-  sendReadConfCommand()
-   */
 
   def sendDummyImmediateCommand()(implicit ec: ExecutionContext): Future[CommandResponse] = {
     val dummyImmediate = Setup(prefix, CommandName("DummyImmediate"), None)
@@ -198,29 +184,7 @@ case class MCSDeployHelper(simulatorMode: String) {
 
   var fileBuilt: Boolean = false
   //Below commented code is for sending read conf command
-  /*  def sendReadConfCommand()(implicit ec: ExecutionContext): Unit = {
-    val commandService    = getAssembly
-    val clientLogFilePath = clientAppCmdFile.getPath
-    println(s"cmd log file path is : $clientLogFilePath")
-    while (cmdCounter <= 100000000) {
-      cmdCounter = cmdCounter + 1
-      val setup                                              = Setup(prefix, CommandName(DeployConstants.READ_CONFIGURATION), None)
-      val readConfSentTime                                   = getDate()
-      val respFuture: Future[CommandResponse.SubmitResponse] = commandService.submit(setup)
-      respFuture.onComplete {
-        case Success(resp) => println(s"Response for command: ${setup.commandName.name + "_" + cmdCounter} is $resp")
-        case Failure(e) =>
-          println(s"Error occured while getting response for command : ${setup.commandName.name + "_" + cmdCounter}")
-          e.printStackTrace()
-      }
-      this.cmdPrintStream.println(s"${setup.commandName.name},$readConfSentTime")
-      /*val response         = Await.result(commandService.submit(setup), 10.seconds)
-      val cmdName          = setup.commandName.name + "_" + cmdCounter
-      println(s"Response for command : $cmdName is $response")*/
 
-    }
-    println("Successfully sent 10,00,00,000 commands to assembly stopped sending commands now.")
-  }*/
   def getDate(): String =
     LocalDateTime.ofInstant(Instant.now(), ZoneId.of(DeployConstants.zoneFormat)).format(DeployConstants.formatter)
 
