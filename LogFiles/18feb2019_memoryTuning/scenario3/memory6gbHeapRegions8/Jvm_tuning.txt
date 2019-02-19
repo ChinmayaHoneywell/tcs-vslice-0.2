@@ -1,0 +1,2 @@
+./mcs-container-cmd-app -J-XX:+DisableExplicitGC -J-XX:+PrintGCDetails -J-XX:G1HeapRegionSize=8 -J-XX:+UseLargePages -J-XX:+UnlockExperimentalVMOptions -J-Xloggc:gclog.log -J-XX:G1NewSizePercent=10 -J-XX:G1MaxNewSizePercent=75 -J-Xmx6g --local ../../../../src/main/resources/McsContainer.conf
+
