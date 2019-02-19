@@ -1,0 +1,3 @@
+heap size = 4gb
+new size perc = 10
+max new size perc = 75
