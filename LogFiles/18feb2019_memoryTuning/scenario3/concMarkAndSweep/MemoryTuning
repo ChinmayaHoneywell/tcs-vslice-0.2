@@ -1,0 +1,1 @@
+./mcs-container-cmd-app -J-XX:+DisableExplicitGC -J-XX:+PrintGCDetails  -J-XX:+UseConcMarkSweepGC -J-Xloggc:gclog.log  -J-Xmx4g --local ../../../../src/main/resources/McsContainer.conf
