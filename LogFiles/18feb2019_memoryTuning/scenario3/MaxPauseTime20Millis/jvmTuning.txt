@@ -1,2 +1,0 @@
-heap size set to 4gb
-maxPauseTimeMillis=20millis
