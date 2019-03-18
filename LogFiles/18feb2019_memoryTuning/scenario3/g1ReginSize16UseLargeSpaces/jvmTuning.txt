@@ -1,5 +1,0 @@
-jvm heap sizze = 4gb
-useLargeSizePages
-g1ReginSize = 16
-new size perc = 10
-max new size perc = 75
